@@ -8,7 +8,7 @@ const MoveReservationsBatchModal = ({ open, onClose, trips, onMove, selectedRese
 
     useEffect(() => {
         if (selectedTrip) {
-            fetch(`http://192.168.1.10:3000/reservations/trip/${selectedTrip}`)
+            fetch(`http://192.168.1.18:3000/reservations/trip/${selectedTrip}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && Array.isArray(data.freeSeats)) {

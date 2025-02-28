@@ -19,7 +19,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             const formattedDate = moment(date).format("YYYY-MM-DD");
     
             // Buscar autocarros disponíveis
-            fetch(`http://192.168.1.10:3000/buses/available?date=${formattedDate}`)
+            fetch(`http://192.168.1.18:3000/buses/available?date=${formattedDate}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log("📥 Resposta da API (buses disponíveis):", data);
@@ -33,7 +33,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                 });
 
             // Buscar cidades
-            fetch(`http://192.168.1.10:3000/cities`)
+            fetch(`http://192.168.1.18:3000/cities`)
                 .then(response => response.json())
                 .then(data => {
                     console.log("📥 Resposta da API (cidades disponíveis):", data);
@@ -63,7 +63,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
         };
     
         try {
-            const response = await fetch("http://192.168.1.10:3000/trips/create", {
+            const response = await fetch("http://192.168.1.18:3000/trips/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newTrip),

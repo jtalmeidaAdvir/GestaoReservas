@@ -8,7 +8,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     // Buscar autocarros disponíveis ao abrir o modal
     useEffect(() => {
         if (open) {
-            fetch(`http://192.168.1.10:3000/buses/available?date=${dataviagem}`)
+            fetch(`http://192.168.1.18:3000/buses/available?date=${dataviagem}`)
                 .then((response) => response.json())
                 .then((buses) => setAvailableBuses(buses))
                 .catch((error) => console.error("Erro ao buscar autocarros disponíveis:", error));
@@ -19,7 +19,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
         if (!busId) return;
 
         try {
-            const response = await fetch(`http://192.168.1.10:3000/buses/${tripId}/bus`, {
+            const response = await fetch(`http://192.168.1.18:3000/buses/${tripId}/bus`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ busId }),

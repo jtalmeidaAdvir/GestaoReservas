@@ -13,7 +13,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
         if (open && tripId) {
             console.log("Fetching data for trip ID:", tripId);
 
-            fetch(`http://192.168.1.10:3000/trips/${tripId}/available-seats`)
+            fetch(`http://192.168.1.18:3000/trips/${tripId}/available-seats`)
                 .then(res => res.json())
                 .then(data => {
                     console.log("Lugares disponíveis:", data);
@@ -21,7 +21,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
                 })
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
 
-            fetch(`http://192.168.1.10:3000/trips/trip/${tripId}`)
+            fetch(`http://192.168.1.18:3000/trips/trip/${tripId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.trip) {

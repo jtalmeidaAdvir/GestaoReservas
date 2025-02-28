@@ -31,7 +31,7 @@ const Agenda = () => {
     useEffect(() => {
         const fetchTripsSummary = async () => {
             try {
-                const response = await fetch("http://192.168.1.10:3000/trips/summary");
+                const response = await fetch("http://192.168.1.18:3000/trips/summary");
                 const data = await response.json();
 
                 console.log("📅 Dados recebidos no frontend:", data);
@@ -82,7 +82,7 @@ const handleSearch = async () => {
 
         try {
             const response = await fetch(
-                `http://192.168.1.10:3000/reservations/by-reserva/${searchTerm}`
+                `http://192.168.1.18:3000/reservations/by-reserva/${searchTerm}`
             );
             const reservation = await response.json();
 
@@ -120,7 +120,7 @@ const handleSearchPassengerName = async () => {
 
     try {
         const response = await fetch(
-            `http://192.168.1.10:3000/reservations/by-passageiro/${nome}/${apelido}`
+            `http://192.168.1.18:3000/reservations/by-passageiro/${nome}/${apelido}`
         );
 
         if (!response.ok) {
@@ -167,7 +167,7 @@ const handleSearchPhone = async () => {
         if (!searchTerm1) return;
     
         try {
-            const response = await fetch(`http://192.168.1.10:3000/reservations/by-telefone/${searchTerm1}`);
+            const response = await fetch(`http://192.168.1.18:3000/reservations/by-telefone/${searchTerm1}`);
             
             if (!response.ok) {
                 console.error("Erro HTTP:", response.status);
