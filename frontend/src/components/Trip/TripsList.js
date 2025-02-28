@@ -28,7 +28,7 @@ useEffect(() => {
 
         const fetchTrips = async () => {
             try {
-                const response = await fetch(`http://192.168.1.18:3000/trips/date?date=${selectedDate}`);
+                const response = await fetch(`https://backendreservasnunes.advir.pt/trips/date?date=${selectedDate}`);
                 const data = await response.json();
                 setTrips(data);
             } catch (error) {

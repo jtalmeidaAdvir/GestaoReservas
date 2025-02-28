@@ -19,7 +19,7 @@ import html2canvas from "html2canvas";
 
 
 
-const socket = io("http://192.168.1.18:3000"); // Conectar ao WebSocket
+const socket = io("https://backendreservasnunes.advir.pt"); // Conectar ao WebSocket
 
 
 
@@ -169,7 +169,7 @@ const Reservation = ({tripId}) => {
     
         try {
             // Agora eliminamos diretamente pelo número da reserva
-            const response = await fetch(`http://192.168.1.18:3000/reservations/delete/${numeroReserva}`, {
+            const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/delete/${numeroReserva}`, {
                 method: "DELETE",
             });
     
@@ -186,7 +186,7 @@ const Reservation = ({tripId}) => {
     };
     const handleChangeBus = async (busId) => {
         try {
-            const response = await fetch(`http://192.168.1.18:3000/trips/${tripId}/bus`, {
+            const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/bus`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ busId }),
@@ -236,7 +236,7 @@ const Reservation = ({tripId}) => {
             }
     
             if (!updatedRow.reserva) {
-                let lastReservationResponse = await fetch(`http://192.168.1.18:3000/reservations/last`);
+                let lastReservationResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/last`);
                 let lastReservation = await lastReservationResponse.json();
                 let newReservaNumber = lastReservation?.reserva ? parseInt(lastReservation.reserva) + 1 : 1;
                 updatedRow.reserva = String(newReservaNumber).padStart(4, "0");
@@ -245,17 +245,17 @@ const Reservation = ({tripId}) => {
     
             const userEmail = localStorage.getItem("email") || "desconhecido";
     
-            let checkResponse = await fetch(`http://192.168.1.18:3000/reservations/by-reserva/${updatedRow.reserva}`);
+            let checkResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-reserva/${updatedRow.reserva}`);
             if (checkResponse.ok) {
                 const existingReservation = await checkResponse.json();
-                let response = await fetch(`http://192.168.1.18:3000/reservations/${existingReservation.id}`, {
+                let response = await fetch(`https://backendreservasnunes.advir.pt/reservations/${existingReservation.id}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ...updatedRow, updatedBy: userEmail }),
                 });
                 if (!response.ok) throw new Error("Erro ao atualizar reserva");
             } else {
-                let response = await fetch(`http://192.168.1.18:3000/reservations/create`, {
+                let response = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ...updatedRow, tripId, createdBy: userEmail }),
@@ -273,7 +273,7 @@ const Reservation = ({tripId}) => {
                 const dbFormatDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     
                 const tripRegressoResponse = await fetch(
-                    `http://192.168.1.18:3000/trips/return?origem=${destinoDeIda}&destino=${origemDeIda}&dataviagem=${dbFormatDate}`
+                    `https://backendreservasnunes.advir.pt/trips/return?origem=${destinoDeIda}&destino=${origemDeIda}&dataviagem=${dbFormatDate}`
                 );
     
                 if (tripRegressoResponse.ok) {
@@ -313,7 +313,7 @@ const Reservation = ({tripId}) => {
     
     const handleSaveMotorista = async () => {
         try {
-            const response = await fetch(`http://192.168.1.18:3000/trips/${tripId}/motorista`, {
+            const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/motorista`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ motorista }),
@@ -338,7 +338,7 @@ const Reservation = ({tripId}) => {
         }
     
         try {
-            const response = await fetch(`http://192.168.1.18:3000/trips/trip/${tripId}`);
+            const response = await fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`);
             const data = await response.json();
             console.log("📩 Dados da viagem recebidos:", data);
     
@@ -356,7 +356,7 @@ const Reservation = ({tripId}) => {
                 setDataTrip(data.trip.dataviagem || "");
     
                 // 🔥 Buscar a lista de cidades com países
-                const citiesResponse = await fetch(`http://192.168.1.18:3000/cities`);
+                const citiesResponse = await fetch(`https://backendreservasnunes.advir.pt/cities`);
                 const citiesData = await citiesResponse.json();
                 console.log("📩 Lista de cidades recebida:", citiesData);
     
@@ -748,7 +748,7 @@ const Reservation = ({tripId}) => {
     }}
     disabled={selectedReservations.length === 0}
     onClick={async () => {
-        const response = await fetch(`http://192.168.1.18:3000/trips`);
+        const response = await fetch(`https://backendreservasnunes.advir.pt/trips`);
         const trips = await response.json();
         setAvailableTrips(trips.filter(trip => trip.id !== tripId));
 
@@ -968,7 +968,7 @@ const Reservation = ({tripId}) => {
 
             console.log("🛑 Reserva de regresso antes de enviar:", updatedReservationData);
 
-            let resCreateReturn = await fetch(`http://192.168.1.18:3000/reservations/create`, {
+            let resCreateReturn = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.1.18:3000/users"; // Endereço do backend
+const API_URL = "https://backendreservasnunes.advir.pt/users"; // Endereço do backend
 
 const api = axios.create({
     baseURL: API_URL,

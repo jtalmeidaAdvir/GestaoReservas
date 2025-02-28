@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.1.18:3000/countries"; // Endpoint da API
+const API_URL = "https://backendreservasnunes.advir.pt/countries"; // Endpoint da API
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");

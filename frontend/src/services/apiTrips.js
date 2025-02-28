@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.1.18:3000/trips"; // Ajusta conforme necessário
+const API_URL = "https://backendreservasnunes.advir.pt/trips"; // Ajusta conforme necessário
 
 export const fetchTrips = async () => {
     try {
