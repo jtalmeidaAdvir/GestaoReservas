@@ -1,9 +1,11 @@
+require('dotenv').config();
 const express = require("express");
-const http = require("http"); // 🔥 Criar servidor HTTP para WebSockets
-const { Server } = require("socket.io"); // 🔥 Importar WebSockets
-const bodyParser = require("body-parser");
+const http = require("http");
 const cors = require("cors");
+const bodyParser = require("body-parser");
+const { Server } = require("socket.io");
 
+// Importa as rotas e o módulo de base de dados
 const userRoutes = require("./routes/userRoutes");
 const busRoutes = require("./routes/busRoutes");
 const tripRoutes = require("./routes/tripRoutes");
@@ -11,32 +13,16 @@ const reservationRoutes = require("./routes/reservationRoutes");
 const countryRoutes = require("./routes/countryRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const emailRoutes = require("./routes/email");
-
-const { initializeDatabase } = require("./models"); // Importa initializeDatabase
+const { initializeDatabase } = require("./config/database"); // ou ./models se estiver nessa pasta
 
 const app = express();
-const server = http.createServer(app); // Criar servidor HTTP
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT"],
-    },
-});
 
-// Aumentar o limite de upload de ficheiros
-app.use(bodyParser.json({ limit: "60mb" })); // Permite até 50MB
+// Configuração de middlewares
+app.use(bodyParser.json({ limit: "60mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "60mb" }));
-
 app.use(cors({ origin: "*", credentials: true }));
-app.use(bodyParser.json());
 
-// Middleware para disponibilizar o `io` nos controladores
-app.use((req, res, next) => {
-    req.io = io; // Agora podemos emitir eventos nos controladores
-    next();
-});
-
-// Configurar rotas
+// Configuração das rotas
 app.use("/users", userRoutes);
 app.use("/buses", busRoutes);
 app.use("/trips", tripRoutes);
@@ -45,18 +31,29 @@ app.use("/countries", countryRoutes);
 app.use("/cities", cityRoutes);
 app.use("/email", emailRoutes);
 
-// 🔥 WebSocket: Quando um cliente se conecta
+// Criação do servidor HTTP e integração com Socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST", "PUT"] }
+});
+
+// Middleware para disponibilizar o Socket.io aos controladores
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
+// Configuração dos WebSockets
 io.on("connection", (socket) => {
     console.log("⚡ Novo cliente conectado:", socket.id);
-
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado:", socket.id);
     });
 });
 
-// 🛠️ **Sincronizar a base de dados e criar a conta de suporte**
+// Inicializa a base de dados e, em caso de sucesso, inicia o servidor
 initializeDatabase()
     .then(() => {
-        server.listen(4001, () => console.log("🚀 Servidor a correr na porta 4001 com WebSockets"));
+        server.listen(3010, () => console.log("🚀 Servidor a correr na porta 4000 com WebSockets"));
     })
     .catch(error => console.log("🔥 Erro ao iniciar o servidor:", error));
