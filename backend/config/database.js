@@ -180,8 +180,8 @@ io.on("connection", (socket) => {
 // Inicializa o Sequelize e, após a conexão, inicia o servidor
 initializeSequelize()
     .then(() => {
-        server.listen(3010, () =>
-            console.log("🚀 Servidor a correr na porta 3010 com WebSockets")
+        server.listen(4001, () =>
+            console.log("🚀 Servidor a correr na porta 4001 com WebSockets")
         );
     })
     .catch((error) => console.log("🔥 Erro ao iniciar o servidor:", error));
