@@ -57,6 +57,6 @@ io.on("connection", (socket) => {
 // 🛠️ **Sincronizar a base de dados e criar a conta de suporte**
 initializeDatabase()
     .then(() => {
-        server.listen(3002, () => console.log("🚀 Servidor a correr na porta 3002 com WebSockets"));
+        server.listen(3003, () => console.log("🚀 Servidor a correr na porta 3003 com WebSockets"));
     })
     .catch(error => console.log("🔥 Erro ao iniciar o servidor:", error));
