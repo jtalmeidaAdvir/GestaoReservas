@@ -1,17 +1,21 @@
 require('dotenv').config(); // Carrega as variáveis de ambiente
-const { Sequelize } = require("sequelize");
-const sql = require("mssql");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
+const { Sequelize } = require("sequelize");
+const sql = require("mssql");
+const http = require("http");
+const { Server } = require("socket.io");
 
+// Variáveis de ambiente para a base de dados
 const dbName = process.env.DB_NAME;
 const dbUsername = process.env.DB_USERNAME;
 const dbPassword = process.env.DB_PASSWORD;
 const dbHost = process.env.DB_HOST;
 const dbPort = parseInt(process.env.DB_PORT, 10) || 1433;
 
+// Função para verificar se a base de dados existe
 async function checkDatabaseExists() {
     try {
         const pool = await sql.connect({
@@ -24,7 +28,6 @@ async function checkDatabaseExists() {
                 trustServerCertificate: true,
             }
         });
-
         const result = await pool.request().query(`SELECT name FROM sys.databases WHERE name = '${dbName}'`);
         await pool.close();
         return result.recordset.length > 0;
@@ -34,6 +37,7 @@ async function checkDatabaseExists() {
     }
 }
 
+// Função para criar a base de dados, se não existir
 async function createDatabase() {
     try {
         const pool = await sql.connect({
@@ -46,7 +50,6 @@ async function createDatabase() {
                 trustServerCertificate: true,
             }
         });
-
         await pool.request().query(`CREATE DATABASE ${dbName}`);
         console.log(`Base de dados '${dbName}' criada com sucesso!`);
         await pool.close();
@@ -56,6 +59,7 @@ async function createDatabase() {
     }
 }
 
+// Função que verifica e cria a base de dados se necessário
 async function createDatabaseIfNotExists() {
     const exists = await checkDatabaseExists();
     if (!exists) {
@@ -66,6 +70,7 @@ async function createDatabaseIfNotExists() {
     }
 }
 
+// Instancia o Sequelize
 const sequelize = new Sequelize(dbName, dbUsername, dbPassword, {
     host: dbHost,
     dialect: "mssql",
@@ -73,6 +78,7 @@ const sequelize = new Sequelize(dbName, dbUsername, dbPassword, {
     logging: console.log,
 });
 
+// Inicializa a ligação ao Sequelize e garante que a base de dados existe
 async function initializeSequelize() {
     await createDatabaseIfNotExists();
     try {
@@ -83,10 +89,13 @@ async function initializeSequelize() {
     }
 }
 
+// Criação da aplicação Express
 const app = express();
 app.use(cors({ origin: "*", credentials: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "60mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "60mb" }));
 
+// Rotas de exemplo
 // Rota de registo
 app.post("/register", async (req, res) => {
     try {
@@ -122,7 +131,6 @@ app.post("/login", async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ error: "Credenciais inválidas" });
         }
-
         res.json({ message: "Login bem-sucedido!", user: user[0] });
     } catch (error) {
         console.error("Erro ao fazer login:", error);
@@ -141,9 +149,41 @@ app.get("/users", async (req, res) => {
     }
 });
 
-app.listen(3010, () => {
-    console.log("Servidor a correr na porta 3010");
-    initializeSequelize();
+// Aqui poderás adicionar mais rotas, por exemplo, para buses, trips, reservas, etc.
+// app.use("/buses", busRoutes);
+// app.use("/trips", tripRoutes);
+// ...
+
+// Criação do servidor HTTP e integração com Socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PUT"],
+    },
 });
+
+// Middleware para disponibilizar o 'io' nos controladores, se necessário
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
+// Configuração dos WebSockets
+io.on("connection", (socket) => {
+    console.log("⚡ Novo cliente conectado:", socket.id);
+    socket.on("disconnect", () => {
+        console.log("❌ Cliente desconectado:", socket.id);
+    });
+});
+
+// Inicializa o Sequelize e, após a conexão, inicia o servidor
+initializeSequelize()
+    .then(() => {
+        server.listen(3010, () =>
+            console.log("🚀 Servidor a correr na porta 3010 com WebSockets")
+        );
+    })
+    .catch((error) => console.log("🔥 Erro ao iniciar o servidor:", error));
 
 module.exports = { sequelize, initializeSequelize };
