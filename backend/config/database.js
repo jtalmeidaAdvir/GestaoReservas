@@ -141,8 +141,8 @@ app.get("/users", async (req, res) => {
     }
 });
 
-app.listen(3001, () => {
-    console.log("Servidor a correr na porta 3000");
+app.listen(3002, () => {
+    console.log("Servidor a correr na porta 3002");
     initializeSequelize();
 });
 
