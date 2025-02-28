@@ -1,0 +1,51 @@
+.edittrip-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.edittrip-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+}
+
+h2 {
+    text-align: center;
+    color: darkred;
+}
+
+.edittrip-alert {
+    text-align: center;
+}
+
+.edittrip-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.edittrip-form input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.edittrip-button {
+    background-color: darkred !important;
+    border-color: darkred !important;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.edittrip-button:hover {
+    background-color: #8b0000;
+}

@@ -1,0 +1,167 @@
+/* Container principal */
+.buses-container {
+    margin-top: 20px;
+    text-align: center;
+    position: relative;
+}
+
+/* Campo de pesquisa */
+.bus-search {
+    width: 80%;
+    margin: 10px auto;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+
+.outline-primary{
+    color: darkred !important;
+    background-color: darkred !important;
+}
+
+.add-bus-button:hover {
+    background-color: darkred;
+}
+
+/* Lista de autocarros */
+.bus-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+}
+
+/* Cartões de autocarro */
+.bus-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    background-color: white;
+}
+
+.bus-card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+/* Ícones e textos dentro dos cartões */
+.bus-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bus-icon {
+    color: darkred;
+}
+
+.bus-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.bus-text {
+    font-size: 14px;
+    color: gray;
+}
+
+.edit-button {
+    border-radius: 8px;
+    color: darkred !important;
+    border-color: darkred !important;
+}
+
+
+.bus-inactive {
+    opacity: 0.5; /* Sombreamento para autocarros desativados */
+}
+
+
+.bus-filters {
+    gap: 20px;
+    margin: 15px;
+    padding: 10px;
+
+}
+
+.bus-filters .filter-button {
+    background-color: darkred;
+    color: white;
+    border: 2px solid darkred;
+    padding: 8px 16px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.bus-filters .filter-button:hover {
+    background-color: white;
+    color: darkred;
+    border: 2px solid darkred !important;
+}
+
+.bus-filters .filter-button.active {
+    background-color: white;
+    color: darkred;
+    border: 2px solid darkred !important;
+}
+
+
+.permanent-delete-button {
+    color: white;
+    background-color: black;
+    border: 2px solid black;
+    margin-left: 8px;
+}
+
+.permanent-delete-button:hover {
+    background-color: darkred !important;
+    border: 2px solid darkred !important;
+}
+
+
+.bus-pagination {
+    display: flex;
+    color:darkred;
+    justify-content: center;
+    margin-top: 20px;
+    
+}
+
+.active>.page-link, .page-link.active {
+    z-index: 3;
+    color: var(--bs-pagination-active-color);
+    background-color: darkred !important;
+    border-color: darkred !important;
+}
+
+.bus-search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espaçamento entre a pesquisa e o botão */
+    width: 100%;
+}
+
+.bus-search {
+    flex: 1; /* Faz com que ocupe o espaço disponível */
+}
+
+.add-bus-button {
+    display: flex;
+    background-color: darkred !important;
+    border: none !important;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    height: 38px; /* Ajustar altura conforme necessário */
+}
+
+.outline-danger{
+    color: darkred !important;
+}

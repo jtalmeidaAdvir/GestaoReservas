@@ -1,0 +1,128 @@
+.userlist-container {
+    max-width: 700px;
+    margin: auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.userlist-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.userlist-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto 20px auto;
+}
+
+.search-bar {
+    flex: 1; /* Ocupa o espaço total disponível */
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.add-user-btn {
+    background-color: darkred !important;
+    border: none !important;
+    padding: 10px 15px;
+    font-size: 14px;
+    border-radius: 8px;
+    margin-left: 10px; /* Mantém o espaçamento entre o botão e a pesquisa */
+    transition: 0.3s;
+}
+
+.add-user-btn:hover {
+    background-color: #8b0000 !important;
+    border: none !important;
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+}
+
+.userlist-card {
+    border-radius: 12px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.userlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.userlist-item:hover {
+    background: #f8f9fa;
+}
+
+.userlist-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-icon {
+    font-size: 40px;
+    color: darkred;
+    margin-right: 15px;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.userlist-actions {
+    display: flex;
+    align-items: center;
+    gap: 100px; /* Espaçamento entre os botões */
+}
+
+.userlist-email, .userlist-role, .userlist-phone {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.edit-user-btn,
+.delete-user-btn {
+    display: flex;
+    align-items: center;
+    border: none !important;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 10px;
+}
+
+.edit-user-btn {
+    background-color: darkred !important;
+    border: none !important;
+    color: white !important;
+}
+
+.edit-user-btn:hover {
+    background-color: darkred !important;
+}
+
+.delete-user-btn {
+    background-color: darkred !important;
+    border: none;
+}
+
+.delete-user-btn:hover {
+    background-color: #c82333 !important;
+}

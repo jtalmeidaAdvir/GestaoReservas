@@ -1,0 +1,116 @@
+.reservation-container {
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: "Poppins", sans-serif;
+}
+
+.reservation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.reservation-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.back-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.3s ease-in-out;
+}
+
+.back-button:hover {
+    background-color: #0056b3;
+}
+
+.data-grid-container {
+    height: 450px;
+    background-color: white !important;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.data-grid-container .rdg {
+    --rdg-background-color: white !important;
+    --rdg-header-background: #f8f9fa !important;
+    --rdg-border-color: #ddd;
+    --rdg-row-hover-background: #f1f1f1;
+    font-size: 14px;
+    color: black !important;
+}
+
+.data-grid-container .rdg-header-row {
+    background-color: darkred !important;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.MuiDataGrid-root .MuiDataGrid-row {
+    height: 30px !important; /* Define a altura fixa das linhas */
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell {
+    padding: 4px !important; /* Reduz o espaço interno das células */
+    line-height: 1 !important;
+}
+
+.MuiDataGrid-root .MuiDataGrid-columnHeaders {
+    height: 40px !important; /* Ajusta a altura do cabeçalho */
+}
+
+
+.data-grid-container .rdg-cell {
+    padding: 5px;
+    background-color: darkblue !important;
+    color: black !important;
+}
+
+.data-grid-container .rdg-cell.editing {
+    background-color: #eaf4ff !important;
+}
+
+
+.react-data-grid {
+    contain: strict;
+  }
+  
+  
+
+
+@media (max-width: 768px) {
+    .reservation-container {
+        padding: 15px;
+    }
+
+    .reservation-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .reservation-header h2 {
+        font-size: 20px;
+    }
+
+    .back-button {
+        margin-top: 10px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .data-grid-container {
+        height: auto;
+    }
+}
+
+

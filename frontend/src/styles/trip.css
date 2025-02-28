@@ -1,0 +1,121 @@
+.trips-container {
+    margin-top: 20px;
+    text-align: center;
+    position: relative;
+
+}
+
+.trip-search-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+
+}
+
+.trip-search {
+    width: 80%;
+    margin: 10px auto;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.add-trip-button {
+    background-color: #28a745;
+    border: none;
+    padding: 8px 12px;
+}
+
+.trip-filters {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.filter-button {
+    margin: 0 5px;
+    background-color: darkred !important;
+    border-color: darkred !important;
+    color: white;
+}
+
+.filter-button.active {
+    background-color: white !important;
+    color: darkred !important;
+    border: 2px solid darkred !important;
+}
+
+.trip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.trip-card {
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.trip-card-body {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.trip-info {
+    display: flex;
+    align-items: center;
+}
+
+.trip-icon {
+    margin-right: 10px;
+    color: darkred !important;
+}
+
+.trip-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.trip-text {
+    color: #6c757d;
+}
+
+.trip-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-button {
+    border-radius: 8px;
+    color: darkred !important;
+    border-color: darkred !important;
+}
+
+.delete-button {
+    border-radius: 8px;
+    color: darkred !important;
+    border-color: darkred !important;
+}
+
+.reactivate-button {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.permanent-delete-button {
+    border-color: #343a40;
+    color: #343a40;
+}
+
+.trip-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+

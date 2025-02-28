@@ -1,0 +1,97 @@
+/* Cabeçalho fixo no topo */
+.header {
+    width: 100%;
+    background-color: darkred;
+    padding: 15px 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1050;
+}
+
+/* Ícone do Menu */
+.drawer-toggle {
+    font-size: 28px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Logótipo no cabeçalho */
+.header-logo {
+    height: 40px;
+    margin-left: 40px;
+}
+
+/* Título no cabeçalho */
+.header-title {
+    font-size: 22px;
+    color: white;
+    font-weight: bold;
+    flex-grow: 1;
+    text-align: center;
+}
+
+/* Ajuste do conteúdo para não ser coberto pelo cabeçalho */
+.app-content {
+    padding-top: 90px; /* Ajusta para evitar sobreposição do cabeçalho */
+}
+/* Drawer Navigation lateral */
+.drawer {
+    width: 250px !important;
+    background-color: darkred !important;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Links da Drawer */
+.drawer-link {
+    color: white !important;
+    font-size: 18px;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.drawer-icon {
+    margin-right: 10px;
+}
+
+.drawer-link:hover {
+    background-color: darkred;
+}
+
+/* Rodapé da Drawer */
+.drawer-footer {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+}
+
+.logout {
+    color: white;
+    font-weight: bold;
+}
+
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-right: 20px;
+}
+
+.user-icon {
+    font-size: 1.2rem;
+}

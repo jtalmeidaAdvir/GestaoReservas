@@ -1,0 +1,77 @@
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import Register from "./components/Autenticacao/Register";
+import Login from "./components/Autenticacao/Login";
+import UserList from "./components/Autenticacao/UserList";
+import EditUser from "./components/Autenticacao/EditUser";
+
+import Header from "./components/Header"; // Importa o cabeçalho fixo
+import BusesList from "./components/Buses/BusesList"; 
+import CreateBus from "./components/Buses/CreateBus";
+import EditBus from "./components/Buses/EditBus";
+
+import CountryList from "./components/Country/CountryList";
+import CreateCountry from "./components/Country/CreateCountry";  
+
+import CityList from "./components/City/CityList";
+import CreateCity from "./components/City/CreateCity";  
+
+import Agenda from "./components/Agenda/Agenda";
+import TripsList from "./components/Trip/TripsList";
+import TripsPage from "./components/Trip/TripPage";
+import EditTrip from "./components/Trip/EditTrip";
+import Reservation from "./components/Reservation/Reservation"; // ✅ Importa a nova página
+
+
+
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./styles/header.css"; // Importação do CSS
+
+const App = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        setIsAuthenticated(!!token); // Define true se houver token
+    }, []);
+
+    return (
+        <Router>
+            {/* Passamos isAuthenticated para o Header */}
+            <Header isAuthenticated={isAuthenticated} />
+
+            <div className="app-content">
+            <Routes>
+                <Route path="/" element={<Navigate to={isAuthenticated ? "/agenda" : "/login"} />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+                <Route path="/users" element={isAuthenticated ? <UserList /> : <Navigate to="/login" />} />
+                <Route path="/edit-user/:id" element={<EditUser />} />
+
+                <Route path="/agenda" element={isAuthenticated ? <Agenda /> : <Navigate to="/login" />} />
+                <Route path="/trips" element={<TripsList />} /> {/* Separadores de viagens*/}
+                <Route path="/reservation/:tripId" element={<Reservation />} /> {/* ✅ Nova rota */}
+
+               
+
+                {/* Gestão de autocarros */}
+                <Route path="/autocarros" element={isAuthenticated ? <BusesList /> : <Navigate to="/login" />} />
+                <Route path="/buses/create" element={isAuthenticated ? <CreateBus /> : <Navigate to="/login" />} />
+                <Route path="/buses/edit/:id" element={isAuthenticated ? <EditBus /> : <Navigate to="/login" />} />
+                <Route path="/trippage" element={<TripsPage />} /> {/* Lista viagens*/}
+                <Route path="/trips/edit/:id" element={isAuthenticated ? <EditTrip /> : <Navigate to="/login" />} />
+
+                
+                <Route path="/countries" element={isAuthenticated ? <CountryList /> : <Navigate to="/login" />} />
+                <Route path="/countries/create" element={isAuthenticated ? <CreateCountry /> : <Navigate to="/login" />} />
+
+                <Route path="/cities" element={isAuthenticated ? <CityList /> : <Navigate to="/login" />} />
+                <Route path="/cities/create" element={isAuthenticated ? <CreateCity /> : <Navigate to="/login" />} />
+            </Routes>
+
+            </div>
+        </Router>
+    );
+};
+
+export default App;

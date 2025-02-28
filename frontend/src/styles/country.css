@@ -1,0 +1,125 @@
+.countries-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.country-search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.country-search {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.add-country-button {
+    display: flex;
+    background-color: darkred !important;
+    color:white !important;
+    border: none !important;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    height: 38px;
+}
+
+.country-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px;
+}
+
+.country-card {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    background-color: white;
+}
+
+.country-card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.country-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.country-icon {
+    color: darkred;
+}
+
+.country-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.country-text {
+    font-size: 14px;
+    color: gray;
+}
+
+.country-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.create-city-button {
+    background-color: darkred !important;
+    border-color: darkred !important;
+    color:white !important;
+    border: 2px solid darkred;
+    padding: 8px 12px;
+}
+
+.create-city-button:hover {
+    background-color: white !important;
+    color: darkred !important;
+}
+
+.city-list-container {
+    background-color: white;
+    border-color: darkred;
+    border: 2px solid;
+    padding: 10px;
+    color:darkred;
+    border-radius: 10px;
+    margin-top: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+.city-item {
+    background-color: white;
+    border-radius: 8px;
+    text-align: center;
+    padding: 8px;
+    margin: 5px 0;
+    font-weight: bold;
+    border: 1px solid #ccc;
+}
+
+.city-item-empty {
+    color: gray;
+    text-align: center;
+    font-style: italic;
+}
+
+.city-col {
+    display: flex;
+    justify-content: center;
+}

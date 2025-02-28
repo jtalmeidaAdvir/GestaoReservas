@@ -1,0 +1,95 @@
+/* Centralizar a página de login */
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+/* Remover bordas do Card */
+.login-card {
+    padding: 40px; /* Aumentar o espaçamento */
+    border: none !important; /* Remover bordas */
+    width: 100%;
+    max-width: 500px; /* Define um tamanho máximo */
+    margin: auto; /* Garante que fica centrado */
+    background-color: white;
+}
+
+/* Centralizar a logo */
+.login-logo img {
+    display: block;
+    margin: 0 auto;
+    margin-bottom: 100px;
+    width: 50%;
+    
+}
+
+/* Estilizar os inputs */
+.login-form input {
+    width: 100%;
+    height: 40px;
+    padding: 15px; /* Aumentar altura */
+    border: 1px solid darkred !important; /* Garantir borda vermelha */
+    border-radius: 45px; /* Bordas mais arredondadas */
+    text-align: center;
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 30px; /* Adicionar mais espaçamento entre inputs */
+}
+
+/* Botão de login */
+.login-button {
+    width: 50%;
+    margin-left: 25%;
+    padding: 15px; /* Aumentar tamanho */
+    background-color: darkred !important; /* Garantir a cor vermelha */
+    font-size: 18px;
+    border-radius: 35px;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 20px; /* Mais espaçamento acima do botão */
+}
+
+.login-button:hover {
+    background-color: darkred !important; /* Garantir o hover */
+}
+
+/* Mensagens de erro */
+.login-alert {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+
+/* Remover a borda azul do botão */
+.login-button {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Garantir que ao clicar não aparece a borda azul */
+.login-button:focus, .login-button:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Remover efeitos de hover e focus do Bootstrap */
+.btn-primary:focus, .btn-primary:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+
+.userlist-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+}
