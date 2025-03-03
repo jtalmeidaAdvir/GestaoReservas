@@ -34,8 +34,12 @@ app.use("/email", emailRoutes);
 // Criação do servidor HTTP e integração com Socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST", "PUT"] }
+    cors: {
+        origin: "https://backendreservasnunes.advir.pt", // Permitir apenas o domínio correto
+        methods: ["GET", "POST", "PUT"]
+    }
 });
+
 
 // Middleware para disponibilizar o Socket.io aos controladores
 app.use((req, res, next) => {

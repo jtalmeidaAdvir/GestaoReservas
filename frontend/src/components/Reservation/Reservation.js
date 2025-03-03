@@ -19,7 +19,9 @@ import html2canvas from "html2canvas";
 
 
 
-const socket = io("https://backendreservasnunes.advir.pt"); // Conectar ao WebSocket
+const socket = io("https://backendreservasnunes.advir.pt", {
+    transports: ["websocket"]
+});
 
 
 
