@@ -33,9 +33,7 @@ exports.createReservation = async (req, res) => {
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
-        const existingReservation = await Reservation.findOne({ 
-            where: { reserva, tripId }
-        });
+        const existingReservation = await Reservation.findOne({ where: { reserva, tripId } });
 
         if (existingReservation) {
             console.warn(`⚠️ Reserva Nº ${reserva} já existe para esta viagem!`);
