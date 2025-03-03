@@ -1,6 +1,13 @@
 const { Reservation, Trip, Bus } = require("../models");
 const { Op } = require("sequelize");
 
+let io; // Variável global para armazenar io
+
+exports.setSocketIO = (socketIo) => {
+    io = socketIo;
+};
+
+
 
 // Buscar a última reserva para obter o maior número já usado
 exports.getLastReservation = async (req, res) => {
@@ -18,48 +25,34 @@ exports.getLastReservation = async (req, res) => {
 };
 
 
-// Criar uma reserva apenas quando for efetivamente feita
+
+
 exports.createReservation = async (req, res) => {
     try {
-        const { tripId, preco,moeda, entrada, nomePassageiro, apelidoPassageiro, saida,volta, telefone, email, obs, lugar,carro, reserva,createdBy } = req.body;
-
+        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva, createdBy } = req.body;
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
-        // Verificar se já existe uma reserva para esse número (caso haja problema de duplicação)
         const existingReservation = await Reservation.findOne({ 
-            where: { reserva, tripId } // Agora só bloqueia duplicação dentro da mesma viagem
+            where: { reserva, tripId }
         });
-        
+
         if (existingReservation) {
             console.warn(`⚠️ Reserva Nº ${reserva} já existe para esta viagem!`);
             return res.status(400).json({ error: "Número de reserva já existe nesta viagem." });
         }
-        
 
-        // Criar a nova reserva
         const newReservation = await Reservation.create({
-            tripId,
-            lugar,
-            reserva,
-            preco,
-            moeda,
-            entrada,
-            nomePassageiro,
-            apelidoPassageiro,
-            saida,
-            volta,
-            telefone,
-            email,
-            obs,
-            carro,
-            createdBy,
-            
+            tripId, lugar, reserva, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
         });
 
         console.log("✅ Nova reserva criada:", newReservation.dataValues);
 
-        req.io.emit("reservationUpdated", { tripId });
+        if (io) {
+            io.emit("reservationUpdated", { tripId });
+        } else {
+            console.warn("⚠️ WebSocket io não está definido!");
+        }
 
         res.status(201).json(newReservation);
     } catch (error) {

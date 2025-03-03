@@ -14,6 +14,10 @@ const countryRoutes = require("./routes/countryRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const emailRoutes = require("./routes/email");
 const { initializeDatabase } = require("./config/database"); // ou ./models se estiver nessa pasta
+const reservationController = require("./controllers/reservationController");
+reservationController.setSocketIO(io);
+
+
 
 const app = express();
 
