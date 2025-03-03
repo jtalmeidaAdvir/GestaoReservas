@@ -35,8 +35,9 @@ app.use("/email", emailRoutes);
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://backendreservasnunes.advir.pt", // Permitir apenas o domínio correto
-        methods: ["GET", "POST", "PUT"]
+        origin: "*", // Testar permitindo qualquer origem
+        methods: ["GET", "POST", "PUT"],
+        credentials: true
     }
 });
 

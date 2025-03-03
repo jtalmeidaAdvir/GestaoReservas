@@ -20,8 +20,13 @@ import html2canvas from "html2canvas";
 
 
 const socket = io("https://backendreservasnunes.advir.pt", {
-    transports: ["websocket"]
+    transports: ["websocket"],
+    path: "/socket.io/",
+    reconnectionAttempts: 5,
+    reconnectionDelay: 3000,
+    timeout: 5000
 });
+
 
 
 
