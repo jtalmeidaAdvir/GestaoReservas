@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Offcanvas, Nav } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity } from "react-icons/fa";
+import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity, FaBook } from "react-icons/fa";
 import logo from "../assets/logo.svg";
 import "../styles/header.css"; // Importação do CSS
 
@@ -65,6 +65,9 @@ const Header = ({ isAuthenticated }) => {
                         </Nav.Link>
                         <Nav.Link as={Link} to="/countries" className="drawer-link" onClick={handleCloseDrawer}>
                             <FaCity className="drawer-icon" /> Países
+                        </Nav.Link>
+                        <Nav.Link as={Link} to="/manual" className="drawer-link" onClick={handleCloseDrawer}>
+                            <FaBook className="drawer-icon" /> Manual Utilização
                         </Nav.Link>
 
                         {/* Mostrar "Lista de Utilizadores" apenas para support@advir.pt */}

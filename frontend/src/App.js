@@ -22,7 +22,7 @@ import TripsPage from "./components/Trip/TripPage";
 import EditTrip from "./components/Trip/EditTrip";
 import Reservation from "./components/Reservation/Reservation"; // ✅ Importa a nova página
 
-
+import Manual from "./components/Help/Manual";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/header.css"; // Importação do CSS
@@ -67,6 +67,8 @@ const App = () => {
 
                 <Route path="/cities" element={isAuthenticated ? <CityList /> : <Navigate to="/login" />} />
                 <Route path="/cities/create" element={isAuthenticated ? <CreateCity /> : <Navigate to="/login" />} />
+
+                <Route path="/manual" element={isAuthenticated ? <Manual /> : <Navigate to="/login" />} />
             </Routes>
 
             </div>

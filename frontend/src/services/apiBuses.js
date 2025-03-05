@@ -15,10 +15,10 @@ export const fetchBuses = async () => {
 
 // Criar um novo autocarro
 export const createBus = async (formData) => {
-    const token = localStorage.getItem("token"); // Usa o token armazenado
-    return axios.post(`${API_URL}/create`, formData, {
+   const token = getToken();
+    return axios.post(`${API_URL}`, formData, {
         headers: {
-            "Content-Type": "multipart/form-data", // Permite upload de ficheiros
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
     });
