@@ -12,21 +12,21 @@ const upload = multer({ storage: storage });
 
 
 
-
-// Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
         const { nome, nlugares } = req.body;
         const imagem = req.file ? req.file.buffer : null; // Captura a imagem
 
-        // Criar novo autocarro apenas com os 3 campos
+        console.log("🟡 Criando autocarro:", { nome, nlugares, imagem: imagem ? "Sim" : "Não" });
+
+        // Criar novo autocarro apenas com os 3 campos necessários
         const newBus = await Bus.create({
             nome,
             nlugares,
             imagem
-        }, {
-            returning: ["id", "nome", "nlugares", "imagem"] // Retorna apenas estes campos
         });
+
+        console.log("✅ Autocarro criado:", newBus);
 
         res.status(201).json(newBus);
     } catch (error) {
@@ -34,6 +34,8 @@ exports.createBus = async (req, res) => {
         res.status(500).json({ error: "Erro ao criar autocarro" });
     }
 };
+
+
 
 // Obter um autocarro pelo ID e retornar a imagem como base64
 exports.getBusById = async (req, res) => {
