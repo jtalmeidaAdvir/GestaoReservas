@@ -28,12 +28,13 @@ exports.createBus = async (req, res) => {
 
         const newBus = await Bus.create({ 
             nome, 
-            nlugares: Number(nlugares), // Converter para inteiro
+            nlugares: Number(nlugares), 
             imagem, 
-            createdBy: email,
-            createdOn: new Date().toISOString(), // Adicionar timestamp
+            createdBy: email,  // ✅ Adicionado
+            updatedBy: email,  // ✅ Adicionado
+            createdOn: new Date().toISOString(),
             updatedOn: new Date().toISOString(),
-            isActive: true, // Garantir que está ativo por defeito
+            isActive: true,
         });
         
 
