@@ -67,7 +67,7 @@ const CreateBus = () => {
                     </Form.Group>
                     <Form.Group>
                         <Form.Label>Imagem do Autocarro</Form.Label>
-                        <Form.Control type="file" accept="image/*" onChange={handleImageChange} required />
+                        <Form.Control type="file" accept="image/*" onChange={handleImageChange}  />
                     </Form.Group>
 
                     {/* Pré-visualização da imagem */}
