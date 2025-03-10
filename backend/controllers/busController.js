@@ -10,32 +10,40 @@ const upload = multer({ storage: storage });
 
 
 
+const formatDateForString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`; // Sem fuso horário
+};
+
+const formattedDate = formatDateForString(new Date());
 
 
 // Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
         const { nome, nlugares, email } = req.body;
-        const imagem = req.file ? req.file.buffer : null;  // Captura a imagem enviada no formulário
+        const imagem = req.file ? req.file.buffer : null;
 
-        // Verificar se a imagem foi carregada corretamente
-        if (!nome || !nlugares) {
-            return res.status(400).json({ error: "Nome e número de lugares são obrigatórios." });
-        }
+        // Formatar a data corretamente (sem fuso horário)
+        const formattedDate = formatDateForString(new Date());
 
-        // Criar o autocarro com os dados recebidos
         const newBus = await Bus.create({
             nome,
             nlugares,
             imagem,
-            isActive: 1,
-            createdBy: email,  // Verifique se está a atribuir corretamente o email
-            createdOn: new Date().toISOString(),  // Atribuindo a data e hora atual para createdOn
-            updatedOn: new Date().toISOString(),  // Atribuindo a data e hora atual para updatedOn
+            createdBy: email,
+            createdOn: formattedDate,  // Passar data sem fuso horário
+            updatedOn: formattedDate,  // Passar data sem fuso horário
+            createdAt:formattedDate,
+            updatedAt:formattedDate
         });
-        
 
-        res.status(201).json(newBus);  // Retorna o autocarro criado
+        res.status(201).json(newBus);
     } catch (error) {
         console.error("Erro ao criar autocarro:", error);
         res.status(500).json({ error: "Erro ao criar autocarro" });
