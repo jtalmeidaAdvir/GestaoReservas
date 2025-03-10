@@ -6,15 +6,13 @@ const multer = require("multer");
 
 // Configuração do multer para armazenar a imagem na memória
 const storage = multer.memoryStorage();
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB máximo
-});
+const upload = multer({ storage: storage });
 
 
 
 
-// Criar um novo autocarro
+
+
 // Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
@@ -40,8 +38,6 @@ exports.createBus = async (req, res) => {
         res.status(500).json({ error: "Erro ao criar autocarro" });
     }
 };
-
-
 
 // Obter um autocarro pelo ID e retornar a imagem como base64
 exports.getBusById = async (req, res) => {
