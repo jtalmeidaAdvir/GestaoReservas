@@ -21,22 +21,21 @@ exports.createBus = async (req, res) => {
         if (!token) return res.status(401).json({ error: "Token não fornecido" });
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
+        const userEmail = decoded.email; // ✅ Obtém o email do utilizador autenticado
 
-        const { nome, nlugares, email } = req.body;
-        const imagem = req.file ? req.file.buffer : null; // Obtém o buffer da imagem
+        const { nome, nlugares } = req.body;
+        const imagem = req.file ? Buffer.from(req.file.buffer) : null; // ✅ Converte corretamente a imagem
 
         const newBus = await Bus.create({ 
             nome, 
             nlugares: Number(nlugares), 
             imagem, 
-            createdBy: email,  // ✅ Adicionado
-            updatedBy: email,  // ✅ Adicionado
+            createdBy: userEmail, // ✅ Adicionado
+            updatedBy: userEmail, // ✅ Adicionado
             createdOn: new Date().toISOString(),
             updatedOn: new Date().toISOString(),
             isActive: true,
         });
-        
 
         res.status(201).json(newBus);
     } catch (error) {
