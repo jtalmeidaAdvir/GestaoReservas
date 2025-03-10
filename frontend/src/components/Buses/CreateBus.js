@@ -34,7 +34,7 @@ const CreateBus = () => {
         e.preventDefault();
         setError("");
         setSuccess("");
-    
+
         try {
             const formDataToSend = new FormData();
             formDataToSend.append("nome", formData.nome);
@@ -42,19 +42,14 @@ const CreateBus = () => {
             if (imagem) {
                 formDataToSend.append("imagem", imagem);
             }
-    
-            console.log("📤 A enviar para API:", Object.fromEntries(formDataToSend.entries())); // <--- Debugging
-    
-            const response = await createBus(formDataToSend);
-            setSuccess(`Autocarro ${response.data.nome} criado com sucesso!`);
+
+            await createBus(formDataToSend);
+            setSuccess("Autocarro criado com sucesso!");
             setTimeout(() => navigate("/autocarros"), 2000);
         } catch (error) {
-            console.error("❌ Erro ao criar autocarro:", error.response?.data || error.message);
             setError("Erro ao criar autocarro.");
         }
     };
-    
-    
 
     return (
         <Container className="createbus-container">
@@ -71,7 +66,7 @@ const CreateBus = () => {
                     </Form.Group>
                     <Form.Group>
                         <Form.Label>Imagem do Autocarro</Form.Label>
-                        <Form.Control type="file" accept="image/*" onChange={handleImageChange}  />
+                        <Form.Control type="file" accept="image/*" onChange={handleImageChange} required />
                     </Form.Group>
 
                     {/* Pré-visualização da imagem */}
