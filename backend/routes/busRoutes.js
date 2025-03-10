@@ -3,9 +3,11 @@ const busController = require("../controllers/busController");
 const multer = require("multer");
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+// Configuração do Multer para armazenar os ficheiros na memória
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-router.post("/create", upload.single("imagem"), busController.createBus); // Criar autocarro com upload
+router.post("/create", upload.single("imagem"), busController.createBus);  // Rota para criação de autocarro com imagem
 router.get("/available", busController.getAvailableBuses); // ✅ Nova rota para listar autocarros disponíveis
 
 
