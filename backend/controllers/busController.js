@@ -38,9 +38,7 @@ exports.createBus = async (req, res) => {
             imagem,
             createdBy: email,
             createdOn: formattedDate,  // Passar data sem fuso horário
-            updatedOn: formattedDate,  // Passar data sem fuso horário
-            createdAt:formattedDate,
-            updatedAt:formattedDate
+            updatedOn: formattedDate
         });
 
         res.status(201).json(newBus);
