@@ -6,32 +6,29 @@ const multer = require("multer");
 
 // Configuração do multer para armazenar a imagem na memória
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB máximo
+});
 
 
 
 
 exports.createBus = async (req, res) => {
     try {
+        console.log("📩 Dados recebidos no backend:", req.body);
+        console.log("📸 Imagem recebida?", req.file ? "Sim" : "Não");
+
         const { nome, nlugares } = req.body;
-        const imagem = req.file ? req.file.buffer : null; // Captura a imagem
+        const imagem = req.file ? req.file.buffer : null;
 
-        console.log("🟡 Criando autocarro:", { nome, nlugares, imagem: imagem ? "Sim" : "Não" });
-
-        // Criar novo autocarro apenas com os 3 campos necessários
-        const newBus = await Bus.create({
-            nome,
-            nlugares,
-            imagem
-        });
+        const newBus = await Bus.create({ nome, nlugares, imagem });
 
         console.log("✅ Autocarro criado:", newBus);
-
         res.status(201).json(newBus);
     } catch (error) {
         console.error("❌ Erro ao criar autocarro:", error);
-        res.status(500).json({ error: "Erro ao criar autocarro" });
+        res.status(500).json({ error: error.message || "Erro ao criar autocarro" });
     }
 };
 

@@ -22,10 +22,10 @@ export const fetchBuses = async () => {
 
 export const createBus = async (formData) => {
     const token = getToken();
+
     return axios.post(`${API_URL}/create`, formData, {
         headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": formData instanceof FormData ? "multipart/form-data" : "application/json",
         },
     });
 };

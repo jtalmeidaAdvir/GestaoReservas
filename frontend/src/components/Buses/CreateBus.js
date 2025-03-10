@@ -43,13 +43,17 @@ const CreateBus = () => {
                 formDataToSend.append("imagem", imagem);
             }
     
+            console.log("📤 A enviar para API:", Object.fromEntries(formDataToSend.entries())); // <--- Debugging
+    
             const response = await createBus(formDataToSend);
             setSuccess(`Autocarro ${response.data.nome} criado com sucesso!`);
             setTimeout(() => navigate("/autocarros"), 2000);
         } catch (error) {
+            console.error("❌ Erro ao criar autocarro:", error.response?.data || error.message);
             setError("Erro ao criar autocarro.");
         }
     };
+    
     
 
     return (
