@@ -29,10 +29,14 @@ exports.createBus = async (req, res) => {
 
         const newBus = await Bus.create({ 
             nome, 
-            nlugares, 
+            nlugares: Number(nlugares), // ✅ Converte para número
             imagem, 
-            createdBy: email 
+            isActive: true, 
+            createdBy: email, 
+            createdOn: new Date(), // <-- Adiciona a data de criação
+            updatedOn: new Date()  // <-- Adiciona a data de atualização
         });
+        
 
         res.status(201).json(newBus);
     } catch (error) {
