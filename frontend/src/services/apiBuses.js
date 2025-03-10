@@ -15,14 +15,14 @@ export const fetchBuses = async () => {
 
 // Criar um novo autocarro
 export const createBus = async (formData) => {
-   const token = getToken();
-    return axios.post(`${API_URL}`, formData, {
+    const token = getToken();
+    return axios.post(API_URL, formData, {
         headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
     });
 };
+
 
 
 
