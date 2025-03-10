@@ -16,25 +16,21 @@ const upload = multer({ storage: storage });
 // Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1];
-        if (!token) return res.status(401).json({ error: "Token não fornecido" });
+        const { nome, nlugares } = req.body;
+        const imagem = req.file ? req.file.buffer : null; // Captura a imagem
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
-
-        const { nome, nlugares, email } = req.body;
-        const imagem = req.file ? req.file.buffer : null; // Obtém o buffer da imagem
-
-        const newBus = await Bus.create({ 
-            nome, 
-            nlugares, 
-            imagem, 
-            createdBy: email 
+        // Criar novo autocarro apenas com os 3 campos
+        const newBus = await Bus.create({
+            nome,
+            nlugares,
+            imagem
+        }, {
+            returning: ["id", "nome", "nlugares", "imagem"] // Retorna apenas estes campos
         });
 
         res.status(201).json(newBus);
     } catch (error) {
-        console.error("Erro ao criar autocarro:", error);
+        console.error("❌ Erro ao criar autocarro:", error);
         res.status(500).json({ error: "Erro ao criar autocarro" });
     }
 };

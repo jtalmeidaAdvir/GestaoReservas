@@ -7,16 +7,23 @@ const getToken = () => localStorage.getItem("token");
 
 // Obter todos os autocarros
 export const fetchBuses = async () => {
-    const response = await axios.get(API_URL, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-    });
-    return response.data;
+    try {
+        const response = await axios.get(API_URL, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erro ao buscar autocarros:", error);
+        return [];
+    }
 };
+
+
 
 // Criar um novo autocarro
 export const createBus = async (formData) => {
     const token = getToken();
-    return axios.post(API_URL, formData, {
+    return axios.post(`${API_URL}`, formData, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
