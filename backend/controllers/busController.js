@@ -28,10 +28,11 @@ exports.createBus = async (req, res) => {
             nome,
             nlugares,
             imagem,
-            createdBy: email,
-            createdOn: new Date().toISOString(),  // Ou formate conforme necessário
-            updatedOn: new Date().toISOString(),  // Ou formate conforme necessário
+            createdBy: email,  // Verifique se está a atribuir corretamente o email
+            createdOn: new Date().toISOString(),  // Atribuindo a data e hora atual para createdOn
+            updatedOn: new Date().toISOString(),  // Atribuindo a data e hora atual para updatedOn
         });
+        
 
         res.status(201).json(newBus);  // Retorna o autocarro criado
     } catch (error) {
