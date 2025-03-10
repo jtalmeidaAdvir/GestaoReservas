@@ -9,7 +9,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 
-const formatDate = (date) => {
+const formatDateForString = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -19,7 +19,7 @@ const formatDate = (date) => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-const formattedDate = formatDate(new Date());
+const formattedDate = formatDateForString(new Date());
 
 
 
@@ -34,17 +34,20 @@ exports.createBus = async (req, res) => {
         const userId = decoded.id;
 
         const { nome, nlugares, email } = req.body;
-        const imagem = req.file ? req.file.buffer : null; // Obtém o buffer da imagem
-
-        const newBus = await Bus.create({ 
-            nome, 
-            nlugares, 
-            imagem, 
-            createdBy: email, 
-            createdOn: formattedDate,
-            updatedOn: formattedDate
-
+        const imagem = req.file ? req.file.buffer : null;
+        
+        // Formatar as datas para string
+        const formattedDate = formatDateForString(new Date());
+        
+        const newBus = await Bus.create({
+            nome,
+            nlugares,
+            imagem,
+            createdBy: email,
+            createdOn: formattedDate,  // Passar a data formatada como string
+            updatedOn: formattedDate,  // Passar a data formatada como string
         });
+        
 
         res.status(201).json(newBus);
     } catch (error) {
