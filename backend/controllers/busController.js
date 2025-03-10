@@ -27,43 +27,30 @@ const formattedDate = formatDateForString(new Date());
 // Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1];
-        if (!token) return res.status(401).json({ error: "Token não fornecido" });
+        console.log("🟡 Recebendo dados:", req.body);
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
-
-        const { nome, nlugares, email } = req.body;
+        const { nome, nlugares, email } = req.body;  // Obter corretamente os dados do corpo da requisição
         const imagem = req.file ? req.file.buffer : null;
-        
-        // Formatar as datas para string
+
+        // Formatar a data corretamente
         const formattedDate = formatDateForString(new Date());
-        
+
         const newBus = await Bus.create({
             nome,
             nlugares,
             imagem,
             createdBy: email,
-            createdOn: formattedDate,  // Passar a data formatada como string
-            updatedOn: formattedDate,  // Passar a data formatada como string
-        });
-        
-
-        res.status(201).json(newBus);
-    } catch (error) {
-        console.log("Dados do autocarro:", {
-            nome,
-            nlugares,
-            imagem,
             createdOn: formattedDate,
             updatedOn: formattedDate
         });
-        
+
+        res.status(201).json(newBus);
+    } catch (error) {
         console.error("Erro ao criar autocarro:", error);
-console.error("Erro completo:", error.message, error.stack);
-res.status(500).json({ error: "Erro ao criar autocarro", message: error.message });
+        res.status(500).json({ error: "Erro ao criar autocarro" });
     }
 };
+
 
 // Obter um autocarro pelo ID e retornar a imagem como base64
 exports.getBusById = async (req, res) => {
