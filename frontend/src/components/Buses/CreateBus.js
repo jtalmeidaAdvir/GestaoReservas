@@ -40,10 +40,8 @@ const CreateBus = () => {
             formDataToSend.append("nome", formData.nome);
             formDataToSend.append("nlugares", formData.nlugares);
             if (imagem) {
-                formDataToSend.append("imagem", imagem); // Verifique se a imagem está a ser passada
+                formDataToSend.append("imagem", imagem);
             }
-    
-            console.log("FormData:", formDataToSend); // Adicione um log para verificar o conteúdo do FormData
     
             await createBus(formDataToSend);
             setSuccess("Autocarro criado com sucesso!");
@@ -52,6 +50,7 @@ const CreateBus = () => {
             setError("Erro ao criar autocarro.");
         }
     };
+    
     
     
 

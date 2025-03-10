@@ -23,27 +23,6 @@ const formatDateForString = (date) => {
 const formattedDate = formatDateForString(new Date());
 
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    try {
-        const formDataToSend = new FormData();
-        formDataToSend.append("nome", formData.nome);
-        formDataToSend.append("nlugares", formData.nlugares);
-        formDataToSend.append("email", localStorage.getItem("email"));  // Garantir que o email está sendo enviado
-        if (imagem) {
-            formDataToSend.append("imagem", imagem);
-        }
-
-        await createBus(formDataToSend);
-        setSuccess("Autocarro criado com sucesso!");
-        setTimeout(() => navigate("/autocarros"), 2000);
-    } catch (error) {
-        setError("Erro ao criar autocarro.");
-    }
-};
 
 
 
