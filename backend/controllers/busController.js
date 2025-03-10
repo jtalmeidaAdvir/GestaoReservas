@@ -34,8 +34,10 @@ exports.createBus = async (req, res) => {
 
         res.status(201).json(newBus);
     } catch (error) {
+        
         console.error("Erro ao criar autocarro:", error);
-        res.status(500).json({ error: "Erro ao criar autocarro" });
+console.error("Erro completo:", error.message, error.stack);
+res.status(500).json({ error: "Erro ao criar autocarro", message: error.message });
     }
 };
 
