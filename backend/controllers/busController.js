@@ -19,8 +19,6 @@ exports.createBus = async (req, res) => {
     try {
         const token = req.headers.authorization?.split(" ")[1];
         if (!token) return res.status(401).json({ error: "Token não fornecido" });
-        const createdOn = "2025-03-03 10:34:06.030";
-        const updatedOn = "2025-03-03 10:34:06.030";
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.id;
@@ -30,12 +28,14 @@ exports.createBus = async (req, res) => {
 
         const newBus = await Bus.create({ 
             nome, 
-            nlugares, 
+            nlugares: Number(nlugares), // Converter para inteiro
             imagem, 
             createdBy: email,
-            createdOn,
-            updatedOn 
+            createdOn: new Date().toISOString(), // Adicionar timestamp
+            updatedOn: new Date().toISOString(),
+            isActive: true, // Garantir que está ativo por defeito
         });
+        
 
         res.status(201).json(newBus);
     } catch (error) {
