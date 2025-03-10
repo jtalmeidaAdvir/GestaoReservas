@@ -22,7 +22,13 @@ exports.createBus = async (req, res) => {
         const { nome, nlugares } = req.body;
         const imagem = req.file ? req.file.buffer : null;
 
-        const newBus = await Bus.create({ nome, nlugares, imagem });
+        const newBus = await Bus.create({
+            nome,
+            nlugares,
+            imagem,
+            createdOn: new Date().toISOString(), // Formato correto para SQL Server
+        });
+        
 
         console.log("✅ Autocarro criado:", newBus);
         res.status(201).json(newBus);
