@@ -23,6 +23,30 @@ const formatDateForString = (date) => {
 const formattedDate = formatDateForString(new Date());
 
 
+exports.createBus = async (req, res) => {
+    try {
+        const { nome, nlugares, email } = req.body;
+        const imagem = req.file ? req.file.buffer : null;
+
+        // Formatar a data corretamente (sem fuso horário)
+        const formattedDate = formatDateForString(new Date());
+
+        const newBus = await Bus.create({
+            nome,
+            nlugares,
+            imagem,
+            createdBy: email, 
+            createdOn: formattedDate, 
+            updatedOn: formattedDate,
+            isActive: true,
+        });
+
+        res.status(201).json(newBus);
+    } catch (error) {
+        console.error("Erro ao criar autocarro:", error);
+        res.status(500).json({ error: "Erro ao criar autocarro" });
+    }
+};
 
 
 
