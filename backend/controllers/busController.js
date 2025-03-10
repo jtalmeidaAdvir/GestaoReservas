@@ -28,6 +28,7 @@ exports.createBus = async (req, res) => {
             nome,
             nlugares,
             imagem,
+            isActive,
             createdBy: email,  // Verifique se está a atribuir corretamente o email
             createdOn: new Date().toISOString(),  // Atribuindo a data e hora atual para createdOn
             updatedOn: new Date().toISOString(),  // Atribuindo a data e hora atual para updatedOn

@@ -40,18 +40,19 @@ const CreateBus = () => {
             formDataToSend.append("nome", formData.nome);
             formDataToSend.append("nlugares", formData.nlugares);
             if (imagem) {
-                formDataToSend.append("imagem", imagem);  // Adiciona a imagem se presente
+                formDataToSend.append("imagem", imagem); // Verifique se a imagem está a ser passada
             }
     
-            // Chama a função para criar o autocarro, enviando os dados para o servidor
+            console.log("FormData:", formDataToSend); // Adicione um log para verificar o conteúdo do FormData
+    
             await createBus(formDataToSend);
-            
             setSuccess("Autocarro criado com sucesso!");
             setTimeout(() => navigate("/autocarros"), 2000);
         } catch (error) {
             setError("Erro ao criar autocarro.");
         }
     };
+    
     
 
     return (
