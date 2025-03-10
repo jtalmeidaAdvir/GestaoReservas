@@ -27,29 +27,31 @@ const formattedDate = formatDateForString(new Date());
 // Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
-        console.log("🟡 Recebendo dados:", req.body);
+        const { nome, nlugares, email } = req.body;
+        const imagem = req.file ? req.file.buffer : null;  // Captura a imagem enviada no formulário
 
-        const { nome, nlugares, email } = req.body;  // Obter corretamente os dados do corpo da requisição
-        const imagem = req.file ? req.file.buffer : null;
+        // Verificar se a imagem foi carregada corretamente
+        if (!nome || !nlugares) {
+            return res.status(400).json({ error: "Nome e número de lugares são obrigatórios." });
+        }
 
-        // Formatar a data corretamente
-        const formattedDate = formatDateForString(new Date());
-
+        // Criar o autocarro com os dados recebidos
         const newBus = await Bus.create({
             nome,
             nlugares,
             imagem,
             createdBy: email,
-            createdOn: formattedDate,
-            updatedOn: formattedDate
+            createdOn: new Date().toISOString(),  // Ou formate conforme necessário
+            updatedOn: new Date().toISOString(),  // Ou formate conforme necessário
         });
 
-        res.status(201).json(newBus);
+        res.status(201).json(newBus);  // Retorna o autocarro criado
     } catch (error) {
         console.error("Erro ao criar autocarro:", error);
         res.status(500).json({ error: "Erro ao criar autocarro" });
     }
 };
+
 
 
 // Obter um autocarro pelo ID e retornar a imagem como base64

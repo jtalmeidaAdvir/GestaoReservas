@@ -34,22 +34,25 @@ const CreateBus = () => {
         e.preventDefault();
         setError("");
         setSuccess("");
-
+    
         try {
             const formDataToSend = new FormData();
             formDataToSend.append("nome", formData.nome);
             formDataToSend.append("nlugares", formData.nlugares);
             if (imagem) {
-                formDataToSend.append("imagem", imagem);
+                formDataToSend.append("imagem", imagem);  // Adiciona a imagem se presente
             }
-
+    
+            // Chama a função para criar o autocarro, enviando os dados para o servidor
             await createBus(formDataToSend);
+            
             setSuccess("Autocarro criado com sucesso!");
             setTimeout(() => navigate("/autocarros"), 2000);
         } catch (error) {
             setError("Erro ao criar autocarro.");
         }
     };
+    
 
     return (
         <Container className="createbus-container">
