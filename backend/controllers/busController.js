@@ -19,6 +19,8 @@ exports.createBus = async (req, res) => {
     try {
         const token = req.headers.authorization?.split(" ")[1];
         if (!token) return res.status(401).json({ error: "Token não fornecido" });
+        const createdAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+        const updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.id;
@@ -30,7 +32,9 @@ exports.createBus = async (req, res) => {
             nome, 
             nlugares, 
             imagem, 
-            createdBy: email 
+            createdBy: email,
+            createdAt,
+            updatedAt 
         });
 
         res.status(201).json(newBus);
