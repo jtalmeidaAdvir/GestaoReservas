@@ -17,10 +17,11 @@ const formatDateForString = (date) => {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
     const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`; // Remover o fuso horário
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`; // Formato sem fuso horário
 };
 
 const formattedDate = formatDateForString(new Date());
+
 
 
 // Criar um novo autocarro
@@ -50,6 +51,13 @@ exports.createBus = async (req, res) => {
 
         res.status(201).json(newBus);
     } catch (error) {
+        console.log("Dados do autocarro:", {
+            nome,
+            nlugares,
+            imagem,
+            createdOn: formattedDate,
+            updatedOn: formattedDate
+        });
         
         console.error("Erro ao criar autocarro:", error);
 console.error("Erro completo:", error.message, error.stack);
