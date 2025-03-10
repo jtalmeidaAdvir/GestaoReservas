@@ -15,26 +15,23 @@ const upload = multer({
 
 
 // Criar um novo autocarro
+// Criar um novo autocarro
 exports.createBus = async (req, res) => {
     try {
         const token = req.headers.authorization?.split(" ")[1];
         if (!token) return res.status(401).json({ error: "Token não fornecido" });
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userEmail = decoded.email; // ✅ Obtém o email do utilizador autenticado
+        const userId = decoded.id;
 
-        const { nome, nlugares } = req.body;
-        const imagem = req.file ? Buffer.from(req.file.buffer) : null; // ✅ Converte corretamente a imagem
+        const { nome, nlugares, email } = req.body;
+        const imagem = req.file ? req.file.buffer : null; // Obtém o buffer da imagem
 
         const newBus = await Bus.create({ 
             nome, 
-            nlugares: Number(nlugares), 
+            nlugares, 
             imagem, 
-            createdBy: userEmail, // ✅ Adicionado
-            updatedBy: userEmail, // ✅ Adicionado
-            createdOn: new Date().toISOString(),
-            updatedOn: new Date().toISOString(),
-            isActive: true,
+            createdBy: email 
         });
 
         res.status(201).json(newBus);

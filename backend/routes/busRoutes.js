@@ -5,8 +5,7 @@ const multer = require("multer");
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post("/create", upload.single("imagem"), busController.createBus);
-
+router.post("/create", upload.single("imagem"), busController.createBus); // Criar autocarro com upload
 router.get("/available", busController.getAvailableBuses); // ✅ Nova rota para listar autocarros disponíveis
 
 

@@ -1,24 +1,17 @@
 import axios from "axios";
 
-const API_URL = "https://backendreservasnunes.advir.pt/buses"; // Endpoint da API
+const API_URL = "http://192.168.1.10:3000/buses"; // Endpoint da API
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");
 
 // Obter todos os autocarros
 export const fetchBuses = async () => {
-    try {
-        const response = await axios.get(API_URL, {
-            headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Erro ao buscar autocarros:", error);
-        return [];
-    }
+    const response = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
 };
-
-
 
 // Criar um novo autocarro
 export const createBus = async (formData) => {
@@ -36,7 +29,6 @@ export const createBus = async (formData) => {
 
 
 
-
 export const fetchBusById = async (id) => {
     const token = localStorage.getItem("token");
     const response = await axios.get(`${API_URL}/${id}`, {
@@ -44,8 +36,6 @@ export const fetchBusById = async (id) => {
     });
     return response.data;
 };
-
-
 
 export const updateBus = async (id, formData, hasImage) => {
     const token = localStorage.getItem("token");
