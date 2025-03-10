@@ -29,7 +29,10 @@ exports.createBus = async (req, res) => {
             nome, 
             nlugares, 
             imagem, 
-            createdBy: email 
+            createdBy: email, 
+            createdOn: new Date().toISOString(),
+            updatedOn: new Date().toISOString()
+
         });
 
         res.status(201).json(newBus);
