@@ -23,30 +23,28 @@ const formatDateForString = (date) => {
 const formattedDate = formatDateForString(new Date());
 
 
-// Criar um novo autocarro
-exports.createBus = async (req, res) => {
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
     try {
-        const { nome, nlugares, email } = req.body;
-        const imagem = req.file ? req.file.buffer : null;
+        const formDataToSend = new FormData();
+        formDataToSend.append("nome", formData.nome);
+        formDataToSend.append("nlugares", formData.nlugares);
+        formDataToSend.append("email", localStorage.getItem("email"));  // Garantir que o email está sendo enviado
+        if (imagem) {
+            formDataToSend.append("imagem", imagem);
+        }
 
-        // Formatar a data corretamente (sem fuso horário)
-        const formattedDate = formatDateForString(new Date());
-
-        const newBus = await Bus.create({
-            nome,
-            nlugares,
-            imagem,
-            createdBy: email,
-            createdOn: formattedDate,  // Passar data sem fuso horário
-            updatedOn: formattedDate
-        });
-
-        res.status(201).json(newBus);
+        await createBus(formDataToSend);
+        setSuccess("Autocarro criado com sucesso!");
+        setTimeout(() => navigate("/autocarros"), 2000);
     } catch (error) {
-        console.error("Erro ao criar autocarro:", error);
-        res.status(500).json({ error: "Erro ao criar autocarro" });
+        setError("Erro ao criar autocarro.");
     }
 };
+
 
 
 
