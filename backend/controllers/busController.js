@@ -28,9 +28,6 @@ exports.createBus = async (req, res) => {
         const { nome, nlugares, email } = req.body;
         const imagem = req.file ? req.file.buffer : null;
 
-        // Verificar se a imagem está a ser recebida corretamente
-        console.log(imagem ? "Imagem recebida" : "Nenhuma imagem recebida");
-
         const formattedDate = formatDateForString(new Date());
 
         const newBus = await Bus.create({
@@ -45,10 +42,11 @@ exports.createBus = async (req, res) => {
 
         res.status(201).json(newBus);
     } catch (error) {
-        console.error("Erro ao criar autocarro:", error);
-        res.status(500).json({ error: "Erro ao criar autocarro" });
+        console.error("Erro detalhado ao criar autocarro:", error);
+        res.status(500).json({ error: error.message || "Erro ao criar autocarro" });
     }
 };
+
 
 
 
