@@ -28,15 +28,17 @@ exports.createBus = async (req, res) => {
         const { nome, nlugares, email } = req.body;
         const imagem = req.file ? req.file.buffer : null;
 
-        // Formatar a data corretamente (sem fuso horário)
+        // Verificar se a imagem está a ser recebida corretamente
+        console.log(imagem ? "Imagem recebida" : "Nenhuma imagem recebida");
+
         const formattedDate = formatDateForString(new Date());
 
         const newBus = await Bus.create({
             nome,
             nlugares,
             imagem,
-            createdBy: email, 
-            createdOn: formattedDate, 
+            createdBy: email,
+            createdOn: formattedDate,
             updatedOn: formattedDate,
             isActive: true,
         });
