@@ -168,7 +168,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                     placeholder="Hora de Partida"
                     value={horaPartida}
                     onChange={(e) => setHoraPartida(e.target.value)}
-                    required
+                    
                     style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
                 />
                 <input
@@ -176,7 +176,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                     placeholder="Hora de Chegada"
                     value={horaChegada}
                     onChange={(e) => setHoraChegada(e.target.value)}
-                    required
+                    
                     style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
                 />
 

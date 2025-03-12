@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { Button, Box, IconButton, Typography,TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { Button, Box, IconButton, Typography,TextField,Autocomplete,Modal,Select,MenuItem, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { io } from "socket.io-client";
 import BusChangeModal from "./Moves/BusChangeModal";
@@ -19,7 +19,7 @@ import html2canvas from "html2canvas";
 
 
 
-const socket = io("https://backendreservasnunes.advir.pt", {
+const socket = io("http://localhost:3010", {
     transports: ["websocket"],
     path: "/socket.io/",
     reconnectionAttempts: 5,
@@ -55,14 +55,240 @@ const Reservation = ({tripId}) => {
     const [availableTrips, setAvailableTrips] = useState([]);
     const [selectedReservations, setSelectedReservations] = useState([]);
     const [modalMoveBatchOpen, setModalMoveBatchOpen] = useState(false);
+    const [reserva, setReserva] = useState("");
+    const [quantidadePassageiros, setQuantidadePassageiros] = useState(1);
 
     const [modalReturnOpen, setModalReturnOpen] = useState(false);
+    const [modalMoveWithinTripOpen, setModalMoveWithinTripOpen] = useState(false);
     const [returnTripId, setReturnTripId] = useState(null);
     const [returnReservationData, setReturnReservationData] = useState(null);
 
     const [emailDestinatario, setEmailDestinatario] = useState("");
   
+    const [cities, setCities] = useState([]);
+
+
+    const handleSwapReservations = async () => {
+        if (selectedReservations.length !== 2) {
+          alert("Por favor, selecione exatamente duas reservas para trocar de lugar.");
+          return;
+        }
+        // Extrai as duas reservas selecionadas
+        const [res1, res2] = selectedReservations;
+        
+        // Define os novos lugares (troca)
+        const novoLugarRes1 = res2.lugar;
+        const novoLugarRes2 = res1.lugar;
+      
+        // Atualiza o estado local (supondo que 'id' representa o número do lugar)
+        setReservations(prevReservations =>
+          prevReservations.map(r => {
+            if (r.id === res1.id) return { ...r, lugar: novoLugarRes1, id: novoLugarRes1 };
+            if (r.id === res2.id) return { ...r, lugar: novoLugarRes2, id: novoLugarRes2 };
+            return r;
+          })
+        );
+      
+        // Atualiza cada reserva no backend
+        await handleRowEdit({ ...res1, lugar: novoLugarRes1 });
+        await handleRowEdit({ ...res2, lugar: novoLugarRes2 });
+      
+        // Recarrega as reservas para refletir as alterações
+        fetchReservations();
+      };
+      
+
+    useEffect(() => {
+        fetch("https://backendreservasnunes.advir.pt/cities")
+          .then(response => response.json())
+          .then(data => {
+            console.log("📥 Resposta da API (cidades disponíveis):", data);
+            const sortedCities = Array.isArray(data)
+              ? data.sort((a, b) => a.nome.localeCompare(b.nome))
+              : [];
+            setCities(sortedCities);
+          })
+          .catch(error => {
+            console.error("Erro ao carregar cidades:", error);
+            setCities([]);
+          });
+      }, []);
+
+
+// Função para mover reservas dentro da mesma viagem
+const handleMoveReservationsWithinTrip = async (updates) => {
+    console.log("🏁 Movendo reservas dentro da mesma viagem:", updates);
     
+    // Atualiza o estado local das reservas
+    setReservations((prevReservations) =>
+      prevReservations.map(res => {
+        const update = updates.find(item => item.id === res.id);
+        return update ? { ...res, lugar: update.newSeat } : res;
+      })
+    );
+  
+    // Atualiza cada reserva no backend
+    for (const update of updates) {
+      const reservation = reservations.find(r => r.id === update.id);
+      if (reservation) {
+        await handleRowEdit({
+          ...reservation,
+          // Apenas atualiza o assento (lugar)
+          lugar: update.newSeat
+        });
+      }
+    }
+  
+    // Recarrega as reservas para refletir as alterações
+    fetchReservations();
+  };
+  
+  // Modal para selecionar os novos lugares das reservas
+  const MoveReservationsWithinTripModal = ({ open, onClose, tripId, selectedReservations, onConfirm }) => {
+    const [availableSeats, setAvailableSeats] = useState([]);
+    const [reservationsWithSeats, setReservationsWithSeats] = useState([]);
+  
+    // Buscar os lugares disponíveis quando o modal abrir
+    useEffect(() => {
+      if (open) {
+        fetch(`https://backendreservasnunes.advir.pt/reservations/trip/${tripId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data && Array.isArray(data.freeSeats)) {
+              // Certifica-te de que os lugares estão ordenados numericamente
+              const sortedSeats = [...data.freeSeats].sort((a, b) => a - b);
+              setAvailableSeats(sortedSeats);
+              setReservationsWithSeats(
+                selectedReservations.map((res) => ({ ...res, selectedSeat: null }))
+              );
+            } else {
+              setAvailableSeats([]);
+            }
+          })
+          .catch((error) => {
+            console.error("Erro ao buscar lugares disponíveis:", error);
+            setAvailableSeats([]);
+          });
+      }
+    }, [open, tripId, selectedReservations]);
+  
+    // Quando o primeiro combo for preenchido, auto-preencher os restantes com os lugares disponíveis
+    useEffect(() => {
+      if (reservationsWithSeats.length > 0 && reservationsWithSeats[0].selectedSeat) {
+        // Garante que os lugares disponíveis estão ordenados
+        const sortedSeats = [...availableSeats].sort((a, b) => a - b);
+        const firstSeat = Number(reservationsWithSeats[0].selectedSeat);
+        const startIndex = sortedSeats.findIndex((seat) => Number(seat) >= firstSeat);
+        if (startIndex !== -1) {
+          const updated = reservationsWithSeats.map((res, index) => {
+            // O primeiro já foi definido
+            if (index === 0) return res;
+            // Se ainda não tiver sido selecionado, auto-preenche com o próximo lugar disponível
+            if (res.selectedSeat == null) {
+              return { ...res, selectedSeat: sortedSeats[startIndex + index] };
+            }
+            return res;
+          });
+          setReservationsWithSeats(updated);
+        }
+      }
+    }, [reservationsWithSeats[0]?.selectedSeat, availableSeats]);
+  
+    const handleSeatSelection = (reservationId, seat) => {
+      setReservationsWithSeats((prev) =>
+        prev.map((res) =>
+          res.id === reservationId ? { ...res, selectedSeat: seat } : res
+        )
+      );
+    };
+  
+    const handleConfirmMove = () => {
+      // Cria o array de atualizações no formato: { id: <id da reserva>, newSeat: <novo lugar> }
+      const updates = reservationsWithSeats.map((res) => ({
+        id: res.id,
+        newSeat: res.selectedSeat,
+      }));
+      console.log("Reservas para mover:", updates);
+      onConfirm(updates);
+      onClose();
+    };
+  
+    const isReadyToConfirm = reservationsWithSeats.every((res) => res.selectedSeat);
+  
+    return (
+      <Modal open={open} onClose={onClose}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 500,
+            bgcolor: "background.paper",
+            p: 4,
+            boxShadow: 25,
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6">
+            Mover {selectedReservations.length} Reserva(s)
+          </Typography>
+  
+          {/* Lista de reservas com dropdown dos lugares disponíveis */}
+          <Box sx={{ mt: 2 }}>
+            {reservationsWithSeats.map((res, index) => (
+              <Box key={res.id} sx={{ display: "flex", flexDirection: "column", mb: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Typography sx={{ width: "40%" }}>
+                    {res.nomePassageiro || `Reserva: ${res.reserva}`}
+                  </Typography>
+                  <Select
+                    value={res.selectedSeat || ""}
+                    onChange={(e) => handleSeatSelection(res.id, e.target.value)}
+                    sx={{ width: "60%" }}
+                  >
+                    {availableSeats
+                      .filter((seat) =>
+                        // Excluir os lugares que já foram selecionados noutras reservas (exceto o da reserva atual)
+                        !reservationsWithSeats.some(
+                          (r) => r.id !== res.id && r.selectedSeat === seat
+                        )
+                      )
+                      .map((seat) => (
+                        <MenuItem key={seat} value={seat}>
+                          Lugar {seat}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </Box>
+               
+              </Box>
+            ))}
+          </Box>
+  
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+            <Button
+              variant="contained"
+              style={{ backgroundColor: "darkred", color: "white" }}
+              onClick={onClose}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              style={{ backgroundColor: "darkred", color: "white" }}
+              onClick={handleConfirmMove}
+              disabled={!isReadyToConfirm}
+            >
+              Confirmar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+    );
+  };
+      
+
     const handleSendEmail = (motorista, origemtrip, destinotrip, datatrip, busName) => {
 
 
@@ -124,6 +350,11 @@ const Reservation = ({tripId}) => {
             return updatedReservations;
         });
     };
+
+
+
+
+
     const handleMoveReservationTrip = async (newTripId, newSeat, newTripDate) => {
         setReservations((prevReservations) => {
             let updatedReservations = [...prevReservations];
@@ -191,25 +422,86 @@ const Reservation = ({tripId}) => {
             console.error("🔥 Erro ao eliminar reserva:", error);
         }
     };
+    
+    
+
     const handleChangeBus = async (busId) => {
         try {
-            const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/bus`, {
+            // 1️⃣ Obter detalhes do novo autocarro
+            const busInfoResponse = await fetch(`https://backendreservasnunes.advir.pt/buses/${busId}`);
+            const busInfo = await busInfoResponse.json();
+    
+            if (!busInfo || !busInfo.nlugares) {
+                alert("❌ Erro ao obter informações do novo autocarro.");
+                return;
+            }
+    
+            const newBusSeats = busInfo.nlugares; // Número total de lugares do novo autocarro
+    
+            // 2️⃣ Obter os lugares disponíveis no novo autocarro
+            const availableSeatsResponse = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/available-seats`);
+            const availableSeatsData = await availableSeatsResponse.json();
+    
+            if (!availableSeatsData || !Array.isArray(availableSeatsData) || availableSeatsData.length === 0) {
+                alert("❌ Erro: Não há lugares disponíveis no novo autocarro.");
+                return;
+            }
+    
+            // Ordenar os lugares disponíveis
+            const sortedAvailableSeats = availableSeatsData.sort((a, b) => a - b);
+    
+            // 3️⃣ Obter reservas ativas ordenadas pelo número do lugar
+            const activeReservations = reservations
+                .filter(res => res.reserva && res.reserva.trim() !== "") // Apenas reservas ativas
+                .sort((a, b) => a.lugar - b.lugar); // Ordenar por lugar original
+    
+            if (activeReservations.length > sortedAvailableSeats.length) {
+                alert(`❌ Erro: O novo autocarro tem apenas ${sortedAvailableSeats.length} lugares disponíveis, 
+                       mas existem ${activeReservations.length} reservas ativas.`);
+                return;
+            }
+    
+            // 4️⃣ Atribuir os primeiros lugares disponíveis às reservas ativas
+            const updatedReservations = activeReservations.map((reservation, index) => ({
+                ...reservation,
+                lugar: sortedAvailableSeats[index], // Novo lugar atribuído sequencialmente
+                tripId: tripId, // Garantir que continuam na mesma viagem
+            }));
+    
+            console.log("🚍 Novo Autocarro:", busInfo.nome);
+            console.log("🎟️ Reservas reatribuídas:", updatedReservations);
+    
+            // 5️⃣ Atualizar o autocarro da viagem
+            const updateBusResponse = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/bus`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ busId }),
             });
     
-            if (response.ok) {
-                alert("Autocarro atualizado com sucesso!");
-                setModalOpen(false); // Fechar o modal
-                fetchReservations(); // Atualizar os dados sem recarregar a página
-            } else {
-                console.error("Erro ao atualizar autocarro");
+            if (!updateBusResponse.ok) {
+                console.error("❌ Erro ao atualizar autocarro:", await updateBusResponse.text());
+                return;
             }
+    
+            // 6️⃣ Atualizar as reservas no backend
+            for (const updatedRes of updatedReservations) {
+                await handleRowEdit(updatedRes);
+            }
+    
+            alert("✅ Autocarro atualizado e reservas reorganizadas com sucesso!");
+            setModalOpen(false); // Fecha o modal
+            fetchReservations(); // Atualiza os dados
+    
         } catch (error) {
-            console.error("Erro ao atualizar autocarro:", error);
+            console.error("🔥 Erro ao mudar autocarro:", error);
         }
     };
+    
+    
+
+
+
+
     const handleMoveReservationsInBatch = async (newTripId, reservationsToMove) => {
         
         console.log("🏁 Movendo reservas:", reservationsToMove);
@@ -318,6 +610,39 @@ const Reservation = ({tripId}) => {
         }
     };
     
+
+
+    const handleBlockReservations = async (reservasSelecionadas) => {
+        try {
+          // Obter o último número de reserva
+          const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/last`);
+          const ultimo = await response.json();
+          const novoNumero = ultimo?.reserva ? parseInt(ultimo.reserva) + 1 : 1;
+          // Formata o número base com 4 dígitos (exemplo: "0400")
+          const baseReserva = String(novoNumero).padStart(4, "0");
+      
+          // Processar cada reserva selecionada
+          const promises = reservasSelecionadas.map(async (reserva, index) => {
+            // Se for a primeira reserva, usa o número base; para as restantes, adiciona um sufixo
+            const reservaValor = index === 0 ? baseReserva : `${baseReserva}.${index}`;
+            const reservaAtualizada = { ...reserva, reserva: reservaValor };
+      
+            // Chama a função que cria/atualiza a reserva no backend
+            return handleRowEdit(reservaAtualizada);
+          });
+      
+          await Promise.all(promises);
+          alert(`Reservas em bloco criadas com a base ${baseReserva}`);
+          // Atualiza a lista de reservas para refletir as alterações
+          fetchReservations();
+        } catch (error) {
+          console.error("Erro ao criar reservas em bloco:", error);
+        }
+      };
+      
+    
+
+
     const handleSaveMotorista = async () => {
         try {
             const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/motorista`, {
@@ -421,6 +746,7 @@ const Reservation = ({tripId}) => {
         }
     };
     useEffect(() => {
+        
         const handlePaste = (event) => {
             const clipboardData = event.clipboardData || window.clipboardData;
             const pastedText = clipboardData.getData("text");
@@ -544,11 +870,149 @@ const Reservation = ({tripId}) => {
         { field: "id", headerName: "Lugar", width: 60, editable: false },    
         { field: "moeda", headerName: "", width: 10, editable: false },
         { field: "preco", headerName: "Preço", width: 80, editable: true }, 
-        { field: "entrada", headerName: "Entrada", width: 100, editable: true },
+        {
+            field: "entrada",
+            headerName: "Entrada",
+            width: 100,
+            editable: true,
+            renderEditCell: (params) => {
+              return (
+                <Autocomplete
+                  freeSolo
+                  options={cities.map((city) => city.nome)}
+                  value={params.value || ""}
+                  onChange={(event, newValue) => {
+                    params.api.setEditCellValue({
+                      id: params.id,
+                      field: params.field,
+                      value: newValue,
+                    });
+                  }}
+                  style={{ width: "400px" }}
+                  renderInput={(paramsInput) => (
+                    <TextField
+                      {...paramsInput}
+                      variant="standard"
+                      autoFocus
+                      inputRef={(input) => input && input.focus()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === "Tab") {
+                          event.preventDefault(); // Evita comportamento padrão
+                          
+                          let newValue = paramsInput.inputProps.value; // Obtém o que está escrito
+          
+                          // **Se houver uma opção correspondente na lista, usa-a**
+                          const selectedOption = cities.find(city => city.nome.toLowerCase() === newValue.toLowerCase());
+                          if (selectedOption) {
+                            newValue = selectedOption.nome;
+                          }
+          
+                          // **Atualiza o valor no DataGrid**
+                          params.api.setEditCellValue({
+                            id: params.id,
+                            field: params.field,
+                            value: newValue,
+                          });
+          
+                          // **Garante que a célula sai do modo de edição sem erro**
+                          if (params.id !== undefined && params.field !== undefined) {
+                            params.api.stopCellEditMode({ id: params.id, field: params.field });
+                          }
+          
+                          // **Tab move corretamente para a próxima célula**
+                          if (event.key === "Tab") {
+                            setTimeout(() => {
+                              const columns = params.api.getAllColumns();
+                              const currentColumnIndex = columns.findIndex(col => col.field === params.field);
+          
+                              if (currentColumnIndex !== -1 && currentColumnIndex < columns.length - 1) {
+                                const nextField = columns[currentColumnIndex + 1].field;
+                                params.api.setCellFocus(params.id, nextField);
+                              }
+                            }, 50); // Pequeno atraso para garantir que a célula sai do modo de edição antes de avançar
+                          }
+                        }
+                      }}
+                    />
+                  )}
+                />
+              );
+            },
+          }
+          
+          
+          
+          
+          
+          ,
         { field: "reserva", headerName: "Reserva", width: 80, sortable: false, editable: false },
         { field: "apelidoPassageiro", headerName: "Apelido", width: 100, editable: true },
         { field: "nomePassageiro", headerName: "Nome", width: 100, editable: true },
-        { field: "saida", headerName: "Saida", width: 100, editable: true },
+        { field: "saida", headerName: "Saida", width: 100, editable: true,  renderEditCell: (params) => {
+            return (
+              <Autocomplete
+                freeSolo
+                options={cities.map((city) => city.nome)}
+                value={params.value || ""}
+                onChange={(event, newValue) => {
+                  params.api.setEditCellValue({
+                    id: params.id,
+                    field: params.field,
+                    value: newValue,
+                  });
+                }}
+                style={{ width: '400px' }} // Ajusta a largura conforme necessário
+
+                renderInput={(paramsInput) => (
+                    <TextField
+                    {...paramsInput}
+                    variant="standard"
+                    autoFocus
+                    inputRef={(input) => input && input.focus()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === "Tab") {
+                        event.preventDefault(); // Evita comportamento padrão
+                        
+                        let newValue = paramsInput.inputProps.value; // Obtém o que está escrito
+        
+                        // **Se houver uma opção correspondente na lista, usa-a**
+                        const selectedOption = cities.find(city => city.nome.toLowerCase() === newValue.toLowerCase());
+                        if (selectedOption) {
+                          newValue = selectedOption.nome;
+                        }
+        
+                        // **Atualiza o valor no DataGrid**
+                        params.api.setEditCellValue({
+                          id: params.id,
+                          field: params.field,
+                          value: newValue,
+                        });
+        
+                        // **Garante que a célula sai do modo de edição sem erro**
+                        if (params.id !== undefined && params.field !== undefined) {
+                          params.api.stopCellEditMode({ id: params.id, field: params.field });
+                        }
+        
+                        // **Tab move corretamente para a próxima célula**
+                        if (event.key === "Tab") {
+                          setTimeout(() => {
+                            const columns = params.api.getAllColumns();
+                            const currentColumnIndex = columns.findIndex(col => col.field === params.field);
+        
+                            if (currentColumnIndex !== -1 && currentColumnIndex < columns.length - 1) {
+                              const nextField = columns[currentColumnIndex + 1].field;
+                              params.api.setCellFocus(params.id, nextField);
+                            }
+                          }, 50); // Pequeno atraso para garantir que a célula sai do modo de edição antes de avançar
+                        }
+                      }
+                    }}
+                  />
+                )}
+              />
+            );
+          },
+        },
         { field: "volta", headerName: "Volta", width: 100, editable: true },
         { field: "telefone", headerName: "Tel.", width: 100, editable: true },
         { field: "email", headerName: "Email", width: 120, editable: true },
@@ -615,7 +1079,7 @@ const Reservation = ({tripId}) => {
     }
 
         
-        
+
         
         
         
@@ -633,8 +1097,10 @@ const Reservation = ({tripId}) => {
                     Carregando viagem...
                 </Typography>
             )}
-    
-        
+
+
+
+ 
     
         {/* Layout Flexbox para Tabela e Imagem */}
         <Box sx={{ display: "flex", gap: 4, alignItems: "flex-start", mt: 2 }}>
@@ -743,7 +1209,62 @@ const Reservation = ({tripId}) => {
                 dataviagem={datatrip}
             />
             
-            <Button
+          
+            <Button 
+  variant="contained" 
+  color="error" 
+  onClick={() => handleBlockReservations(selectedReservations)}
+  style={{
+    backgroundColor: "darkred",
+    color: "white",
+    padding: "10px",
+    borderRadius: "5px",
+    fontSize: "14px",
+    border: "none",
+    cursor: "pointer",
+    width: "100%"
+  }}
+>
+  Criar Reservas em Bloco
+</Button>
+<Button 
+  variant="contained"
+  color="error"
+  disabled={selectedReservations.length === 0}
+  onClick={() => setModalMoveWithinTripOpen(true)}
+  style={{
+    backgroundColor: "darkred",
+    color: "white",
+    padding: "10px",
+    borderRadius: "5px",
+    fontSize: "14px",
+    border: "none",
+    cursor: "pointer",
+    width: "100%"
+  }}
+>
+  Mover Reservas (Mesma Viagem)
+</Button>
+<Button 
+  variant="contained"
+  color="error"
+  disabled={selectedReservations.length !== 2}
+  onClick={handleSwapReservations}
+  style={{
+    backgroundColor: "darkred",
+    color: "white",
+    padding: "10px",
+    borderRadius: "5px",
+    fontSize: "14px",
+    border: "none",
+    cursor: "pointer",
+    width: "100%"
+  }}
+>
+  Trocar Lugares
+</Button>
+
+<Button
     variant="contained"
     style={{
         backgroundColor: "darkred",
@@ -762,9 +1283,15 @@ const Reservation = ({tripId}) => {
         setModalMoveBatchOpen(true); // ✅ Agora isto está definido
     }}
 >
-    Mover {selectedReservations.length} Reserva(s)
+    Mover {selectedReservations.length} Reserva(s) (Outra Viagem)
             </Button>
-
+<MoveReservationsWithinTripModal
+  open={modalMoveWithinTripOpen}
+  onClose={() => setModalMoveWithinTripOpen(false)}
+  tripId={tripId}
+  selectedReservations={selectedReservations}
+  onConfirm={handleMoveReservationsWithinTrip}
+/>
 
 
         </Box>

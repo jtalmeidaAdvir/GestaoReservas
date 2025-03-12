@@ -35,19 +35,15 @@ const CreateBus = () => {
         setError("");
         setSuccess("");
     
+        const formDataToSend = new FormData();
+        formDataToSend.append("nome", formData.nome);
+        formDataToSend.append("nlugares", formData.nlugares);
+        if (imagem) {
+            formDataToSend.append("imagem", imagem);
+            console.log(imagem); // Verifica a imagem que está a ser enviada
+        }
+    
         try {
-            const formDataToSend = new FormData();
-            formDataToSend.append("nome", formData.nome);
-            formDataToSend.append("nlugares", formData.nlugares);
-            if (imagem) {
-                formDataToSend.append("imagem", imagem);
-            }
-    
-            // Verifica se o FormData está correto antes de enviar
-            for (let pair of formDataToSend.entries()) {
-                console.log(pair[0] + ": " + pair[1]);
-            }
-    
             await createBus(formDataToSend);
             setSuccess("Autocarro criado com sucesso!");
             setTimeout(() => navigate("/autocarros"), 2000);
@@ -55,6 +51,7 @@ const CreateBus = () => {
             setError("Erro ao criar autocarro.");
         }
     };
+    
     
     
     

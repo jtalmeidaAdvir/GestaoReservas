@@ -1,3 +1,4 @@
+
 import jsPDF from "jspdf";
 import logoVPL from "../../../assets/logo.png"; // Caminho para o logo dentro do projeto
 
@@ -9,16 +10,26 @@ const handlePrintAllTickets = async (reservations, datatrip, formatDate, returnP
 
     const pdf = new jsPDF("l", "mm", "a4");
 
-    const margin = 5;
-    const ticketWidth = 135;
-    const ticketHeight = 65;
+    // Definições de dimensões do bilhete (14.7cm x 7cm convertidos para mm)
+    const ticketWidth = 147;
+    const ticketHeight = 70;
+    const leftMarginCol1 = 25; // 2.5cm de reserva no lado esquerdo para primeira coluna
+    const leftMarginCol2 = 30; // 4cm de reserva no lado esquerdo para segunda coluna
     const columns = 2;
     const rows = 3;
     const maxTicketsPerPage = columns * rows;
-    const logoWidth = 25;  
-    const logoHeight = 10;
+    const logoWidth = 20;  
+    const logoHeight = 8;
+    
+    // Definir espaço entre bilhetes
+    const horizontalSpace = (297 - (ticketWidth * columns)) / (columns + 1); // Para A4 paisagem: 297mm x 210mm
+    const verticalSpace = (215 - (ticketHeight * rows)) / (rows + 1);
 
     let ticketCount = 0;
+
+    // Adicionar fonte personalizada
+    pdf.addFont("helvetica", "regular", "normal");
+    pdf.addFont("helvetica", "bold", "bold");
 
     reservations.filter(row => row.nomePassageiro).forEach((row, index) => {
         if (ticketCount >= maxTicketsPerPage) {
@@ -26,60 +37,110 @@ const handlePrintAllTickets = async (reservations, datatrip, formatDate, returnP
             ticketCount = 0;
         }
 
-        let xOffset = margin + (ticketCount % columns) * (ticketWidth + 10);
-        let yOffset = margin + Math.floor(ticketCount / columns) * (ticketHeight + 5);
+        // Calcular posição do bilhete na página
+        const col = ticketCount % columns;
+        const rowNum = Math.floor(ticketCount / columns);
+        
+        // Posicionamento dos bilhetes com espaço distribuído uniformemente
+        let xOffset = horizontalSpace + col * (ticketWidth + horizontalSpace);
+        let yOffset = verticalSpace + rowNum * (ticketHeight + verticalSpace);
+        
+        // Determinar qual margem esquerda usar com base na coluna
+        const leftMargin = col === 0 ? leftMarginCol1 : leftMarginCol2;
+        
+        // Área útil do bilhete (descontando a reserva do lado esquerdo)
+        const contentAreaX = xOffset + leftMargin;
+        const usableWidth = ticketWidth - leftMargin;
 
-        // Cabeçalho em negrito
+        // Desenhar borda do bilhete com cantos arredondados
+        pdf.setDrawColor(255, 255, 255); // Vermelho escuro
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(xOffset, yOffset, ticketWidth, ticketHeight, 3, 3);
+        
+        // Faixa superior colorida
+        pdf.setFillColor(255, 255, 255); // Vermelho escuro
+        pdf.rect(xOffset, yOffset, ticketWidth, 12, 'F');
+        
+        // Cabeçalho com título e logo
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(9);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text("VPL - Viagens Póvoa de Lanhoso", xOffset + 5, yOffset + 10);
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0); // Branco
+        pdf.text("VPL - Viagens Póvoa de Lanhoso", contentAreaX, yOffset + 8);
 
-        // Adiciona o logótipo no canto direito (sem fundo vermelho)
+        // Adiciona o logótipo no canto direito
         pdf.addImage(logoVPL, "PNG", xOffset + ticketWidth - logoWidth - 5, yOffset + 2, logoWidth, logoHeight);
 
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Nº  ${row.reserva || "----"}`, xOffset + ticketWidth / 1.2, yOffset + 30);
+        // Número da reserva destacado
+        pdf.setFillColor(245, 245, 245); // Cinza claro
+        pdf.roundedRect(xOffset + ticketWidth - 40, yOffset + 14, 35, 10, 2, 2, 'F');
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(0, 0, 0); // Vermelho escuro
+        pdf.text(`Reserva Nº ${row.reserva || "----"}`, xOffset + ticketWidth - 38, yOffset + 20);
 
-        // Linha divisória
-        pdf.setDrawColor(200, 200, 200);
-        pdf.line(xOffset + 5, yOffset + 14, xOffset + ticketWidth - 5, yOffset + 14);
-
-        // Informações do passageiro com títulos em negrito
+        // Seção principal com informações do bilhete
+        pdf.setTextColor(80, 80, 80); // Cinza escuro
+        pdf.setFontSize(9);
+        
+        // Criar áreas para os campos (caixas com fundo claro)
+        const fieldHeight = 7;
+        const fieldMargin = 3;
+        
+        // Campo do nome
+        pdf.setFillColor(245, 245, 245);
+        pdf.roundedRect(contentAreaX, yOffset + 26, usableWidth / 2 - fieldMargin, fieldHeight, 1, 1, 'F');
+        
+        // Campo da data
+        pdf.roundedRect(contentAreaX + usableWidth / 2 + fieldMargin, yOffset + 26, usableWidth / 2 - fieldMargin * 2, fieldHeight, 1, 1, 'F');
+        
+        // Campo da ida
+        pdf.roundedRect(contentAreaX, yOffset + 36, usableWidth / 2 - fieldMargin, fieldHeight, 1, 1, 'F');
+        
+        // Campo da volta
+        pdf.roundedRect(contentAreaX + usableWidth / 2 + fieldMargin, yOffset + 36, usableWidth / 2 - fieldMargin * 2, fieldHeight, 1, 1, 'F');
+        
+        // Campo do lugar
+        pdf.roundedRect(contentAreaX, yOffset + 46, usableWidth / 2 - fieldMargin, fieldHeight, 1, 1, 'F');
+        
+        // Campo do preço
+        pdf.roundedRect(contentAreaX + usableWidth / 2 + fieldMargin, yOffset + 46, usableWidth / 2 - fieldMargin * 2, fieldHeight, 1, 1, 'F');
+        
+        // Títulos dos campos
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.setTextColor(100, 100, 100);
+        
+        pdf.text("NOME", contentAreaX + 2, yOffset + 30);
+        pdf.text("DATA", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 30);
+        pdf.text("IDA", contentAreaX + 2, yOffset + 40);
+        pdf.text("VOLTA", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 40);
+        pdf.text("LUGAR", contentAreaX + 2, yOffset + 50);
+        pdf.text("PREÇO", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 50);
+        
+        // Valores dos campos
+        pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(0, 0, 0);
         
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Nome:", xOffset + 5, yOffset + 22);
-        pdf.text("Data:", xOffset + ticketWidth / 2, yOffset + 22);
-        pdf.text("Ida:", xOffset + 5, yOffset + 30);
-        pdf.text("Volta:", xOffset + ticketWidth / 2, yOffset + 30);
-        pdf.text("Lugar:", xOffset + 5, yOffset + 38);
-        pdf.text("Preço:", xOffset + ticketWidth / 2, yOffset + 38);
+        const nameText = `${row.nomePassageiro} ${row.apelidoPassageiro || ""}`;
+        pdf.text(nameText, contentAreaX + 15, yOffset + 30);
+        pdf.text(`${datatrip ? formatDate(datatrip) : "----"}`, contentAreaX + usableWidth / 2 + fieldMargin + 15, yOffset + 30);
+        pdf.text(`${row.saida || "----"}`, contentAreaX + 15, yOffset + 40);
+        pdf.text(`${row.volta || "----"}`, contentAreaX + usableWidth / 2 + fieldMargin + 15, yOffset + 40);
+        pdf.text(`${row.lugar || "----"}`, contentAreaX + 15, yOffset + 50);
+        pdf.text(`${row.preco ? row.preco + row.moeda : "----"}`, contentAreaX + usableWidth / 2 + fieldMargin + 15, yOffset + 50);
         
-        pdf.setFont("helvetica", "normal");
-        pdf.text(`${row.nomePassageiro} ${row.apelidoPassageiro || ""}`, xOffset + 20, yOffset + 22);
-        pdf.text(`${datatrip ? formatDate(datatrip) : "----"}`, xOffset + ticketWidth / 2 + 15, yOffset + 22);
-        pdf.text(`${row.entrada || "----"}`, xOffset + 20, yOffset + 30);
-        pdf.text(`${row.volta || "----"}`, xOffset + ticketWidth / 2 + 15, yOffset + 30);
-        pdf.text(`${row.lugar || "----"}`, xOffset + 20, yOffset + 38);
-        pdf.text(`${row.preco ? row.preco + row.moeda : "----"}`, xOffset + ticketWidth / 2 + 15, yOffset + 38);
+        // Parte inferior do bilhete com design
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(xOffset, yOffset + ticketHeight - 15, ticketWidth, 15, 'F');
         
-        // Linha divisória inferior
-        pdf.setDrawColor(200, 200, 200);
-        pdf.line(xOffset + 5, yOffset + 45, xOffset + ticketWidth - 5, yOffset + 45);
-
         // Rodapé do bilhete
-
         pdf.setFontSize(6);
-        pdf.setTextColor(85, 85, 85);
-
+        pdf.setTextColor(80, 80, 80);
         const footerText = "Linhas Regulares e Internacionais Póvoa de Lanhoso - Zurique. Licença Comunitária nº 200260 - NIF 506163016";
         const textWidth = pdf.getTextWidth(footerText);
-        const centerX = xOffset + (ticketWidth / 2) - (textWidth / 2);
-
-        pdf.text(footerText, centerX, yOffset + ticketHeight - 15);
-
+        const centerX = xOffset + (ticketWidth / 1.8) - (textWidth / 2);
+        pdf.text(footerText, centerX, yOffset + ticketHeight - 6);
 
         ticketCount++;
     });
