@@ -25,6 +25,7 @@ const Agenda = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchTerm1, setSearchTerm1] = useState("");
     const [searchFullName, setSearchFullName] = useState("");
+    const [availableMonths, setAvailableMonths] = useState([]);
 
 
 
@@ -36,16 +37,13 @@ const Agenda = () => {
 
                 console.log("📅 Dados recebidos no frontend:", data);
 
-                const formattedTrips = {};
                 const detailedTrips = [];
+                const monthsSet = new Set(); // Guardar os meses com viagens
 
                 data.forEach(trip => {
-                    formattedTrips[trip.dataviagem] = {
-                        total: parseInt(trip.total_viagens),
-                        nomes: trip.nomes_viagens || ""
-                    };
+                    const tripMonth = moment(trip.dataviagem).format("YYYY-MM");
+                    monthsSet.add(tripMonth); // Adiciona o mês ao conjunto
 
-                    // ✅ Separar os nomes das viagens e os horários
                     const nomes = trip.nomes_viagens.split(", ");
                     const partidas = trip.horas_partida.split(", ");
                     const chegadas = trip.horas_chegada.split(", ");
@@ -59,22 +57,33 @@ const Agenda = () => {
                                 title: `${rota}`,
                                 start: startTime,
                                 end: endTime,
+                                direction: rota.includes("Suiça - Portugal") ? "suica-portugal" : 
+                                           rota.includes("Portugal - Suiça") ? "portugal-suica" :
+                                           rota.includes("Zurich - Póvoa De Lanhoso") ? "zurich-povoa" :
+                                           rota.includes("Póvoa De Lanhoso - Zurich") ? "povoa-zurich" : "other"
                             });
                         }
                     });
                 });
 
-                setTripsSummary(formattedTrips);
+                const sortedMonths = Array.from(monthsSet).sort(); // Ordenar meses disponíveis
+
+                setAvailableMonths(sortedMonths);
                 setTrips(detailedTrips);
                 setLoading(false);
+
+                if (sortedMonths.length > 0) {
+                    setDate(moment(`${sortedMonths[0]}-01`).toDate()); // Definir o primeiro mês com viagens
+                }
             } catch (error) {
-                console.error("Erro ao Procurar resumo das viagens:", error);
+                console.error("Erro ao buscar viagens:", error);
                 setLoading(false);
             }
         };
 
         fetchTripsSummary();
     }, []);
+
 
     // Função para pesquisar reserva por número e abrir a viagem associada
 const handleSearch = async () => {
@@ -100,6 +109,8 @@ const handleSearch = async () => {
         }
     };
 
+
+    
 
 // Função para pesquisar reserva pelo Nome e Apelido
 const handleSearchPassengerName = async () => {
@@ -162,6 +173,15 @@ const handleSearchPassengerName = async () => {
         alert("Erro ao Procurar reserva.");
     }
 };
+
+
+    // Função para alterar a data conforme o mês selecionado
+    const handleMonthChange = (event) => {
+        const [year, month] = event.target.value.split("-");
+        setDate(moment(`${year}-${month}-01`, "YYYY-MM-DD").toDate());
+    };
+
+    
     // Função para pesquisar reserva por número e abrir a viagem associada
 const handleSearchPhone = async () => {
         if (!searchTerm1) return;
@@ -211,7 +231,11 @@ const handleSearchPhone = async () => {
         }
     };
     
-    
+    const handleEventClick = (event) => {
+        const formattedDate = moment(event.start).format("YYYY-MM-DD");
+        localStorage.setItem("selectedDate", formattedDate);
+        navigate("/trips");
+    };
     
     const formatDate = (dateString) => {
         const [year, month, day] = dateString.split("-");
@@ -219,76 +243,40 @@ const handleSearchPhone = async () => {
     };
     
 
-    const getEventColor = (date) => {
-        const formattedDate = moment(date).format("YYYY-MM-DD");
-        const today = moment().format("YYYY-MM-DD");
-        const fiveDaysAfter = moment().add(5, "days").format("YYYY-MM-DD");
-        const tripData = tripsSummary[formattedDate];
-
-        if (formattedDate === today) {
-            return "lightblue"; // 🔹 Cor azul para o dia atual
+    const getEventColor = (event) => {
+        if (event.direction === "suica-portugal") {
+            return "darkred";
+        } else if (event.direction === "portugal-suica") {
+            return "green";
+        } else if (event.direction === "zurich-povoa") {
+            return "darkred";
+        } else if (event.direction === "povoa-zurich") {
+            return "green";
         }
-        if (moment(formattedDate).isBefore(today)) {
-            return "white"; // Passado
-        }
-        if (
-            moment(formattedDate).isAfter(today) &&
-            moment(formattedDate).isSameOrBefore(fiveDaysAfter) &&
-            tripData
-        ) {
-            return "#ffeb3b"; // Amarelo (próximos 5 dias com viagens)
-        }
-        if (moment(formattedDate).isAfter(fiveDaysAfter) && tripData) {
-            return "lightgreen"; // Verde (viagens depois dos 5 dias)
-        }
-        return "transparent"; // Sem viagem
+        return "lightgray";
     };
 
-    const dayPropGetter = (date) => {
-        return { style: { backgroundColor: getEventColor(date), color: "black" } };
-    };
+
 
     const eventPropGetter = (event) => {
         return {
             style: {
-                backgroundColor: getEventColor(event.start),
-                color: "black",
+                backgroundColor: getEventColor(event),
+                color: "white",
                 borderRadius: "5px",
                 padding: "5px",
             },
         };
     };
-
     const handleDateClick = (date) => {
         const formattedDate = moment(date).format("YYYY-MM-DD");
         localStorage.setItem("selectedDate", formattedDate);
         navigate("/trips");
     };
 
-    const handleNavigate = (newDate) => {
-        setDate(newDate);
-    };
 
-    const components = {
-        month: {
-            dateHeader: ({ date }) => {
-                const formattedDate = moment(date).format("YYYY-MM-DD");
-                const tripData = tripsSummary[formattedDate];
 
-                return (
-                    <div style={{ textAlign: "center", fontWeight: "bold" }}>
-                        {moment(date).format("D")}
-                        {tripData && (
-                            <div style={{ fontSize: "0.8rem", color: "black" }}>
-                                {tripData.total} {tripData.total === 1 ? "viagem" : "viagens"}
-                            </div>
-                        )}
-                    </div>
-                );
-            },
-        },
-        event: (props) => <EventComponent {...props} view={view} getEventColor={getEventColor} />
-    };
+
 
     return (
         <div style={{ height: "85vh", padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
@@ -424,7 +412,31 @@ const handleSearchPhone = async () => {
                 borderRadius: "8px", 
                 boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
                 marginBottom: "20px" 
-            }}>
+            }}> 
+           {/* Cabeçalho do calendário com os botões ao lado do mês */}
+ {/* Seletor de mês (só aparecem meses com viagens) */}
+ {availableMonths.length > 0 && (
+                <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                    <select
+                        value={moment(date).format("YYYY-MM")}
+                        onChange={handleMonthChange}
+                        style={{
+                            padding: "10px",
+                            fontSize: "16px",
+                            borderRadius: "5px",
+                            border: "1px solid #ccc",
+                            background: "white",
+                            cursor: "pointer",
+                        }}
+                    >
+                        {availableMonths.map((month) => (
+                            <option key={month} value={month}>
+                                {moment(month, "YYYY-MM").format("MMMM YYYY")}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
                 {loading ? (
                     <div style={{ 
                         display: "flex", 
@@ -438,33 +450,30 @@ const handleSearchPhone = async () => {
                     </div>
                 ) : (
                     <Calendar
-                        localizer={localizer}
-                        selectable
-                        events={view === "week" || view === "day" ? trips : []}
-                        onSelectSlot={(slotInfo) => handleDateClick(slotInfo.start)}
-                        startAccessor="start"
-                        endAccessor="end"
-                        style={{ height: 600 }}
-                        culture="pt"
-                        dayPropGetter={dayPropGetter}
-                        eventPropGetter={eventPropGetter}
-                        view={view}
-                        onView={(newView) => setView(newView)}
-                        date={date}
-                        onNavigate={handleNavigate}
-                        views={["month", "week", "day", "agenda"]}
-                        toolbar={true}
-                        components={components}
-                        messages={{
-                            today: "Hoje",
-                            previous: "Anterior",
-                            next: "Próximo",
-                            month: "Mês",
-                            week: "Semana",
-                            day: "Dia",
-                            agenda: "Agenda"
-                        }}
-                    />
+                    localizer={localizer}
+                    selectable
+                    events={trips}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: 600}}
+                    culture="pt"
+                    eventPropGetter={eventPropGetter}
+                    view={view}
+                    onView={(newView) => setView(newView)}
+                    date={date}
+                    onNavigate={(newDate) => setDate(newDate)}
+                    onSelectSlot={(slotInfo) => handleDateClick(slotInfo.start)}
+                    onSelectEvent={(event) => handleEventClick(event)}
+                    messages={{
+                        today: "Hoje",
+                        previous: "Anterior",
+                        next: "Próximo",
+                        month: "Mês",
+                        week: "Semana",
+                        day: "Dia",
+                        agenda: "Agenda"
+                    }}
+                />
                 )}
             </div>
             
@@ -489,7 +498,7 @@ const handleSearchPhone = async () => {
                             borderRadius: "4px" 
                         }}
                     ></div>
-                    <span>Passado</span>
+                    <span>Sem viagens</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ 
@@ -504,45 +513,25 @@ const handleSearchPhone = async () => {
                     <div style={{ 
                         width: "20px", 
                         height: "20px", 
-                        backgroundColor: "#ffeb3b",
+                        backgroundColor: "darkred",
                         borderRadius: "4px" 
                     }}></div>
-                    <span>Próximos 5 dias com viagens</span>
+                    <span>Suiça - Portugal</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ 
                         width: "20px", 
                         height: "20px", 
-                        backgroundColor: "lightgreen",
+                        backgroundColor: "green",
                         borderRadius: "4px" 
                     }}></div>
-                    <span>Viagens agendadas</span>
+                    <span>Portugal - Suiça</span>
                 </div>
             </div>
         </div>
     );
 };
 
-// 🔹 Componente para exibir detalhes das viagens apenas em "week" e "day"
-const EventComponent = ({ event, view, getEventColor }) => {
-    return (
-        <div
-            style={{
-                padding: "5px",
-                fontSize: "0.9rem",
-                fontWeight: "bold",
-                backgroundColor: getEventColor(event.start),
-                borderRadius: "5px",
-            }}
-        >
-            {view === "week" || view === "day" ? (
-                <>
-                    <div>{event.title}</div>
-                    <div style={{ fontSize: "0.8rem", color: "#555" }}></div>
-                </>
-            ) : null}
-        </div>
-    );
-};
+
 
 export default Agenda;

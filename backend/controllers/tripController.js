@@ -15,28 +15,25 @@ exports.createTrip = async (req, res) => {
     try {
         console.log("Dados recebidos no backend:", req.body); // 🔥 Debug
 
-        const { busId, dataViagem, origem, destino,motorista, horaPartida, horaChegada } = req.body;
+        const { busId, dataViagem, origem, origemCidade, destino, destinoCidade, motorista, horaPartida, horaChegada } = req.body;
 
         if (!dataViagem) return res.status(400).json({ error: "Data da viagem não fornecida" });
 
-        // Verificar se o autocarro já tem uma viagem nesse dia
         const existingTrip = await Trip.findOne({
-            where: {
-                busId,
-                dataviagem: dataViagem
-            }
+            where: { busId, dataviagem: dataViagem }
         });
 
         if (existingTrip) {
             return res.status(400).json({ error: "Este autocarro já tem uma viagem registada neste dia." });
         }
 
-        // Criar nova viagem
         const newTrip = await Trip.create({
             busId,
-            dataviagem: dataViagem, // ✅ Armazena a data corretamente
+            dataviagem: dataViagem,
             origem,
+            origemCidade,  // ✅ Novo campo
             destino,
+            destinoCidade,  // ✅ Novo campo
             motorista,
             horaPartida,
             horaChegada
@@ -48,6 +45,7 @@ exports.createTrip = async (req, res) => {
         res.status(500).json({ error: "Erro ao criar viagem" });
     }
 };
+
 
 // Obter todas as viagens
 exports.getAllTrips = async (req, res) => {
@@ -288,7 +286,7 @@ exports.deleteTripPermanently = async (req, res) => {
 exports.updateTrip = async (req, res) => {
     try {
         const { id } = req.params;
-        const { origem, destino, dataviagem, motorista, horaPartida, horaChegada } = req.body;
+        const { origem, origemCidade, destino, destinoCidade, dataviagem, motorista, horaPartida, horaChegada } = req.body;
 
         console.log("🔍 Dados recebidos para atualização:", req.body); // Debug
 
@@ -296,7 +294,9 @@ exports.updateTrip = async (req, res) => {
         if (!trip) return res.status(404).json({ error: "Viagem não encontrada" });
 
         trip.origem = origem;
+        trip.origemCidade = origemCidade;  // ✅ Novo campo
         trip.destino = destino;
+        trip.destinoCidade = destinoCidade;  // ✅ Novo campo
         trip.dataviagem = dataviagem;
         trip.motorista = motorista;
         trip.horaPartida = formatDateTimeForSQL(horaPartida);
@@ -310,6 +310,7 @@ exports.updateTrip = async (req, res) => {
         res.status(500).json({ error: "Erro ao atualizar viagem." });
     }
 };
+
 
 // Obter os lugares disponíveis para uma viagem específica
 exports.getAvailableSeats = async (req, res) => {
@@ -340,5 +341,34 @@ exports.getAvailableSeats = async (req, res) => {
     } catch (error) {
         console.error("❌ Erro ao buscar lugares disponíveis:", error);
         res.status(500).json({ error: "Erro ao buscar lugares disponíveis" });
+    }
+};
+
+
+exports.updateTripOrigemDestino = async (req, res) => {
+    try {
+        const { tripId } = req.params;
+        const { origemCidade, destinoCidade } = req.body;
+
+        if (!origemCidade || !destinoCidade) {
+            return res.status(400).json({ error: "Os campos origem e destino são obrigatórios" });
+        }
+
+        const trip = await Trip.findByPk(tripId);
+
+        if (!trip) {
+            return res.status(404).json({ error: "Viagem não encontrada" });
+        }
+
+
+        trip.origemCidade = origemCidade || trip.origemCidade; // Mantém o valor atual se não for fornecido
+        trip.destinoCidade = destinoCidade || trip.destinoCidade; // Mantém o valor atual se não for fornecido
+
+        await trip.save();
+
+        res.json({ success: true, message: "Origem e destino atualizados com sucesso!" });
+    } catch (error) {
+        console.error("❌ Erro ao atualizar origem e destino:", error);
+        res.status(500).json({ error: "Erro ao atualizar origem e destino" });
     }
 };

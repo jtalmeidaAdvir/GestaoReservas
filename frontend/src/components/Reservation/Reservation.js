@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid,useGridApiRef } from "@mui/x-data-grid";
 import { Button, Box, IconButton, Typography,TextField,Autocomplete,Modal,Select,MenuItem, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { io } from "socket.io-client";
@@ -15,6 +15,9 @@ import SelectReturnSeatModal from "./SelectReturnSeatModal";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import html2canvas from "html2canvas";
+
+
+
 
 
 
@@ -38,6 +41,8 @@ const Reservation = ({tripId}) => {
     const [destinotrip, setDestinoTrip] = useState(null);
     const [reservations, setReservations] = useState([]);
     const [motorista, setMotorista] = useState([]);
+    const [origemCidade, setorigemCidade] = useState([]);
+    const [destinoCidade, setdestinoCidade] = useState([]);
     const [busSeats, setBusSeats] = useState(0);
     const [busImage, setBusImage] = useState("");
     const [busName, setBusName] = useState("");
@@ -67,6 +72,11 @@ const Reservation = ({tripId}) => {
   
     const [cities, setCities] = useState([]);
 
+    const [rowSelectionModel, setRowSelectionModel] = useState([]);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+
+    const apiRef = useGridApiRef();
 
     const handleSwapReservations = async () => {
         if (selectedReservations.length !== 2) {
@@ -94,7 +104,13 @@ const Reservation = ({tripId}) => {
         await handleRowEdit({ ...res2, lugar: novoLugarRes2 });
       
         // Recarrega as reservas para refletir as alterações
+        
         fetchReservations();
+        apiRef.current.setRowSelectionModel([]); // 🔥 Limpa a seleção da `DataGrid` diretamente
+
+
+
+        
       };
       
 
@@ -115,8 +131,8 @@ const Reservation = ({tripId}) => {
       }, []);
 
 
-// Função para mover reservas dentro da mesma viagem
-const handleMoveReservationsWithinTrip = async (updates) => {
+
+  const handleMoveReservationsWithinTrip = async (updates) => {
     console.log("🏁 Movendo reservas dentro da mesma viagem:", updates);
     
     // Atualiza o estado local das reservas
@@ -141,9 +157,11 @@ const handleMoveReservationsWithinTrip = async (updates) => {
   
     // Recarrega as reservas para refletir as alterações
     fetchReservations();
+    apiRef.current.setRowSelectionModel([]); // 🔥 Limpa a seleção da `DataGrid` diretamente
+
   };
   
-  // Modal para selecionar os novos lugares das reservas
+
   const MoveReservationsWithinTripModal = ({ open, onClose, tripId, selectedReservations, onConfirm }) => {
     const [availableSeats, setAvailableSeats] = useState([]);
     const [reservationsWithSeats, setReservationsWithSeats] = useState([]);
@@ -346,13 +364,13 @@ const handleMoveReservationsWithinTrip = async (updates) => {
                 // Chamar handleRowEdit para guardar no backend
                 handleRowEdit(updatedReservations[newPositionIndex]);
             }
-    
+            
+
+
             return updatedReservations;
+            apiRef.current.setRowSelectionModel([]); // 🔥 Limpa a seleção da `DataGrid` diretamente
         });
     };
-
-
-
 
 
     const handleMoveReservationTrip = async (newTripId, newSeat, newTripDate) => {
@@ -395,6 +413,8 @@ const handleMoveReservationsWithinTrip = async (updates) => {
             });
         });
     };
+
+
     const handleDeleteReservation = async (numeroReserva) => {
         console.log("🔍 Tentando eliminar reserva com número:", numeroReserva);
     
@@ -422,7 +442,6 @@ const handleMoveReservationsWithinTrip = async (updates) => {
             console.error("🔥 Erro ao eliminar reserva:", error);
         }
     };
-    
     
 
     const handleChangeBus = async (busId) => {
@@ -490,17 +509,16 @@ const handleMoveReservationsWithinTrip = async (updates) => {
     
             alert("✅ Autocarro atualizado e reservas reorganizadas com sucesso!");
             setModalOpen(false); // Fecha o modal
+                
+
             fetchReservations(); // Atualiza os dados
+            apiRef.current.setRowSelectionModel([]); // 🔥 Limpa a seleção da `DataGrid` diretamente
     
         } catch (error) {
             console.error("🔥 Erro ao mudar autocarro:", error);
         }
     };
     
-    
-
-
-
 
     const handleMoveReservationsInBatch = async (newTripId, reservationsToMove) => {
         
@@ -522,9 +540,12 @@ const handleMoveReservationsWithinTrip = async (updates) => {
                 lugar: res.newSeat, // ✅ Agora o backend recebe o novo lugar correto
             });
         }
-    
+
         fetchReservations(); // Atualiza a lista para refletir as mudanças reais do backend
+        apiRef.current.setRowSelectionModel([]); // 🔥 Limpa a seleção da `DataGrid` diretamente
     };
+
+
     const handleRowEdit = async (updatedRow, oldRow = {}) => {
         try {
             console.log("🔍 A atualizar reserva para o lugar:", updatedRow.id);
@@ -611,38 +632,54 @@ const handleMoveReservationsWithinTrip = async (updates) => {
     };
     
 
-
     const handleBlockReservations = async (reservasSelecionadas) => {
         try {
-          // Obter o último número de reserva
-          const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/last`);
-          const ultimo = await response.json();
-          const novoNumero = ultimo?.reserva ? parseInt(ultimo.reserva) + 1 : 1;
-          // Formata o número base com 4 dígitos (exemplo: "0400")
-          const baseReserva = String(novoNumero).padStart(4, "0");
-      
-          // Processar cada reserva selecionada
-          const promises = reservasSelecionadas.map(async (reserva, index) => {
-            // Se for a primeira reserva, usa o número base; para as restantes, adiciona um sufixo
-            const reservaValor = index === 0 ? baseReserva : `${baseReserva}.${index}`;
-            const reservaAtualizada = { ...reserva, reserva: reservaValor };
-      
-            // Chama a função que cria/atualiza a reserva no backend
-            return handleRowEdit(reservaAtualizada);
-          });
-      
-          await Promise.all(promises);
-          alert(`Reservas em bloco criadas com a base ${baseReserva}`);
-          // Atualiza a lista de reservas para refletir as alterações
-          fetchReservations();
-        } catch (error) {
-          console.error("Erro ao criar reservas em bloco:", error);
-        }
-      };
-      
+            if (reservasSelecionadas.length === 0) {
+                alert("❌ Seleciona pelo menos uma reserva para bloquear.");
+                return;
+            }
     
-
-
+            // Obter a reserva principal (a que será usada como base)
+            const reservaPrincipal = reservasSelecionadas[0];
+    
+            if (!reservaPrincipal.reserva) {
+                alert("❌ A reserva principal não tem número de reserva válido.");
+                return;
+            }
+    
+            // Define o número base com base na reserva principal (exemplo: "0001")
+            const baseReserva = reservaPrincipal.reserva;
+    
+            // Atualizar cada reserva com base na reserva principal
+            const promises = reservasSelecionadas.map(async (reserva, index) => {
+                // Se for a primeira, mantém o número original
+                const reservaNumero = index === 0 ? baseReserva : `${baseReserva}.${index}`;
+    
+                const reservaAtualizada = {
+                    ...reservaPrincipal, // Copia os dados da principal
+                    reserva: reservaNumero, // Define o número único
+                    id: reserva.id, // Mantém o ID correto
+                    lugar: reserva.lugar // Mantém o lugar correto
+                };
+    
+                console.log(`🔄 Criando reserva ${reservaNumero} com base na reserva ${baseReserva}`);
+    
+                // Enviar para o backend
+                return handleRowEdit(reservaAtualizada);
+            });
+    
+            await Promise.all(promises);
+    
+            alert(`✅ Reservas em bloco criadas com base na reserva ${baseReserva}`);
+            fetchReservations(); // Atualiza a lista
+            apiRef.current.setRowSelectionModel([]); // Limpa a seleção
+    
+        } catch (error) {
+            console.error("❌ Erro ao criar reservas em bloco:", error);
+        }
+    };
+    
+      
     const handleSaveMotorista = async () => {
         try {
             const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/motorista`, {
@@ -662,7 +699,40 @@ const handleMoveReservationsWithinTrip = async (updates) => {
             console.error("🔥 Erro ao atualizar motorista:", error);
         }
     };
+
+    
+    const handleSaveOrigemDestino = async () => {
+      try {
+          const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/origemdestino`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ origemCidade,destinoCidade }),
+          });
+  
+          if (response.ok) {
+              console.log("✅ Origem e Destino atualizado com sucesso!");
+              alert("Origem e Destino guardado com sucesso.")
+              fetchReservations(); // Atualiza os dados na UI
+          } else {
+              console.error("❌ Erro ao atualizar Origem e Destino:", await response.text());
+          }
+      } catch (error) {
+          console.error("🔥 Erro ao atualizar Origem e Destino:", error);
+      }
+    };
+
+
+
+
+
+
+
+
+
     const printRef = useRef();
+
+
+
     const fetchReservations = async () => {
         if (!tripId || isNaN(tripId) || Number(tripId) <= 0) {
             console.error("❌ tripId inválido. Abortando fetch.");
@@ -684,6 +754,8 @@ const handleMoveReservationsWithinTrip = async (updates) => {
                 setDestinoTrip(data.trip.destino || "");
                 setOrigemTrip(data.trip.origem || "");
                 setMotorista(data.trip.motorista || "");
+                setorigemCidade(data.trip.origemCidade || "");
+                setdestinoCidade(data.trip.destinoCidade || "");
                 setBusName(data.trip.Bus?.nome || "");
                 setDataTrip(data.trip.dataviagem || "");
     
@@ -1018,28 +1090,6 @@ const handleMoveReservationsWithinTrip = async (updates) => {
         { field: "email", headerName: "Email", width: 120, editable: true },
         { field: "obs", headerName: "OBS.", width: 350, editable: true },
         { field: "carro", headerName: "Carro", width: 200, editable: true },
-    
-        {
-            field: "mover",
-            headerName: "Mover",
-            width: 90,
-            renderCell: (params) => (
-                params.row.reserva ? (
-                    <Button
-                        variant="outlined"
-                        style={{ height: "15px", fontSize: "12px", color: "darkred", borderColor: "darkred" }}
-                        size="small"
-                        onClick={() => {
-                            setReservationToMove(params.row);
-                            setModalMoveOpen(true);
-                        }}
-                    >
-                        Mover
-                    </Button>
-                ) : null
-            )
-        },
-
         {
             field: "bilhete",
             headerName: "Bilhete",
@@ -1109,11 +1159,15 @@ const handleMoveReservationsWithinTrip = async (updates) => {
             <Box sx={{ flexGrow: 1 }}>
             <DataGrid
                 rows={reservations}
+                apiRef={apiRef}
+
                 columns={columns}
                 autoHeight={false} // Desativar autoHeight para permitir altura fixa
                 hideFooter
                 checkboxSelection
                 disableRowSelectionOnClick
+                selectionModel={rowSelectionModel} // 🔥 Garante que as seleções são controladas
+
                 onRowSelectionModelChange={(newSelection) => {
                     setSelectedReservations(newSelection.map(id => reservations.find(res => res.id === id)));
                 }}
@@ -1188,6 +1242,32 @@ const handleMoveReservationsWithinTrip = async (updates) => {
                     width: "100%"
                 }}>
                 Guardar Motorista
+            </Button>
+            <TextField
+                label="Origem"
+                variant="outlined"
+                fullWidth
+                value={origemCidade}
+                onChange={(e) => setorigemCidade(e.target.value)}
+            />
+            <TextField
+                label="Destino"
+                variant="outlined"
+                fullWidth
+                value={destinoCidade}
+                onChange={(e) => setdestinoCidade(e.target.value)}
+            />
+            <Button variant="contained" color="error" onClick={handleSaveOrigemDestino}style={{
+                    backgroundColor: "darkred",
+                    color: "white",
+                    padding: "10px",
+                    borderRadius: "5px",
+                    fontSize: "14px",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%"
+                }}>
+                Guardar Origem e Destino
             </Button>
             <Button variant="contained" color="error" onClick={() => setModalOpen(true)}style={{
                     backgroundColor: "darkred",
@@ -1391,7 +1471,7 @@ const handleMoveReservationsWithinTrip = async (updates) => {
             </Button>
 
             <Button variant="contained" color="error" onClick={() => handlePrintList(
-                reservations, origemtrip, destinotrip, datatrip, busName, motorista, entrySummary, closeSummary, formatDate, priceCounts
+                reservations, origemCidade, destinoCidade, datatrip, busName, motorista, entrySummary, closeSummary, formatDate, priceCounts
             )}style={{
                 backgroundColor: "darkred",
                 color: "white",
@@ -1490,12 +1570,16 @@ const handleMoveReservationsWithinTrip = async (updates) => {
                 ? returnReservationData.entrada 
                 : destinotrip;
 
+                const formattedReservation = `${returnReservationData.reserva}.v `;
+
             const updatedReservationData = {
                 ...returnReservationData,
+                
                 lugar: selectedSeat,
-                entrada: entradaCorreta,
-                saida: saidaCorreta,
-                volta: datatrip, // ✅ Alterar para 'datatrip' em vez de 'tripOriginalDate'
+                reserva: formattedReservation, // ✅ Agora o campo reserva inclui ".v"
+                entrada: saidaCorreta,
+                saida: entradaCorreta,
+                volta: formatDate(datatrip), // ✅ Alterar para 'datatrip' em vez de 'tripOriginalDate'
                 preco: "",
                 moeda: "",
             };

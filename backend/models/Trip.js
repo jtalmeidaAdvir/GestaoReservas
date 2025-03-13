@@ -5,7 +5,11 @@ module.exports = (sequelize, DataTypes) => {
         busId: { type: DataTypes.INTEGER, allowNull: true },
         dataviagem: { type: DataTypes.STRING, allowNull: true }, // Data da viagem
         origem: { type: DataTypes.STRING, allowNull: true },
+        origemCidade: { type: DataTypes.STRING, allowNull: true }, // 🆕 Novo campo
+
         destino: { type: DataTypes.STRING, allowNull: true },
+        destinoCidade: { type: DataTypes.STRING, allowNull: true }, // 🆕 Novo campo
+
         motorista: { type: DataTypes.STRING, allowNull: true },
         horaPartida: { type: DataTypes.TIME, allowNull: true },
         horaChegada: { type: DataTypes.TIME, allowNull: true },

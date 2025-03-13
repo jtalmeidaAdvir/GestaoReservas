@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-const handlePrintList = async (reservations, origemtrip, destinotrip, datatrip, busName, motorista, entrySummary, closeSummary, formatDate, PriceCounts, returnPDF = false) => {
+const handlePrintList = async (reservations, origemCidade, destinoCidade, datatrip, busName, motorista, entrySummary, closeSummary, formatDate, PriceCounts, returnPDF = false) => {
     if (!reservations || reservations.length === 0) {
         alert("Não há reservas para baixar.");
         return;
@@ -12,7 +12,7 @@ const handlePrintList = async (reservations, origemtrip, destinotrip, datatrip, 
 
     // Título da viagem
     pdf.setFontSize(14);
-    pdf.text(`${origemtrip} -> ${destinotrip}`, 105, 15, { align: "center" });
+    pdf.text(`${origemCidade} -> ${destinoCidade}`, 105, 15, { align: "center" });
 
     pdf.setFontSize(10);
     pdf.text(`Data: ${formatDate(datatrip)} | Autocarro: ${busName} | Motorista: ${motorista}`, 60, 25);
@@ -65,7 +65,7 @@ const handlePrintList = async (reservations, origemtrip, destinotrip, datatrip, 
 
     // Gerar nome do ficheiro com data, origem e destino
     const formattedDate = formatDate(datatrip).replace(/\//g, "-"); // Substitui barras por traços para evitar problemas no nome do ficheiro
-    const fileName = `Lista_${origemtrip}_para_${destinotrip}_${formattedDate}.pdf`;
+    const fileName = `Lista_${origemCidade}_para_${destinoCidade}_${formattedDate}.pdf`;
 
     // Verificar se deve retornar o PDF ou fazer download
     if (returnPDF) {

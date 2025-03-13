@@ -7,6 +7,7 @@ console.log("🔍 tripController:", tripController); // Debug
 
 
 router.put("/:tripId/motorista", tripController.updateTripMotorista); 
+router.put("/:tripId/origemdestino", tripController.updateTripOrigemDestino); 
 router.put("/:id/disable", tripController.disableTrip); 
 router.put("/:id/reactivate", tripController.reactivateTrip); 
 
