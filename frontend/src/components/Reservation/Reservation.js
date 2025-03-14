@@ -633,51 +633,58 @@ const Reservation = ({tripId}) => {
     
 
     const handleBlockReservations = async (reservasSelecionadas) => {
-        try {
-            if (reservasSelecionadas.length === 0) {
-                alert("❌ Seleciona pelo menos uma reserva para bloquear.");
-                return;
-            }
-    
-            // Obter a reserva principal (a que será usada como base)
-            const reservaPrincipal = reservasSelecionadas[0];
-    
-            if (!reservaPrincipal.reserva) {
-                alert("❌ A reserva principal não tem número de reserva válido.");
-                return;
-            }
-    
-            // Define o número base com base na reserva principal (exemplo: "0001")
-            const baseReserva = reservaPrincipal.reserva;
-    
-            // Atualizar cada reserva com base na reserva principal
-            const promises = reservasSelecionadas.map(async (reserva, index) => {
-                // Se for a primeira, mantém o número original
-                const reservaNumero = index === 0 ? baseReserva : `${baseReserva}.${index}`;
-    
-                const reservaAtualizada = {
-                    ...reservaPrincipal, // Copia os dados da principal
-                    reserva: reservaNumero, // Define o número único
-                    id: reserva.id, // Mantém o ID correto
-                    lugar: reserva.lugar // Mantém o lugar correto
-                };
-    
-                console.log(`🔄 Criando reserva ${reservaNumero} com base na reserva ${baseReserva}`);
-    
-                // Enviar para o backend
-                return handleRowEdit(reservaAtualizada);
-            });
-    
-            await Promise.all(promises);
-    
-            alert(`✅ Reservas em bloco criadas com base na reserva ${baseReserva}`);
-            fetchReservations(); // Atualiza a lista
-            apiRef.current.setRowSelectionModel([]); // Limpa a seleção
-    
-        } catch (error) {
-            console.error("❌ Erro ao criar reservas em bloco:", error);
-        }
-    };
+      try {
+          if (reservasSelecionadas.length === 0) {
+              alert("❌ Seleciona pelo menos uma reserva para bloquear.");
+              return;
+          }
+  
+          // Obter a reserva principal (a que será usada como base)
+          const reservaPrincipal = reservasSelecionadas[0];
+  
+          if (!reservaPrincipal.reserva) {
+              alert("❌ A reserva principal não tem número de reserva válido.");
+              return;
+          }
+  
+          // Define o número base com base na reserva principal (exemplo: "0001")
+          const baseReserva = reservaPrincipal.reserva;
+  
+          // Atualizar cada reserva com base na reserva principal
+          const promises = reservasSelecionadas.map(async (reserva, index) => {
+              // Se for a primeira (reserva principal), mantém os dados originais
+              const isReservaPrincipal = index === 0;
+              const reservaNumero = isReservaPrincipal ? baseReserva : `${baseReserva}.${index}`;
+  
+              const reservaAtualizada = {
+                  ...reservaPrincipal, // Copia os dados da principal
+                  reserva: reservaNumero, // Define o número único
+                  id: reserva.id, // Mantém o ID correto
+                  lugar: reserva.lugar, // Mantém o lugar correto
+                  
+                  // Apenas reservas copiadas terão os campos email, telefone e obs com "*"
+                  email: isReservaPrincipal ? reservaPrincipal.email : "*",
+                  telefone: isReservaPrincipal ? reservaPrincipal.telefone : "*",
+                  obs: isReservaPrincipal ? reservaPrincipal.obs : "*",
+              };
+  
+              console.log(`🔄 Criando reserva ${reservaNumero} com base na reserva ${baseReserva}`);
+  
+              // Enviar para o backend
+              return handleRowEdit(reservaAtualizada);
+          });
+  
+          await Promise.all(promises);
+  
+          alert(`✅ Reservas em bloco criadas com base na reserva ${baseReserva}`);
+          fetchReservations(); // Atualiza a lista
+          apiRef.current.setRowSelectionModel([]); // Limpa a seleção
+  
+      } catch (error) {
+          console.error("❌ Erro ao criar reservas em bloco:", error);
+      }
+  };
+  
     
       
     const handleSaveMotorista = async () => {

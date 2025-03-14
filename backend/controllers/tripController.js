@@ -139,31 +139,33 @@ exports.getTripWithBus = async (req, res) => {
     }
 };
 
-
-// Obter a quantidade de viagens por data e incluir "origem - destino"
+// Obter a quantidade de viagens por data e incluir "origem - destino" + IDs
 exports.getTripsSummary = async (req, res) => {
     console.log("📡 Rota /trips/summary foi chamada!"); // 🔍 Debug
+
     try {
         const trips = await Trip.findAll({
             attributes: [
                 [Sequelize.literal("CAST(dataviagem AS DATE)"), "dataviagem"],
                 [Sequelize.fn("COUNT", Sequelize.col("dataviagem")), "total_viagens"],
-                [Sequelize.fn("STRING_AGG", Sequelize.literal("origem + ' - ' + destino"), "', '"), "nomes_viagens"],
-                [Sequelize.fn("STRING_AGG", Sequelize.literal("CONVERT(NVARCHAR, horapartida, 108)"), "', '"), "horas_partida"],
-                [Sequelize.fn("STRING_AGG", Sequelize.literal("CONVERT(NVARCHAR, horachegada, 108)"), "', '"), "horas_chegada"]
+                [Sequelize.fn("STRING_AGG", Sequelize.literal("CAST(origem AS NVARCHAR) + ' - ' + CAST(destino AS NVARCHAR)"), ", "), "nomes_viagens"],
+                [Sequelize.fn("STRING_AGG", Sequelize.literal("COALESCE(CAST(horapartida AS NVARCHAR), 'Sem horário')"), ", "), "horas_partida"],
+                [Sequelize.fn("STRING_AGG", Sequelize.literal("COALESCE(CAST(horachegada AS NVARCHAR), 'Sem horário')"), ", "), "horas_chegada"],
+                [Sequelize.fn("STRING_AGG", Sequelize.literal("CAST(id AS NVARCHAR)"), ", "), "ids_viagens"]
             ],
-            where: { isActive: true }, // ✅ Apenas viagens ativas
+            where: { isActive: true },
             group: [Sequelize.literal("CAST(dataviagem AS DATE)")],
             order: [[Sequelize.literal("CAST(dataviagem AS DATE)"), "ASC"]]
         });
 
-        console.log("📊 Dados das viagens:", trips.map(t => t.toJSON())); // ✅ Debug
+        console.log("📊 Dados das viagens com IDs:", trips.map(t => t.toJSON())); // ✅ Debug
         res.json(trips);
     } catch (error) {
-        console.error("❌ Erro ao buscar resumo das viagens:", error);
-        res.status(500).json({ error: "Erro ao buscar resumo das viagens" });
+        console.error("❌ ERRO NO BACKEND:", error);
+        res.status(500).json({ error: "Erro ao buscar resumo das viagens", details: error.message });
     }
 };
+
 
 
 

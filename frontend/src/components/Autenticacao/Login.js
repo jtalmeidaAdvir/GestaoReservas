@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { loginUser } from "../../services/apiUsers";
 import { useNavigate } from "react-router-dom";
 import { Container, Form, Button, Alert, Row, Col, Card } from "react-bootstrap";
@@ -9,6 +9,13 @@ const Login = ({ setIsAuthenticated }) => {
     const [credentials, setCredentials] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            navigate("/agenda");
+        }
+    }, [navigate]);
 
     const handleChange = (e) => {
         setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -29,21 +36,17 @@ const Login = ({ setIsAuthenticated }) => {
             setError(error.response?.data?.error || "Erro ao iniciar sessão.");
         }
     };
-    
 
     return (
         <Container className="login-container">
             <Row className="w-100">
                 <Col md={{ span: 6, offset: 3 }}>
-                <Card className="login-card">
-
+                    <Card className="login-card">
                         <Card.Body className="login-logo">
                             <img src={logo} alt="Logo" width="150" />
                         </Card.Body>
-
                         <Form onSubmit={handleSubmit} className="login-form">
                             {error && <Alert variant="danger" className="login-alert">{error}</Alert>}
-
                             <Form.Group controlId="formEmail">
                                 <Form.Control
                                     type="email"
@@ -53,7 +56,6 @@ const Login = ({ setIsAuthenticated }) => {
                                     required
                                 />
                             </Form.Group>
-
                             <Form.Group controlId="formPassword">
                                 <Form.Control
                                     type="password"
@@ -63,7 +65,6 @@ const Login = ({ setIsAuthenticated }) => {
                                     required
                                 />
                             </Form.Group>
-
                             <Button type="submit" className="login-button">
                                 Entrar
                             </Button>

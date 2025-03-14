@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Offcanvas, Nav } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity, FaBook } from "react-icons/fa";
+import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity, FaBook, FaTripadvisor } from "react-icons/fa";
 import logo from "../assets/logo.svg";
 import "../styles/header.css"; // Importação do CSS
 
@@ -59,6 +59,9 @@ const Header = ({ isAuthenticated }) => {
                         </Nav.Link>
                         <Nav.Link as={Link} to="/autocarros" className="drawer-link" onClick={handleCloseDrawer}>
                             <FaBus className="drawer-icon" /> Autocarros
+                        </Nav.Link>
+                        <Nav.Link as={Link} to="/reservations" className="drawer-link" onClick={handleCloseDrawer}>
+                            <FaTripadvisor className="drawer-icon" /> Reservas
                         </Nav.Link>
                         <Nav.Link as={Link} to="/trippage" className="drawer-link" onClick={handleCloseDrawer}>
                             <FaSuitcase className="drawer-icon" /> Viagens
