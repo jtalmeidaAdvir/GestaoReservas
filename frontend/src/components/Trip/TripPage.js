@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fetchTrips, deleteTrip, reactivateTrip, deleteTripPermanently } from "../../services/apiTrips";
 import { Container, Card, Button, Form, Pagination } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { FaMapMarkedAlt, FaEdit, FaTrash, FaRedo, FaTimes } from "react-icons/fa";
+import { FaMapMarkedAlt, FaEdit, FaTrash, FaRedo, FaTimes,FaPlus } from "react-icons/fa";
 import "../../styles/trip.css";
 
 const TripPage = () => {
@@ -87,6 +87,9 @@ const TripPage = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     className="trip-search"
                 />
+                <Button className="add-country-button" onClick={() => navigate("/batchtrips")}>
+                                    <FaPlus size={18} />
+                                </Button>
             </div>
 
             <div className="trip-filters">

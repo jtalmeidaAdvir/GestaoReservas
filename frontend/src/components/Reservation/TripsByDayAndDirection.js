@@ -117,7 +117,7 @@ const TripsByDayAndDirection = () => {
           </Select>
         </Grid>
         <Grid item xs={12} sm={3}>
-          <Button variant="contained" color="primary" onClick={handleSearch} fullWidth>
+          <Button variant="contained" color="primary" onClick={handleSearch} style={{backgroundColor:"darkred"}} fullWidth> 
             Pesquisar
           </Button>
         </Grid>

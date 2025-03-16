@@ -37,7 +37,8 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                 .then(response => response.json())
                 .then(data => {
                     console.log("📥 Resposta da API (cidades disponíveis):", data);
-                    const sortedCities = Array.isArray(data) ? data.sort((a, b) => a.nome.localeCompare(b.nome)) : [];
+                    const sortedCities = Array.isArray(data)   ? data.filter(city => city.nome === 'Portugal' || city.nome === 'Suiça').sort((a, b) => a.nome.localeCompare(b.nome))
+                    : [];
                 setCities(sortedCities);
                 })
                 .catch(error => {
@@ -162,7 +163,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                 </select>
 
       
-
+                {/* Definição de Horarios
                 <input
                     type="time"
                     placeholder="Hora de Partida"
@@ -179,6 +180,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                     
                     style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
                 />
+                */}
 
                 <button type="submit" style={{
                     backgroundColor: "darkred",

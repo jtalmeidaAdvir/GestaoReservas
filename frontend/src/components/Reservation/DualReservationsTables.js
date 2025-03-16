@@ -2,11 +2,23 @@ import React, { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Typography, Grid, Button } from "@mui/material";
 
+// Função auxiliar para descobrir se a row já está selecionada
+// e em que posição está em selectedReservations
+function findSelectedIndex(selectedReservations, row) {
+  return selectedReservations.findIndex(
+    (res) => res.tripId === row.tripId && res.id === row.id
+  );
+}
+
 const DualReservationsTables = ({ tripIds }) => {
   const [tripDetails, setTripDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Array de objetos com as linhas selecionadas (ordem de seleção)
   const [selectedReservations, setSelectedReservations] = useState([]);
-  const [rowSelectionModelMap, setRowSelectionModelMap] = useState({});
+
+  // Determinar a viagem inativa (a terceira, se existir)
+  const inactiveTripId = tripIds && tripIds.length >= 3 ? tripIds[2] : null;
 
   // 1. Buscar detalhes das viagens
   const fetchTripDetails = async () => {
@@ -29,7 +41,6 @@ const DualReservationsTables = ({ tripIds }) => {
 
   useEffect(() => {
     fetchTripDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripIds]);
 
   // 2. Combinar reservas com lugares vazios
@@ -57,11 +68,11 @@ const DualReservationsTables = ({ tripIds }) => {
         return {
           ...row,
           ...matching,
-          id: matching.id,         // ID real para o backend (não visível)
-          lugar: matching.lugar,   // Exibe o número do lugar
+          id: matching.id, // ID real (do backend)
+          lugar: matching.lugar,
         };
       } else {
-        // Para lugares vazios, criamos um ID temporário único
+        // Se não há reserva, cria ID temporário
         return {
           ...row,
           id: `temp-${trip.id}-${row.lugar}`,
@@ -70,65 +81,88 @@ const DualReservationsTables = ({ tripIds }) => {
     });
   };
 
-  // 3. Atualizar seleção
-  const handleSelectionChange = (tripId, newSelection, allRows) => {
-    const selectedFromTrip = allRows.filter((row) =>
-      newSelection.includes(row.id)
-    );
-    setSelectedReservations((prev) => [
-      ...prev.filter((res) => res.tripId !== tripId),
-      ...selectedFromTrip,
-    ]);
+  // 3. Alternar a seleção de uma linha (desativar para viagem inativa)
+  const toggleSelection = (row) => {
+    if (inactiveTripId && row.tripId === inactiveTripId) {
+      // Se a linha pertence à viagem inativa, não permite seleção.
+      return;
+    }
+    setSelectedReservations((prev) => {
+      const index = findSelectedIndex(prev, row);
+      if (index === -1) {
+        // Não estava selecionada -> adicionar
+        return [...prev, row];
+      } else {
+        // Já estava selecionada -> remover
+        const newArr = [...prev];
+        newArr.splice(index, 1);
+        return newArr;
+      }
+    });
   };
 
-  // 4. Transferir reservas entre viagens (suportando mover para lugar vazio)
-  const handleTransferReservations = async () => {
-    if (selectedReservations.length !== 2) {
-      alert("Selecione exatamente duas linhas (uma reserva e/ou um lugar vazio) para trocar ou mover.");
-      return;
-    }
-    const [res1, res2] = selectedReservations;
-    if (res1.tripId === res2.tripId) {
-      alert("As reservas devem pertencer a viagens diferentes.");
-      return;
-    }
-    // Verificar se a linha é uma reserva real ou um lugar vazio
-    const res1Empty = typeof res1.id === "string" && res1.id.startsWith("temp-");
-    const res2Empty = typeof res2.id === "string" && res2.id.startsWith("temp-");
-    
-    if (res1Empty && res2Empty) {
-      alert("Selecione pelo menos uma reserva existente para mover.");
-      return;
-    }
-    
-    try {
-      if (!res1Empty && !res2Empty) {
-        // Ambos são reservas reais: efetua o swap
-        const updatedRes1 = { ...res1, tripId: res2.tripId, lugar: res2.lugar };
-        const updatedRes2 = { ...res2, tripId: res1.tripId, lugar: res1.lugar };
-        await updateReservationInBackend(updatedRes1);
-        await updateReservationInBackend(updatedRes2);
-      } else if (!res1Empty && res2Empty) {
-        // res1 é real e res2 é vazio: mover a reserva res1 para o lugar vazio (na viagem de res2)
-        const updatedRes1 = { ...res1, tripId: res2.tripId, lugar: res2.lugar };
-        await updateReservationInBackend(updatedRes1);
-      } else if (res1Empty && !res2Empty) {
-        // res2 é real e res1 é vazio: mover a reserva res2 para o lugar vazio (na viagem de res1)
-        const updatedRes2 = { ...res2, tripId: res1.tripId, lugar: res1.lugar };
-        await updateReservationInBackend(updatedRes2);
+  // 4. Agrupar as reservas selecionadas por tripId (para a lógica de troca)
+  const groupSelectedReservations = () => {
+    return selectedReservations.reduce((acc, res) => {
+      if (!acc[res.tripId]) {
+        acc[res.tripId] = [];
       }
-      
+      acc[res.tripId].push(res);
+      return acc;
+    }, {});
+  };
+
+  // 5. Transferir reservas (swap/move) em pares de viagens
+  const handleTransferReservations = async () => {
+    const groups = groupSelectedReservations();
+    const groupKeys = Object.keys(groups);
+    if (groupKeys.length !== 2) {
+      alert("Selecione reservas de exatamente duas viagens.");
+      return;
+    }
+    const groupA = groups[groupKeys[0]];
+    const groupB = groups[groupKeys[1]];
+    if (groupA.length !== groupB.length) {
+      alert(
+        "Para realizar a troca, o número de reservas selecionadas em cada viagem deve ser igual."
+      );
+      return;
+    }
+    try {
+      for (let i = 0; i < groupA.length; i++) {
+        const resA = groupA[i];
+        const resB = groupB[i];
+        const resAEmpty =
+          typeof resA.id === "string" && resA.id.startsWith("temp-");
+        const resBEmpty =
+          typeof resB.id === "string" && resB.id.startsWith("temp-");
+
+        if (!resAEmpty && !resBEmpty) {
+          // Ambas são reservas reais => swap
+          const updatedResA = { ...resA, tripId: resB.tripId, lugar: resB.lugar };
+          const updatedResB = { ...resB, tripId: resA.tripId, lugar: resA.lugar };
+          await updateReservationInBackend(updatedResA);
+          await updateReservationInBackend(updatedResB);
+        } else if (!resAEmpty && resBEmpty) {
+          // Move resA para o lugar vazio de B
+          const updatedResA = { ...resA, tripId: resB.tripId, lugar: resB.lugar };
+          await updateReservationInBackend(updatedResA);
+        } else if (resAEmpty && !resBEmpty) {
+          // Move resB para o lugar vazio de A
+          const updatedResB = { ...resB, tripId: resA.tripId, lugar: resA.lugar };
+          await updateReservationInBackend(updatedResB);
+        }
+      }
       fetchTripDetails();
       setSelectedReservations([]);
-      setRowSelectionModelMap({});
-      alert("Operação realizada com sucesso!");
+      alert("Reservas trocadas/movidas com sucesso!");
     } catch (error) {
       console.error("Erro ao transferir reservas:", error);
       alert("Ocorreu um erro ao transferir as reservas.");
     }
   };
 
-  // 5. Atualizar reserva no backend
+  // 6. Atualizar reserva no backend
   const updateReservationInBackend = async (updatedReservation) => {
     const response = await fetch(
       `https://backendreservasnunes.advir.pt/reservations/${updatedReservation.id}`,
@@ -144,46 +178,161 @@ const DualReservationsTables = ({ tripIds }) => {
     return response.json();
   };
 
-  // 6. Definir as colunas do DataGrid (o campo "lugar" é mostrado, mas o id interno é oculto)
+  // 7. Coluna de seleção: 
+  // A 1ª seleção do par (índice par) é "fonte" e não mostra nada.
+  // A 2ª seleção do par (índice ímpar) mostra o lugar da 1ª seleção do par.
   const columns = [
+    {
+      field: "selection",
+      headerName: "",
+      width: 50,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => {
+        // Se a linha pertence à viagem inativa, renderiza sem opção de seleção
+        if (inactiveTripId && params.row.tripId === inactiveTripId) {
+          return (
+            <Box
+              sx={{
+                width: 25,
+                height: 25,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "grey",
+                border: "1px solid #ccc",
+                color: "white",
+                fontWeight: "bold",
+                fontSize: "0.8rem",
+                cursor: "not-allowed",
+              }}
+            >
+              {/* Ícone ou texto opcional */}
+            </Box>
+          );
+        }
+
+        // Comportamento normal
+        const index = findSelectedIndex(selectedReservations, params.row);
+        const isChecked = index !== -1;
+
+        let bgColor = "transparent";
+        let content = "";
+
+        if (isChecked) {
+          if (index % 2 === 0) {
+            // Índice par => "fonte" (Reserva Selecionada)
+            bgColor = "orange";
+            content = "";
+          } else {
+            // Índice ímpar => "destino" (Reserva Destino)
+            bgColor = "blue";
+            const prevIndex = index - 1;
+            if (prevIndex >= 0) {
+              const prevRow = selectedReservations[prevIndex];
+              content = prevRow ? String(prevRow.lugar) : "";
+            }
+          }
+        }
+
+        return (
+          <Box
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSelection(params.row);
+            }}
+            sx={{
+              width: 25,
+              height: 25,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              backgroundColor: bgColor,
+              border: "1px solid #ccc",
+              color: isChecked ? "white" : "inherit",
+              fontWeight: "bold",
+              fontSize: "0.8rem",
+            }}
+          >
+            {content}
+          </Box>
+        );
+      },
+    },
     { field: "lugar", headerName: "Lugar", width: 60 },
     { field: "reserva", headerName: "Reserva", width: 80 },
     { field: "nomePassageiro", headerName: "Nome", width: 120 },
     { field: "apelidoPassageiro", headerName: "Apelido", width: 120 },
-    { field: "obs", headerName: "Obs.", width: 80 },
+    { field: "obs", headerName: "Obs.", width: 300 },
   ];
 
   if (loading) return <Typography>Carregando reservas...</Typography>;
 
   return (
     <Box sx={{ marginTop: 4 }}>
+      {/* Legenda */}
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        
+      
       <Button
         variant="contained"
-        color="primary"
-        disabled={
-          selectedReservations.length !== 2 ||
-          (selectedReservations.length === 2 &&
-            selectedReservations[0].tripId === selectedReservations[1].tripId)
-        }
+        color="error"
+        disabled={selectedReservations.length === 0}
         onClick={handleTransferReservations}
+        sx={{ mb: 2 }}
+        style={{ backgroundColor: "darkred", color: "white" }}
       >
-        Trocar/Mover Reservas entre Viagens
+        Trocar/Mover Reservas Entre Viagens
       </Button>
+      <Typography variant="body2"> </Typography>
+      <Box
+          sx={{
+            width: 25,
+            height: 25,
+            borderRadius: "50%",
+            backgroundColor: "orange",
+            mr: 1,
+          }}
+        />
+        <Typography variant="body2" sx={{ mr: 2 }}>
+          Reserva Selecionada
+        </Typography>
+        <Box
+          sx={{
+            width: 25,
+            height: 25,
+            borderRadius: "50%",
+            backgroundColor: "blue",
+            mr: 1,
+          }}
+        />
+        <Typography variant="body2">Reserva Destino</Typography>
+      </Box>
 
-      <Grid container spacing={2}>
+      <Grid
+        container
+        spacing={2}
+        wrap="nowrap"
+        sx={{ overflowX: "auto" }}
+      >
         {tripDetails.map((detail, index) => {
           if (!detail || !detail.trip) {
             return (
-              <Grid item xs={12} md={6} key={index}>
+              <Grid item key={index}>
                 <Typography>Nenhuma informação para esta viagem.</Typography>
               </Grid>
             );
           }
-          const combinedRows = combineReservations(detail.trip, detail.reservations);
-          const currentRowSelectionModel = rowSelectionModelMap[detail.trip.id] || [];
+          const combinedRows = combineReservations(
+            detail.trip,
+            detail.reservations
+          );
 
           return (
-            <Grid item xs={12} md={6} key={index}>
+            <Grid item key={index}>
               <Typography variant="h6" gutterBottom>
                 {detail.trip.origemCidade} → {detail.trip.destinoCidade} -{" "}
                 {new Date(detail.trip.dataviagem).toLocaleDateString("pt-PT")}
@@ -193,22 +342,13 @@ const DualReservationsTables = ({ tripIds }) => {
                 {detail.trip.motorista}
               </Typography>
 
-              <Box sx={{ height: 1000, width: "100%" }}>
+              <Box sx={{ width: "100%", height: 900 }}>
                 <DataGrid
                   rows={combinedRows}
                   columns={columns}
                   pageSize={10}
-                  checkboxSelection
-                  disableRowSelectionOnClick={false}
                   hideFooter
-                  rowSelectionModel={currentRowSelectionModel}
-                  onRowSelectionModelChange={(newSelection) => {
-                    setRowSelectionModelMap((prev) => ({
-                      ...prev,
-                      [detail.trip.id]: newSelection,
-                    }));
-                    handleSelectionChange(detail.trip.id, newSelection, combinedRows);
-                  }}
+                  disableRowSelectionOnClick
                 />
               </Box>
             </Grid>

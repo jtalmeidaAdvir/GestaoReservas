@@ -20,6 +20,7 @@ import Agenda from "./components/Agenda/Agenda";
 import TripsList from "./components/Trip/TripsList";
 import TripsPage from "./components/Trip/TripPage";
 import EditTrip from "./components/Trip/EditTrip";
+import BatchTripsPage from "./components/Trip/BatchTripsPage";
 import Reservation from "./components/Reservation/Reservation"; 
 import TripsByDayAndDirection from "./components/Reservation/TripsByDayAndDirection"; 
 import MultiTripReservations from "./components/Reservation/DualReservationsTables"; 
@@ -52,6 +53,9 @@ const App = () => {
 
                 <Route path="/agenda" element={isAuthenticated ? <Agenda /> : <Navigate to="/login" />} />
                 <Route path="/trips" element={<TripsList />} /> {/* Separadores de viagens*/}
+                <Route path="/batchtrips" element={<BatchTripsPage />} /> {/* Separadores de viagens*/}
+                
+
                 <Route path="/reservation/:tripId" element={<Reservation />} /> {/* ✅ Nova rota */}
                 <Route path="/reservations" element={<TripsByDayAndDirection />} /> {/* ✅ Nova rota */}
                 <Route path="/multireservations" element={<MultiTripReservations />} /> {/* ✅ Nova rota */}

@@ -635,7 +635,7 @@ const Reservation = ({tripId}) => {
     const handleBlockReservations = async (reservasSelecionadas) => {
       try {
           if (reservasSelecionadas.length === 0) {
-              alert("❌ Seleciona pelo menos uma reserva para bloquear.");
+              alert("❌ Deve selecionar primeiro a reserva principal.");
               return;
           }
   
@@ -643,7 +643,7 @@ const Reservation = ({tripId}) => {
           const reservaPrincipal = reservasSelecionadas[0];
   
           if (!reservaPrincipal.reserva) {
-              alert("❌ A reserva principal não tem número de reserva válido.");
+              alert("❌  Deve selecionar primeiro a reserva principal.");
               return;
           }
   
@@ -1348,7 +1348,7 @@ const Reservation = ({tripId}) => {
     width: "100%"
   }}
 >
-  Trocar Lugares
+  Trocar Passageiro de Lugar
 </Button>
 
 <Button
