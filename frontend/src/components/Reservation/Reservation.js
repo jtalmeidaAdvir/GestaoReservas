@@ -22,7 +22,7 @@ import html2canvas from "html2canvas";
 
 
 
-const socket = io("http://localhost:3010", {
+const socket = io("https://backendreservasnunes.advir.pt", {
     transports: ["websocket"],
     path: "/socket.io/",
     reconnectionAttempts: 5,
