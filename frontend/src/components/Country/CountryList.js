@@ -90,9 +90,15 @@ const CountryList = () => {
                                 <Row>
                                     {cities.filter(city => city.countryId === country.id).map(city => (
                                         <Col key={city.id} xs={12} sm={6} md={4} lg={3} className="city-col">
-                                            <ListGroup.Item className="city-item">
-                                                {city.nome}
-                                            </ListGroup.Item>
+                                            <ListGroup.Item
+    className="city-item"
+    style={{ cursor: "pointer" }}
+    onClick={() => navigate(`/cities/edit/${city.id}`)}
+>
+    {city.nome}
+</ListGroup.Item>
+
+
                                         </Col>
                                     ))}
                                     {cities.filter(city => city.countryId === country.id).length === 0 && (

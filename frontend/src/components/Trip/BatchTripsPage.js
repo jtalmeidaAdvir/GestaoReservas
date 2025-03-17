@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Form, Button, Card, Container } from "react-bootstrap";
+import { Form, Button, Table, Container } from "react-bootstrap";
 import moment from "moment";
 
-// Componente para seleção do autocarro por data
-const DateBusSelector = ({ dateEntry, onBusChange, onRemove }) => {
+// Componente que apresenta o selector de autocarro para uma data (viagem de ida)
+const BusSelect = ({ data, busId, onChange }) => {
   const [buses, setBuses] = useState([]);
 
-  // Buscar os autocarros disponíveis para a data deste registo
   useEffect(() => {
-    if (dateEntry.data) {
-      fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${dateEntry.data}`)
+    if (data) {
+      fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${data}`)
         .then((response) => response.json())
         .then((data) => {
           const activeSortedBuses = Array.isArray(data)
@@ -19,42 +18,90 @@ const DateBusSelector = ({ dateEntry, onBusChange, onRemove }) => {
         })
         .catch((error) => console.error("Erro ao carregar autocarros:", error));
     }
-  }, [dateEntry.data]);
+  }, [data]);
 
   return (
-    <Card className="mb-3">
-      <Card.Body>
-        <div className="d-flex justify-content-between align-items-center">
-          <strong>Data: {moment(dateEntry.data).format("DD/MM/YYYY")}</strong>
-          <Button variant="danger" size="sm" onClick={() => onRemove(dateEntry.data)}>
-            Remover
-          </Button>
-        </div>
-        <Form.Group className="mt-2">
-          <Form.Label>Autocarro</Form.Label>
-          <Form.Control
-            as="select"
-            value={dateEntry.busId}
-            onChange={(e) => onBusChange(dateEntry.data, e.target.value)}
-            required
-          >
-            <option value="">Selecione um autocarro</option>
-            {buses.map((bus) => (
-              <option key={bus.id} value={bus.id}>
-                {bus.nome}
-              </option>
-            ))}
-          </Form.Control>
-        </Form.Group>
-      </Card.Body>
-    </Card>
+    <Form.Control as="select" value={busId} onChange={(e) => onChange(e.target.value)} required>
+      <option value="">Selecione um autocarro</option>
+      {buses.map((bus) => (
+        <option key={bus.id} value={bus.id}>
+          {bus.nome}
+        </option>
+      ))}
+    </Form.Control>
+  );
+};
+
+// Componente que apresenta as entradas numa tabela, permitindo editar a data de ida e, se activada, a data de volta
+const TabelaDatas = ({ 
+  datasSelecionadas, 
+  onDataChange, 
+  onBusChange, 
+  onReturnTripChange, 
+  onReturnDateChange, 
+  onRemove 
+}) => {
+  return (
+    <Table striped bordered hover>
+      <thead>
+        <tr>
+          <th>Data Ida</th>
+          <th>Autocarro</th>
+          <th className="text-center">Viagem de Volta</th>
+          <th>Data Volta</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {datasSelecionadas.map((entry) => (
+          <tr key={entry.id}>
+            <td>
+              <Form.Control
+                type="date"
+                value={entry.data}
+                onChange={(e) => onDataChange(entry.id, e.target.value)}
+                required
+              />
+            </td>
+            <td>
+              <BusSelect
+                data={entry.data}
+                busId={entry.busId}
+                onChange={(value) => onBusChange(entry.id, value)}
+              />
+            </td>
+            <td className="text-center">
+              <Form.Check
+                type="checkbox"
+                checked={entry.returnTrip}
+                onChange={(e) => onReturnTripChange(entry.id, e.target.checked)}
+              />
+            </td>
+            <td>
+              {entry.returnTrip && (
+                <Form.Control
+                  type="date"
+                  value={entry.returnTripDate}
+                  onChange={(e) => onReturnDateChange(entry.id, e.target.value)}
+                  required
+                />
+              )}
+            </td>
+            <td>
+              <Button variant="danger" size="sm" onClick={() => onRemove(entry.id)}>
+                Remover
+              </Button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
   );
 };
 
 const CriarViagemMultiData = () => {
-  // Estado para a data que se pretende adicionar à lista
   const [dataAtual, setDataAtual] = useState(moment().format("YYYY-MM-DD"));
-  // Cada entrada possui: data e o autocarro selecionado (busId)
+  // Cada entrada contém: id, data da viagem de ida, autocarro seleccionado, flag para viagem de volta e data da viagem de volta
   const [datasSelecionadas, setDatasSelecionadas] = useState([]);
 
   // Estados dos dados globais da viagem
@@ -63,17 +110,14 @@ const CriarViagemMultiData = () => {
   const [motorista, setMotorista] = useState("");
   const [horaPartida, setHoraPartida] = useState("");
   const [horaChegada, setHoraChegada] = useState("");
-
   const [cities, setCities] = useState([]);
 
-  // Buscar as cidades (exemplo: filtrar "Portugal" e "Suiça")
   useEffect(() => {
     fetch("https://backendreservasnunes.advir.pt/cities")
       .then((response) => response.json())
       .then((data) => {
         const sortedCities = Array.isArray(data)
-          ? data
-              .filter((city) => city.nome === "Portugal" || city.nome === "Suiça")
+          ? data.filter((city) => city.nome === "Portugal" || city.nome === "Suiça")
               .sort((a, b) => a.nome.localeCompare(b.nome))
           : [];
         setCities(sortedCities);
@@ -84,44 +128,88 @@ const CriarViagemMultiData = () => {
       });
   }, []);
 
-  // Adiciona uma nova data (se não estiver já presente)
+  // Adiciona uma nova entrada à tabela (permitindo entradas com datas iguais)
+  // Define a data da viagem de volta por defeito igual à data da ida
   const adicionarData = () => {
     if (!dataAtual) return;
-    if (!datasSelecionadas.some((entry) => entry.data === dataAtual)) {
-      setDatasSelecionadas([...datasSelecionadas, { data: dataAtual, busId: "" }]);
-    }
+    const novaEntrada = {
+      id: Date.now() + Math.random(),
+      data: dataAtual,
+      busId: "",
+      returnTrip: false,
+      returnTripDate: dataAtual,
+    };
+    setDatasSelecionadas([...datasSelecionadas, novaEntrada]);
   };
 
-  // Remove uma data da lista
-  const removerData = (dataToRemove) => {
-    setDatasSelecionadas(datasSelecionadas.filter((entry) => entry.data !== dataToRemove));
+  const removerData = (idToRemove) => {
+    setDatasSelecionadas(datasSelecionadas.filter((entry) => entry.id !== idToRemove));
   };
 
-  // Atualiza o autocarro selecionado para uma data
-  const atualizarBus = (data, busId) => {
+  // Atualiza a data da viagem de ida
+  const atualizarData = (id, newDate) => {
     setDatasSelecionadas(
       datasSelecionadas.map((entry) =>
-        entry.data === data ? { ...entry, busId } : entry
+        entry.id === id ? { ...entry, data: newDate } : entry
       )
     );
   };
 
-  // Submete o formulário criando uma viagem individual para cada data
+  const atualizarBus = (id, busId) => {
+    setDatasSelecionadas(
+      datasSelecionadas.map((entry) =>
+        entry.id === id ? { ...entry, busId } : entry
+      )
+    );
+  };
+
+  const atualizarReturnTrip = (id, value) => {
+    setDatasSelecionadas(
+      datasSelecionadas.map((entry) =>
+        entry.id === id ? { ...entry, returnTrip: value } : entry
+      )
+    );
+  };
+
+  const atualizarReturnDate = (id, newDate) => {
+    setDatasSelecionadas(
+      datasSelecionadas.map((entry) =>
+        entry.id === id ? { ...entry, returnTripDate: newDate } : entry
+      )
+    );
+  };
+
+  // Submete o formulário criando as viagens de ida e, se seleccionado, as de volta (utilizando a data especificada)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const trips = datasSelecionadas.map((entry) => ({
-      dataViagem: entry.data,
-      busId: entry.busId,
-      origem,
-      destino,
-      motorista,
-      horaPartida,
-      horaChegada,
-    }));
+    const trips = [];
+    datasSelecionadas.forEach((entry) => {
+      trips.push({
+        dataViagem: entry.data,
+        busId: entry.busId,
+        origem,
+        destino,
+        motorista,
+        horaPartida,
+        horaChegada,
+        type: "ida",
+      });
+      if (entry.returnTrip) {
+        trips.push({
+          dataViagem: entry.returnTripDate,
+          busId: entry.busId,
+          origem: destino,
+          destino: origem,
+          motorista,
+          horaPartida,
+          horaChegada,
+          type: "volta",
+        });
+      }
+    });
 
     try {
-      // Envia uma requisição para cada viagem individualmente
       const responses = await Promise.all(
         trips.map(async (trip) => {
           const response = await fetch("https://backendreservasnunes.advir.pt/trips/create", {
@@ -138,7 +226,7 @@ const CriarViagemMultiData = () => {
       console.log("Viagens criadas com sucesso:", responses);
       alert("Viagens criadas com sucesso!");
 
-      // Limpa os campos e a lista de datas após a criação
+      // Limpa os campos e a tabela após a criação
       setDatasSelecionadas([]);
       setOrigem("");
       setDestino("");
@@ -154,38 +242,25 @@ const CriarViagemMultiData = () => {
   return (
     <Container className="mt-4">
       <h2>Criar Viagens</h2>
-
-      {/* Seção para selecionar e adicionar datas */}
-      <Card className="mb-3">
-        <Card.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Selecionar Data</Form.Label>
-            <Form.Control
-              type="date"
-              value={dataAtual}
-              onChange={(e) => setDataAtual(e.target.value)}
-            />
-          </Form.Group>
-          <Button variant="primary" onClick={adicionarData} style={{backgroundColor:"darkred", borderColor:"darkred"}
-          }>
-            Adicionar Data
-          </Button>
-        </Card.Body>
-      </Card>
-
-      {/* Lista de datas com seleção de autocarro para cada */}
-      {datasSelecionadas.map((entry) => (
-        <DateBusSelector
-          key={entry.data}
-          dateEntry={entry}
-          onBusChange={atualizarBus}
-          onRemove={removerData}
+      <Form.Group className="mb-3">
+        <Form.Label>Selecionar Data</Form.Label>
+        <Form.Control
+          type="date"
+          value={dataAtual}
+          onChange={(e) => setDataAtual(e.target.value)}
         />
-      ))}
-
-      {/* Formulário com os dados globais da viagem */}
+      </Form.Group>
       <Form onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
+        
+      <Button
+        variant="primary"
+        onClick={adicionarData}
+        style={{ backgroundColor: "darkred", borderColor: "darkred" }}
+        className="mb-3"
+      >
+        Adicionar Data
+      </Button>
+      <Form.Group className="mb-3">
           <Form.Label>Origem</Form.Label>
           <Form.Control
             as="select"
@@ -218,7 +293,20 @@ const CriarViagemMultiData = () => {
             ))}
           </Form.Control>
         </Form.Group>
-{/*
+      {datasSelecionadas.length > 0 && (
+        <TabelaDatas
+          datasSelecionadas={datasSelecionadas}
+          onDataChange={atualizarData}
+          onBusChange={atualizarBus}
+          onReturnTripChange={atualizarReturnTrip}
+          onReturnDateChange={atualizarReturnDate}
+          onRemove={removerData}
+        />
+      )}
+
+   
+
+        {/*
         <Form.Group className="mb-3">
           <Form.Label>Motorista</Form.Label>
           <Form.Control
@@ -228,7 +316,6 @@ const CriarViagemMultiData = () => {
             required
           />
         </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>Hora de Partida</Form.Label>
           <Form.Control
@@ -238,7 +325,6 @@ const CriarViagemMultiData = () => {
             required
           />
         </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>Hora de Chegada</Form.Label>
           <Form.Control
@@ -249,10 +335,12 @@ const CriarViagemMultiData = () => {
           />
         </Form.Group>
         */}
-
-        <Button variant="success" type="submit" style={{backgroundColor:"darkred", borderColor:"darkred"}
-          }>
-          Criar Viagens para os Dias Selecionados
+        <Button
+          variant="success"
+          type="submit"
+          style={{ backgroundColor: "darkred", borderColor: "darkred" }}
+        >
+          Criar Viagens para os Dias Seleccionados
         </Button>
       </Form>
     </Container>

@@ -264,8 +264,10 @@ const DualReservationsTables = ({ tripIds }) => {
     },
     { field: "lugar", headerName: "Lugar", width: 60 },
     { field: "reserva", headerName: "Reserva", width: 80 },
+    { field: "entrada", headerName: "Entrada", width: 80 },
     { field: "nomePassageiro", headerName: "Nome", width: 120 },
     { field: "apelidoPassageiro", headerName: "Apelido", width: 120 },
+    { field: "saida", headerName: "Saída", width: 80 },
     { field: "obs", headerName: "Obs.", width: 300 },
   ];
 

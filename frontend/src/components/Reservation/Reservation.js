@@ -633,57 +633,61 @@ const Reservation = ({tripId}) => {
     
 
     const handleBlockReservations = async (reservasSelecionadas) => {
-      try {
+        try {
           if (reservasSelecionadas.length === 0) {
-              alert("❌ Deve selecionar primeiro a reserva principal.");
-              return;
+            alert("❌ Deve selecionar primeiro a reserva principal.");
+            return;
           }
-  
-          // Obter a reserva principal (a que será usada como base)
+      
+          // Obter a reserva principal – usamos apenas a parte base (antes do ponto)
           const reservaPrincipal = reservasSelecionadas[0];
-  
           if (!reservaPrincipal.reserva) {
-              alert("❌  Deve selecionar primeiro a reserva principal.");
-              return;
+            alert("❌ Deve selecionar primeiro a reserva principal.");
+            return;
           }
-  
-          // Define o número base com base na reserva principal (exemplo: "0001")
-          const baseReserva = reservaPrincipal.reserva;
-  
-          // Atualizar cada reserva com base na reserva principal
+          const baseReserva = reservaPrincipal.reserva.split(".")[0]; // ex: "0003"
+      
+          // Procurar todas as reservas que já têm a base seguida de um ponto (ex.: "0003.1", "0003.2", etc.)
+          // Adicionámos uma verificação para garantir que r.reserva está definida
+          const existingSuffixes = reservations
+            .filter(r => r.reserva && r.reserva.startsWith(`${baseReserva}.`))
+            .map(r => {
+              const parts = r.reserva.split(".");
+              return parts.length > 1 ? parseInt(parts[1], 10) : 0;
+            });
+          const maxSuffix = existingSuffixes.length > 0 ? Math.max(...existingSuffixes) : 0;
+      
+          // Para cada reserva selecionada, atribuímos um número com sufixo crescente a partir de maxSuffix+1
           const promises = reservasSelecionadas.map(async (reserva, index) => {
-              // Se for a primeira (reserva principal), mantém os dados originais
-              const isReservaPrincipal = index === 0;
-              const reservaNumero = isReservaPrincipal ? baseReserva : `${baseReserva}.${index}`;
-  
-              const reservaAtualizada = {
-                  ...reservaPrincipal, // Copia os dados da principal
-                  reserva: reservaNumero, // Define o número único
-                  id: reserva.id, // Mantém o ID correto
-                  lugar: reserva.lugar, // Mantém o lugar correto
-                  
-                  // Apenas reservas copiadas terão os campos email, telefone e obs com "*"
-                  email: isReservaPrincipal ? reservaPrincipal.email : "*",
-                  telefone: isReservaPrincipal ? reservaPrincipal.telefone : "*",
-                  obs: isReservaPrincipal ? reservaPrincipal.obs : "*",
-              };
-  
-              console.log(`🔄 Criando reserva ${reservaNumero} com base na reserva ${baseReserva}`);
-  
-              // Enviar para o backend
-              return handleRowEdit(reservaAtualizada);
+            const novoSufixo = maxSuffix + index + 1;
+            const novaReservaNumero = `${baseReserva}.${novoSufixo}`;
+            const reservaAtualizada = {
+              ...reservaPrincipal, // Usa os dados da reserva principal como base
+              reserva: novaReservaNumero, // Atribui o número com sufixo
+              id: reserva.id, // Mantém o ID original
+              lugar: reserva.lugar, // Mantém o lugar original
+              // Apenas a reserva principal mantém os dados originais; as copiadas recebem "*" para certos campos
+              email: index === 0 ? reservaPrincipal.email : "*",
+              telefone: index === 0 ? reservaPrincipal.telefone : "*",
+              obs: index === 0 ? reservaPrincipal.obs : "*",
+            };
+      
+            console.log(`🔄 Criando reserva ${novaReservaNumero} com base na reserva ${baseReserva}`);
+            return handleRowEdit(reservaAtualizada);
           });
-  
+      
           await Promise.all(promises);
-  
+      
           alert(`✅ Reservas em bloco criadas com base na reserva ${baseReserva}`);
           fetchReservations(); // Atualiza a lista
           apiRef.current.setRowSelectionModel([]); // Limpa a seleção
-  
-      } catch (error) {
+      
+        } catch (error) {
           console.error("❌ Erro ao criar reservas em bloco:", error);
-      }
-  };
+        }
+      };
+      
+      
   
     
       
@@ -948,13 +952,53 @@ const Reservation = ({tripId}) => {
     const columns = [
         { field: "id", headerName: "Lugar", width: 60, editable: false },    
         { field: "moeda", headerName: "", width: 10, editable: false },
-        { field: "preco", headerName: "Preço", width: 80, editable: true }, 
+        { field: "preco", headerName: "Preço", width: 80, editable: true, }, 
         {
             field: "entrada",
             headerName: "Entrada",
             width: 100,
             editable: true,
             renderEditCell: (params) => {
+              const atualizarValor = (valor) => {
+                let newValue = valor;
+                // Se houver uma opção correspondente na lista, utiliza-a
+                const selectedOption = cities.find(
+                  city => city.nome.toLowerCase() === newValue.toLowerCase()
+                );
+                if (selectedOption) {
+                  newValue = selectedOption.nome;
+                }
+                // Atualiza o valor na célula
+                params.api.setEditCellValue({
+                  id: params.id,
+                  field: params.field,
+                  value: newValue,
+                });
+                // Sai do modo de edição
+                if (params.id !== undefined && params.field !== undefined) {
+                  params.api.stopCellEditMode({ id: params.id, field: params.field });
+                }
+              };
+          
+              const handleKeyDown = (event) => {
+                if (event.key === "Enter" || event.key === "Tab") {
+                  event.preventDefault(); // Evita o comportamento padrão
+                  atualizarValor(event.target.value);
+                  // Se for Tab, move para a próxima célula à direita após um pequeno atraso
+                  if (event.key === "Tab") {
+                    setTimeout(() => {
+                      const allColumns = params.api.getAllColumns();
+                      const currentIndex = allColumns.findIndex(col => col.field === params.field);
+                      if (currentIndex !== -1 && currentIndex < allColumns.length - 1) {
+                        const nextField = allColumns[currentIndex + 1].field;
+                        params.api.setCellFocus(params.id, nextField);
+                      }
+                    }, 50);
+                  }
+                }
+                // Adicionalmente, podes manter a lógica das setas se necessário...
+              };
+          
               return (
                 <Autocomplete
                   freeSolo
@@ -974,43 +1018,10 @@ const Reservation = ({tripId}) => {
                       variant="standard"
                       autoFocus
                       inputRef={(input) => input && input.focus()}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === "Tab") {
-                          event.preventDefault(); // Evita comportamento padrão
-                          
-                          let newValue = paramsInput.inputProps.value; // Obtém o que está escrito
-          
-                          // **Se houver uma opção correspondente na lista, usa-a**
-                          const selectedOption = cities.find(city => city.nome.toLowerCase() === newValue.toLowerCase());
-                          if (selectedOption) {
-                            newValue = selectedOption.nome;
-                          }
-          
-                          // **Atualiza o valor no DataGrid**
-                          params.api.setEditCellValue({
-                            id: params.id,
-                            field: params.field,
-                            value: newValue,
-                          });
-          
-                          // **Garante que a célula sai do modo de edição sem erro**
-                          if (params.id !== undefined && params.field !== undefined) {
-                            params.api.stopCellEditMode({ id: params.id, field: params.field });
-                          }
-          
-                          // **Tab move corretamente para a próxima célula**
-                          if (event.key === "Tab") {
-                            setTimeout(() => {
-                              const columns = params.api.getAllColumns();
-                              const currentColumnIndex = columns.findIndex(col => col.field === params.field);
-          
-                              if (currentColumnIndex !== -1 && currentColumnIndex < columns.length - 1) {
-                                const nextField = columns[currentColumnIndex + 1].field;
-                                params.api.setCellFocus(params.id, nextField);
-                              }
-                            }, 50); // Pequeno atraso para garantir que a célula sai do modo de edição antes de avançar
-                          }
-                        }
+                      onKeyDown={handleKeyDown}
+                      onBlur={(event) => {
+                        // Ao perder o foco, atualiza o valor
+                        atualizarValor(event.target.value);
                       }}
                     />
                   )}
@@ -1018,8 +1029,6 @@ const Reservation = ({tripId}) => {
               );
             },
           }
-          
-          
           
           
           

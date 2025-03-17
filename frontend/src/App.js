@@ -15,6 +15,8 @@ import CreateCountry from "./components/Country/CreateCountry";
 
 import CityList from "./components/City/CityList";
 import CreateCity from "./components/City/CreateCity";  
+import EditCity from "./components/City/EditCity";
+
 
 import Agenda from "./components/Agenda/Agenda";
 import TripsList from "./components/Trip/TripsList";
@@ -75,6 +77,7 @@ const App = () => {
 
                 <Route path="/cities" element={isAuthenticated ? <CityList /> : <Navigate to="/login" />} />
                 <Route path="/cities/create" element={isAuthenticated ? <CreateCity /> : <Navigate to="/login" />} />
+                <Route path="/cities/edit/:id" element={<EditCity />} />
 
                 <Route path="/manual" element={isAuthenticated ? <Manual /> : <Navigate to="/login" />} />
             </Routes>

@@ -39,10 +39,18 @@ exports.updateCity = async (req, res) => {
         const city = await City.findByPk(id);
         if (!city) return res.status(404).json({ error: "Cidade não encontrada" });
 
-        const country = await Country.findByPk(countryId);
-        if (!country) return res.status(404).json({ error: "País não encontrado" });
+        // Se countryId for enviado, valida o país
+        if (countryId !== undefined) {
+            const country = await Country.findByPk(countryId);
+            if (!country) return res.status(404).json({ error: "País não encontrado" });
+        }
 
-        await city.update({ nome, countryId, isActive, updatedOn: new Date().toISOString() });
+        await city.update({
+            nome: nome !== undefined ? nome : city.nome,
+            countryId: countryId !== undefined ? countryId : city.countryId,
+            isActive: isActive !== undefined ? isActive : city.isActive,
+            updatedOn: new Date().toISOString()
+        });
 
         res.json({ message: "Cidade atualizada com sucesso!", city });
     } catch (error) {
@@ -51,17 +59,34 @@ exports.updateCity = async (req, res) => {
     }
 };
 
+
 exports.deleteCity = async (req, res) => {
     try {
         const { id } = req.params;
         const city = await City.findByPk(id);
         if (!city) return res.status(404).json({ error: "Cidade não encontrada" });
 
-        await city.update({ isActive: false, updatedOn: new Date().toISOString() });
+        // Elimina o registo permanentemente da base de dados
+        await city.destroy();
 
-        res.json({ message: `Cidade ${id} desativada` });
+        res.json({ message: `Cidade ${id} eliminada permanentemente` });
     } catch (error) {
-        console.error("Erro ao desativar cidade:", error);
-        res.status(500).json({ error: "Erro ao desativar cidade" });
+        console.error("Erro ao eliminar cidade:", error);
+        res.status(500).json({ error: "Erro ao eliminar cidade" });
+    }
+};
+
+
+
+
+exports.getCityById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const city = await City.findByPk(id);
+        if (!city) return res.status(404).json({ error: "Cidade não encontrada" });
+        res.json(city);
+    } catch (error) {
+        console.error("Erro ao buscar a cidade:", error);
+        res.status(500).json({ error: "Erro ao buscar a cidade" });
     }
 };

@@ -64,16 +64,26 @@ const TripPage = () => {
         }
     };
 
-    const filteredTrips = trips.filter(trip => 
-        (trip.origem.toLowerCase().includes(search.toLowerCase()) ||
-        trip.destino.toLowerCase().includes(search.toLowerCase())) &&
-        ((filter === "active" && trip.isActive) || (filter === "inactive" && !trip.isActive))
-    );
+    // Filtrar as viagens com base na pesquisa e no estado (ativa/inativa)
+// Filtrar as viagens com base na pesquisa e no estado (ativa/inativa)
+const filteredTrips = trips.filter(trip =>
+    (
+        trip.origem.toLowerCase().includes(search.toLowerCase()) ||
+        trip.destino.toLowerCase().includes(search.toLowerCase()) ||
+        formatDate(trip.dataviagem).includes(search)
+    ) &&
+    ((filter === "active" && trip.isActive) || (filter === "inactive" && !trip.isActive))
+);
 
-    const indexOfLastTrip = currentPage * tripsPerPage;
-    const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
-    const paginatedTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
-    const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
+
+// Ordenar as viagens por data (ordem crescente)
+const sortedTrips = filteredTrips.slice().sort((a, b) => new Date(a.dataviagem) - new Date(b.dataviagem));
+
+// Aplicar a paginação
+const indexOfLastTrip = currentPage * tripsPerPage;
+const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
+const paginatedTrips = sortedTrips.slice(indexOfFirstTrip, indexOfLastTrip);
+const totalPages = Math.ceil(sortedTrips.length / tripsPerPage);
 
     return (
         <Container className="trips-container">
@@ -82,7 +92,7 @@ const TripPage = () => {
             <div className="trip-search-container">
                 <Form.Control
                     type="text"
-                    placeholder="Procurar viagem"
+                    placeholder="Procurar viagem / data"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="trip-search"

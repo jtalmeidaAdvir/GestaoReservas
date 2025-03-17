@@ -89,3 +89,12 @@ export const deleteCityPermanently = async (id) => {
 
     return await response.json();
 };
+
+
+// Obter todos os países
+export const fetchCountries = async () => {
+    const response = await axios.get("https://backendreservasnunes.advir.pt/countries", {
+        headers: { Authorization: `Bearer ${getToken()}` }
+    });
+    return response.data;
+};

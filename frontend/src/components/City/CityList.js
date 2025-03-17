@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { fetchCities, deleteCity, reactivateCity, deleteCityPermanently } from "../../services/apiCities";
 import { Container, Card, Button, Form, Pagination } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { FaCity, FaPlus, FaEdit, FaTrash, FaRedo, FaTimes } from "react-icons/fa";
 import "../../styles/city.css";
+import EditCity from "../City/EditCity"; 
 
 const CityList = () => {
     const [cities, setCities] = useState([]);
@@ -105,7 +106,12 @@ const CityList = () => {
                             <div className="city-info">
                                 <FaCity size={24} className="city-icon" />
                                 <div>
-                                    <Card.Title className="city-title">{city.nome}</Card.Title>
+                                <Card.Title style={{ cursor: "pointer" }}>
+  <Link to={`/cities/edit/${city.id}`} style={{ textDecoration: "none" }}>
+    {city.nome}
+  </Link>
+</Card.Title>
+
                                     <Card.Text className="city-text">País: {city.Country?.nome || "N/A"}</Card.Text>
                                 </div>
                             </div>
@@ -113,8 +119,9 @@ const CityList = () => {
                                 {city.isActive ? (
                                     <>
                                         <Button variant="outline-primary" className="edit-button" onClick={() => navigate(`/cities/edit/${city.id}`)}>
-                                            <FaEdit />
+                                        <FaEdit />
                                         </Button>
+
                                         <Button variant="outline-danger" className="delete-button" onClick={() => handleDelete(city.id)}>
                                             <FaTrash />
                                         </Button>
