@@ -40,7 +40,7 @@ const CreateBus = () => {
         formDataToSend.append("nlugares", formData.nlugares);
         if (imagem) {
             formDataToSend.append("imagem", imagem);
-            console.log(imagem); // Verifica a imagem que está a ser enviada
+            //console.log(imagem); // Verifica a imagem que está a ser enviada
         }
     
         try {

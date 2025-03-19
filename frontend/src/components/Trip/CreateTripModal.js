@@ -22,7 +22,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${formattedDate}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log("📥 Resposta da API (buses disponíveis):", data);
+                    //console.log("📥 Resposta da API (buses disponíveis):", data);
     
                     // Filtrar apenas os autocarros ativos e ordená-los por nome
                     const activeSortedBuses = Array.isArray(data) 
@@ -36,7 +36,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             fetch(`https://backendreservasnunes.advir.pt/cities`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log("📥 Resposta da API (cidades disponíveis):", data);
+                    //console.log("📥 Resposta da API (cidades disponíveis):", data);
                     const sortedCities = Array.isArray(data)   ? data.filter(city => city.nome === 'Portugal' || city.nome === 'Suiça').sort((a, b) => a.nome.localeCompare(b.nome))
                     : [];
                 setCities(sortedCities);
@@ -74,7 +74,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
     
             const createdTrip = await response.json();
     
-            console.log("✅ Viagem criada com sucesso:", createdTrip);
+            //console.log("✅ Viagem criada com sucesso:", createdTrip);
     
             // Chama a função para atualizar a lista de viagens
             onTripCreated(createdTrip);

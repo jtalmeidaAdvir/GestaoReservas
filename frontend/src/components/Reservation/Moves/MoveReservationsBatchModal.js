@@ -38,7 +38,7 @@ const MoveReservationsBatchModal = ({ open, onClose, trips, onMove, selectedRese
             newSeat: res.selectedSeat, // ✅ Certifica que passa o lugar correto
         }));
 
-        console.log("🚀 Enviando reservas para mover:", reservationsToMove);
+        //console.log("🚀 Enviando reservas para mover:", reservationsToMove);
         
         onMove(selectedTrip, reservationsToMove);
         onClose();

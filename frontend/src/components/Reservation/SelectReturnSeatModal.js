@@ -11,12 +11,12 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
 
     useEffect(() => {
         if (open && tripId) {
-            console.log("Fetching data for trip ID:", tripId);
+            //console.log("Fetching data for trip ID:", tripId);
 
             fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/available-seats`)
                 .then(res => res.json())
                 .then(data => {
-                    console.log("Lugares disponíveis:", data);
+                    //console.log("Lugares disponíveis:", data);
                     setAvailableSeats(Array.isArray(data) ? data : []);
                 })
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
@@ -35,6 +35,14 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
         }
     }, [open, tripId]);
 
+    // Função para controlar o fecho do modal
+    const handleClose = (event, reason) => {
+        if (reason === "backdropClick") {
+            return;
+        }
+        onClose();
+    };
+
     // Função para confirmar a seleção do lugar
     const handleConfirm = () => {
         if (selectedSeat) {
@@ -44,7 +52,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
     };
 
     return (
-        <Modal open={open} onClose={onClose}>
+        <Modal open={open} onClose={handleClose}>
             <Box sx={{ backgroundColor: "white", padding: 3, borderRadius: 2, width: 400, margin: "auto", marginTop: "10%" }}>
                 <Typography variant="h6" gutterBottom>Escolha o lugar de regresso</Typography>
 

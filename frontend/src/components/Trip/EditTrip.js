@@ -70,7 +70,7 @@ const EditTrip = () => {
                 horaChegada: formatTimeForBackend(formData.horaChegada),
             };
 
-            console.log("📡 Enviando dados para a API:", formattedData);
+            //console.log("📡 Enviando dados para a API:", formattedData);
 
             await updateTrip(id, formattedData);
             setSuccess("Viagem atualizada com sucesso!");

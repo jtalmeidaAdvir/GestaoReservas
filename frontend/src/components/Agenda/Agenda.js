@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import moment from "moment";
 import "moment/locale/pt";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -10,11 +10,23 @@ moment.locale("pt");
 
 const Agenda = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const agendaState = location.state;
 
+
+    useEffect(() => {
+        if (agendaState) {
+            setDate(agendaState.date);
+            setView(agendaState.view);
+            // e assim por diante...
+        }
+    }, [agendaState]);
     // Limpar localStorage assim que o componente Agenda é montado
     useEffect(() => {
-        localStorage.removeItem("selectedDate");
-        localStorage.removeItem("selectedTripId");
+        if (!localStorage.getItem("agendaStateGuardado")) {
+            localStorage.removeItem("selectedDate");
+            localStorage.removeItem("selectedTripId");
+        }
     }, []);
 
     const [tripsSummary, setTripsSummary] = useState({});
@@ -110,6 +122,11 @@ const Agenda = () => {
         fetchTripsSummary();
     }, []);
 
+
+
+    
+
+
     // Função para pesquisar reserva por número e abrir a viagem associada
     const handleSearch = async () => {
         if (!searchTerm) return;
@@ -151,7 +168,7 @@ const Agenda = () => {
                 return;
             }
             let data = await response.json();
-            console.log("🔍 Resposta da API para pesquisa por nome:", data);
+            ////////console.log("🔍 Resposta da API para pesquisa por nome:", data);
             const reservations = Array.isArray(data) ? data : [data];
             if (reservations.length === 0) {
                 alert("Nenhuma reserva encontrada para este passageiro.");
@@ -189,7 +206,7 @@ const Agenda = () => {
                 return;
             }
             let data = await response.json();
-            console.log("🔍 Resposta da API para pesquisa por telefone:", data);
+            ////////console.log("🔍 Resposta da API para pesquisa por telefone:", data);
             const reservations = Array.isArray(data) ? data : [data];
             if (reservations.length === 0) {
                 alert("Nenhuma reserva encontrada para este telefone.");
@@ -217,10 +234,13 @@ const Agenda = () => {
     };
 
     const handleEventClick = (event) => {
+        // Guarda o estado atual da Agenda
+        localStorage.setItem("agendaStateGuardado", JSON.stringify({ date, view }));
         const formattedDate = moment(event.start).format("YYYY-MM-DD");
         localStorage.setItem("selectedDate", formattedDate);
         navigate("/trips");
     };
+    
 
     const formatDate = (dateString) => {
         const [year, month, day] = dateString.split("-");

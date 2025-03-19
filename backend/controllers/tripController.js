@@ -1,7 +1,50 @@
 const { Trip, Bus, Reservation } = require("../models");
-const {Op, Sequelize} = require("sequelize")
+const {Op, Sequelize,literal, fn, col} = require("sequelize")
+const moment = require("moment");
 
 
+
+
+exports.getTripsSummaryByMonth = async (req, res) => {
+    console.log("📡 Rota /trips/summary-by-month foi chamada!");
+
+    const { month } = req.query; // Espera um parâmetro no formato 'YYYY-MM'
+    if (!month) {
+        return res.status(400).json({ error: 'O parâmetro "month" é obrigatório no formato YYYY-MM.' });
+    }
+
+    // Define o início e o fim do mês
+    const startDate = `${month}-01`;
+    const endDate = moment(startDate).add(1, "month").format("YYYY-MM-DD");
+
+    try {
+        const trips = await Trip.findAll({
+            attributes: [
+                [literal("CAST(dataviagem AS DATE)"), "dataviagem"],
+                [fn("COUNT", col("dataviagem")), "total_viagens"],
+                [fn("STRING_AGG", literal("CAST(origem AS NVARCHAR) + ' - ' + CAST(destino AS NVARCHAR)"), ", "), "nomes_viagens"],
+                [fn("STRING_AGG", literal("COALESCE(CAST(horapartida AS NVARCHAR), 'Sem horário')"), ", "), "horas_partida"],
+                [fn("STRING_AGG", literal("COALESCE(CAST(horachegada AS NVARCHAR), 'Sem horário')"), ", "), "horas_chegada"],
+                [fn("STRING_AGG", literal("CAST(id AS NVARCHAR)"), ", "), "ids_viagens"]
+            ],
+            where: {
+                isActive: true,
+                dataviagem: {
+                    [Op.gte]: startDate,
+                    [Op.lt]: endDate
+                }
+            },
+            group: [literal("CAST(dataviagem AS DATE)")],
+            order: [[literal("CAST(dataviagem AS DATE)"), "ASC"]]
+        });
+
+        console.log("📊 Dados das viagens do mês:", trips.map(t => t.toJSON()));
+        res.json(trips);
+    } catch (error) {
+        console.error("❌ ERRO NO BACKEND:", error);
+        res.status(500).json({ error: "Erro ao buscar resumo das viagens", details: error.message });
+    }
+};
 
 // Função para formatar data/hora corretamente para MSSQL
 const formatDateTimeForSQL = (dateTime) => {

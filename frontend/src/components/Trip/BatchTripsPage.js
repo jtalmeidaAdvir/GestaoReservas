@@ -223,7 +223,7 @@ const CriarViagemMultiData = () => {
           return response.json();
         })
       );
-      console.log("Viagens criadas com sucesso:", responses);
+      //console.log("Viagens criadas com sucesso:", responses);
       alert("Viagens criadas com sucesso!");
 
       // Limpa os campos e a tabela após a criação
