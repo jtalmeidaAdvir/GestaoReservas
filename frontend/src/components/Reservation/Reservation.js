@@ -1560,7 +1560,20 @@ const handleDeleteReservation = async (numeroReserva) => {
                   borderRadius: "5px",
                   boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
                 }}
-              >
+              >  
+              <Typography variant="body1">
+              <strong>Total de Passageiros:</strong> {Object.values(entrySummary).reduce((acc, val) => acc + val, 0)} passageiros
+            </Typography>
+            </Box>
+              <Box
+                sx={{
+                  background: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
+                }}
+              >  
                 {Object.keys(entrySummary).length > 0 ? (
                   Object.entries(entrySummary).map(([entrada, count]) => (
                     <Typography key={entrada} variant="body1">
