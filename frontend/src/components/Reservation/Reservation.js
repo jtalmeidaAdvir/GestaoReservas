@@ -1162,27 +1162,31 @@ const handleDeleteReservation = async (numeroReserva) => {
         );
       },
     },
+
     {
       field: "volta",
       headerName: "Volta",
-      placeholder:"DD/MM/AAAA",
       width: 110,
       editable: true,
       renderEditCell: (params) => {
         const { id, field, api, value } = params;
-        
-        // Atualiza o DataGrid sempre que o utilizador escreve algo
-        const handleChange = (e) => {
-          api.setEditCellValue({
-            id,
-            field,
-            value: e.target.value, // e.g. "01/05/2025"
-          });
-        };
     
-        // Se quiseres sair do modo de edição ao perder foco:
-        const handleBlur = () => {
-          api.stopCellEditMode({ id, field });
+        // Expressão regular para validar o formato DD/MM/AAAA
+        const validarData = (valor) => /^\d{2}\/\d{2}\/\d{4}$/.test(valor);
+    
+        const handleBlur = (e) => {
+          const novoValor = e.target.value.trim();
+    
+          if (!validarData(novoValor)) {
+            api.setEditCellValue({ id, field, value: "" }); // ❌ Se inválido, limpa
+          }
+    
+          setTimeout(() => {
+            if (apiRef.current.getCellMode(id, field) === "edit") {
+              apiRef.current.stopCellEditMode({ id, field });
+            }
+          }, 50);
+          
         };
     
         return (
@@ -1191,13 +1195,15 @@ const handleDeleteReservation = async (numeroReserva) => {
             style={{ width: "100%" }}
             placeholder="DD/MM/AAAA"
             value={value || ""}
-            onChange={handleChange}
-            onBlur={handleBlur}
+            onChange={(e) => api.setEditCellValue({ id, field, value: e.target.value })}
+            onBlur={handleBlur} // 🚀 Validação e encerramento seguro
             autoFocus
           />
         );
       },
     },
+    
+
     
     
     { field: "telefone", headerName: "Tel.", width: 100, editable: true },
@@ -1311,10 +1317,83 @@ const handleDeleteReservation = async (numeroReserva) => {
               newSelection.map(id => reservations.find(res => res.id === id))
             );
           }}
-      
+
+          onCellKeyDown={(params, event) => {
+            if (!apiRef.current) return;
+          
+            const colunas = apiRef.current.getAllColumns();
+            if (!colunas || colunas.length === 0) return;
+          
+            const currentIndex = colunas.findIndex(col => col.field === params.field);
+            if (currentIndex === -1) return;
+          
+            const rowId = params.id;
+            const isEditable = colunas[currentIndex]?.editable;
+          
+            if (!isEditable) return;
+          
+            const cellMode = apiRef.current.getCellMode(rowId, params.field);
+          
+            // Obtém o input ativo
+            const input = event.target;
+          
+            // Se não for um campo de texto, ignora a navegação
+            if (!input || typeof input.value !== "string") return;
+          
+            const cursorPos = input.selectionStart;
+            const textLength = input.value.length;
+          
+            // 🔹 Se o campo estiver vazio ou o cursor estiver no início/final, permite navegação
+            const moveLeft = event.key === "ArrowLeft" && (cursorPos === 0 || textLength === 0);
+            const moveRight = event.key === "ArrowRight" && (cursorPos === textLength || textLength === 0);
+            const moveWithEnter = event.key === "Enter"; // 🔥 Agora permite avançar com Enter!
+          
+            if (!moveLeft && !moveRight && !moveWithEnter) return;
+          
+            event.preventDefault(); // Evita o comportamento padrão das teclas
+          
+            let nextIndex = currentIndex + (moveRight || moveWithEnter ? 1 : -1);
+          
+            while (
+              nextIndex >= 0 &&
+              nextIndex < colunas.length &&
+              (!colunas[nextIndex]?.editable || colunas[nextIndex]?.field === "reserva") // Ignora "reserva"
+            ) {
+              nextIndex += moveRight || moveWithEnter ? 1 : -1;
+            }
+          
+            if (nextIndex >= 0 && nextIndex < colunas.length) {
+              const nextField = colunas[nextIndex].field;
+          
+              // 🔍 Garante que a célula anterior está em modo de edição antes de sair
+              if (cellMode === "edit") {
+                apiRef.current.stopCellEditMode({ id: rowId, field: params.field });
+              }
+          
+              setTimeout(() => {
+                const nextCellMode = apiRef.current.getCellMode(rowId, nextField);
+                apiRef.current.setCellFocus(rowId, nextField);
+          
+                if (nextCellMode === "view") {
+                  apiRef.current.startCellEditMode({ id: rowId, field: nextField });
+                }
+              }, 50);
+            }
+          }}
+          
+        
+        
+          
+          
+          
+          
+
+          
+          
           rowHeight={30}
           processRowUpdate={handleRowEdit}
           onProcessRowUpdateError={(error) => console.error("Erro ao atualizar reserva:", error)}
+          
           sx={{
             height: "900px",
             overflow: "auto",
