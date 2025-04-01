@@ -1,4 +1,4 @@
-const { Trip, Bus, Reservation } = require("../models");
+const { Trip, Bus, Reservation, City, Country } = require("../models");
 const {Op, Sequelize,literal, fn, col} = require("sequelize")
 const moment = require("moment");
 
@@ -54,6 +54,7 @@ const formatDateTimeForSQL = (dateTime) => {
 };
 
 // Criar uma viagem para um autocarro específico
+// Criar uma viagem para um autocarro específico
 exports.createTrip = async (req, res) => {
     try {
         console.log("Dados recebidos no backend:", req.body); // 🔥 Debug
@@ -62,21 +63,13 @@ exports.createTrip = async (req, res) => {
 
         if (!dataViagem) return res.status(400).json({ error: "Data da viagem não fornecida" });
 
-        const existingTrip = await Trip.findOne({
-            where: { busId, dataviagem: dataViagem }
-        });
-
-        if (existingTrip) {
-            return res.status(400).json({ error: "Este autocarro já tem uma viagem registada neste dia." });
-        }
-
         const newTrip = await Trip.create({
             busId,
             dataviagem: dataViagem,
             origem,
-            origemCidade,  // ✅ Novo campo
+            origemCidade,
             destino,
-            destinoCidade,  // ✅ Novo campo
+            destinoCidade,
             motorista,
             horaPartida,
             horaChegada
@@ -88,6 +81,7 @@ exports.createTrip = async (req, res) => {
         res.status(500).json({ error: "Erro ao criar viagem" });
     }
 };
+
 
 
 // Obter todas as viagens
@@ -245,36 +239,60 @@ exports.updateTripMotorista = async (req, res) => {
 // GET /trips/return?origem=XYZ&destino=ABC&dataviagem=2025-12-25&createIfNotFound=true
 exports.findOrCreateReturnTrip = async (req, res) => {
     try {
-        const { origem, destino, dataviagem, createIfNotFound } = req.query;
-
-        // Tentar encontrar a viagem
-        const tripRegresso = await Trip.findOne({
-            where: { origem, destino, dataviagem }
+      const { origem, destino, dataviagem, createIfNotFound } = req.query;
+  
+      // 1. Procurar as cidades para obter o país
+      const origemCity = await City.findOne({ where: { nome: origem }, include: Country });
+      const destinoCity = await City.findOne({ where: { nome: destino }, include: Country });
+  
+      if (!origemCity || !destinoCity) {
+        return res.status(400).json({ error: "Cidades não encontradas." });
+      }
+  
+      const paisOrigem = origemCity.Country.nome;
+      const paisDestino = destinoCity.Country.nome;
+  
+      // 2. Obter todas as cidades do país de origem e destino
+      const cidadesOrigem = await City.findAll({
+        where: { "$Country.nome$": paisDestino }, // inverter!
+        include: Country
+      });
+      const cidadesDestino = await City.findAll({
+        where: { "$Country.nome$": paisOrigem }, // inverter!
+        include: Country
+      });
+  
+      const nomesCidadesOrigem = cidadesOrigem.map(c => c.nome);
+      const nomesCidadesDestino = cidadesDestino.map(c => c.nome);
+  
+      // 3. Procurar por viagem com qualquer cidade desses países
+      const tripRegresso = await Trip.findOne({
+        where: {
+          origem: nomesCidadesOrigem,
+          destino: nomesCidadesDestino,
+          dataviagem
+        }
+      });
+  
+      if (tripRegresso) {
+        return res.json(tripRegresso);
+      }
+  
+      if (createIfNotFound === "true") {
+        const newTrip = await Trip.create({
+          origem,
+          destino,
+          dataviagem
         });
-
-        if (tripRegresso) {
-            // Se existir, devolve
-            return res.json(tripRegresso);
-        }
-
-        // Se não existir e vier "createIfNotFound=true", criamos
-        if (createIfNotFound === "true") {
-            const newTrip = await Trip.create({
-                origem,
-                destino,
-                dataviagem
-                // Podes preencher outras colunas, se tiveres
-            });
-            return res.json(newTrip);
-        }
-
-        // Caso não encontre e não se queira criar automaticamente, devolve 404
-        return res.status(404).json({ error: "Viagem de regresso não encontrada." });
+        return res.json(newTrip);
+      }
+  
+      return res.status(404).json({ error: "Viagem de regresso não encontrada." });
     } catch (error) {
-        console.error("🔥 Erro ao procurar/criar viagem de regresso:", error);
-        return res.status(500).json({ error: "Erro interno do servidor" });
+      console.error("🔥 Erro ao procurar/criar viagem de regresso:", error);
+      return res.status(500).json({ error: "Erro interno do servidor" });
     }
-};
+  };
 
 
 exports.disableTrip = async (req, res) => {
@@ -393,9 +411,9 @@ exports.getAvailableSeats = async (req, res) => {
 exports.updateTripOrigemDestino = async (req, res) => {
     try {
         const { tripId } = req.params;
-        const { origemCidade, destinoCidade } = req.body;
+        const { origem, destino } = req.body;
 
-        if (!origemCidade || !destinoCidade) {
+        if (!origem || !destino) {
             return res.status(400).json({ error: "Os campos origem e destino são obrigatórios" });
         }
 
@@ -406,8 +424,8 @@ exports.updateTripOrigemDestino = async (req, res) => {
         }
 
 
-        trip.origemCidade = origemCidade || trip.origemCidade; // Mantém o valor atual se não for fornecido
-        trip.destinoCidade = destinoCidade || trip.destinoCidade; // Mantém o valor atual se não for fornecido
+        trip.origem = origem || trip.origem; // Mantém o valor atual se não for fornecido
+        trip.destino = destino || trip.destino; // Mantém o valor atual se não for fornecido
 
         await trip.save();
 

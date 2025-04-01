@@ -40,6 +40,24 @@ const Agenda = () => {
     const [availableMonths, setAvailableMonths] = useState([]);
 
 
+    const [citiesByCountry, setCitiesByCountry] = useState({ Portugal: [], Suiça: [] });
+
+useEffect(() => {
+  const fetchCities = async () => {
+    try {
+      const res = await fetch("https://backendreservasnunes.advir.pt/cities");
+      const data = await res.json();
+      const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
+      const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
+      setCitiesByCountry({ Portugal: portugal, Suiça: suica });
+    } catch (err) {
+      console.error("Erro ao buscar cidades:", err);
+    }
+  };
+  fetchCities();
+}, []);
+
+
     useEffect(() => {
         const fetchTripsSummary = async () => {
             try {
@@ -249,18 +267,25 @@ const Agenda = () => {
 
     // Função que define a cor do evento com base na direção
     const getEventColor = (event) => {
-        if (event.direction === "portugal - suica") {
-            return "green";
-        } else if (event.direction === "suica - portugal") {
-            return "darkred";
-        }
-        if (event.direction === "zurich - póvoa de lanhoso") {
-            return "green";
-        } else if (event.direction === "póvoa de lanhoso - zurich") {
-            return "darkred";
-        }
+        const normalize = (str) =>
+          (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      
+        const [origem, destino] = event.direction.split("-").map(s => normalize(s));
+      
+        const ptCities = citiesByCountry["Portugal"].map(normalize);
+        const chCities = citiesByCountry["Suiça"].map(normalize);
+      
+        const origemIsPT = origem === "portugal" || ptCities.includes(origem);
+        const destinoIsCH = destino === "suica" || chCities.includes(destino);
+        const origemIsCH = origem === "suica" || chCities.includes(origem);
+        const destinoIsPT = destino === "portugal" || ptCities.includes(destino);
+      
+        if (origemIsPT && destinoIsCH) return "green";
+        if (origemIsCH && destinoIsPT) return "darkred";
+      
         return "lightgray";
-    };
+      };
+      
 
     const eventPropGetter = (event) => {
         return {

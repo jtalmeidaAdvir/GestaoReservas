@@ -13,6 +13,7 @@ function findSelectedIndex(selectedReservations, row) {
 const DualReservationsTables = ({ tripIds }) => {
   const [tripDetails, setTripDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+  
 
   // Array de objetos com as linhas selecionadas (ordem de seleção)
   const [selectedReservations, setSelectedReservations] = useState([]);
@@ -84,22 +85,40 @@ const DualReservationsTables = ({ tripIds }) => {
   // 3. Alternar a seleção de uma linha (desativar para viagem inativa)
   const toggleSelection = (row) => {
     if (inactiveTripId && row.tripId === inactiveTripId) {
-      // Se a linha pertence à viagem inativa, não permite seleção.
       return;
     }
-    setSelectedReservations((prev) => {
-      const index = findSelectedIndex(prev, row);
-      if (index === -1) {
-        // Não estava selecionada -> adicionar
-        return [...prev, row];
-      } else {
-        // Já estava selecionada -> remover
+  
+    const index = findSelectedIndex(selectedReservations, row);
+  
+    // Desselecionar se já estava selecionada
+    if (index !== -1) {
+      setSelectedReservations((prev) => {
         const newArr = [...prev];
         newArr.splice(index, 1);
         return newArr;
+      });
+      return;
+    }
+  
+    // Se for a primeira seleção, tem de ser da 1ª viagem
+    if (selectedReservations.length === 0 && row.tripId !== tripIds[0]) {
+  
+      return;
+    }
+  
+    // Se for a segunda seleção, tem de ser de uma viagem diferente
+    if (selectedReservations.length % 2 === 1) {
+      const lastSelected = selectedReservations[selectedReservations.length - 1];
+      if (lastSelected.tripId === row.tripId) {
+    
+        return;
       }
-    });
+    }
+  
+    setSelectedReservations((prev) => [...prev, row]);
   };
+  
+  
 
   // 4. Agrupar as reservas selecionadas por tripId (para a lógica de troca)
   const groupSelectedReservations = () => {
@@ -263,7 +282,31 @@ const DualReservationsTables = ({ tripIds }) => {
       },
     },
     { field: "lugar", headerName: "Lugar", width: 60 },
-    { field: "reserva", headerName: "Reserva", width: 80 },
+    {
+      field: "reserva",
+      headerName: "Reserva",
+      width: 80,
+      sortable: false,
+      editable: false,
+      renderCell: (params) => {
+        const valor = (params.value || "").trim();
+    
+        // Se for em bloco, tipo "0003.1", mostra "*"
+        if (/^\d{4}\.\d+$/.test(valor)) {
+          return "*";
+        }
+    
+        // Se for de volta, tipo "0003.v" ou "0034.v", mostra "0003" ou "0034"
+        if (/^\d{1,4}\.v$/i.test(valor)) {
+          return valor.split(".")[0]; // mostra só a parte antes de ".v"
+        }
+    
+        // Caso normal
+        return valor;
+      },
+    }
+    ,
+    
     { field: "entrada", headerName: "Entrada", width: 80 },
     { field: "nomePassageiro", headerName: "Nome", width: 120 },
     { field: "apelidoPassageiro", headerName: "Apelido", width: 120 },
@@ -279,17 +322,8 @@ const DualReservationsTables = ({ tripIds }) => {
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         
       
-      <Button
-        variant="contained"
-        color="error"
-        disabled={selectedReservations.length === 0}
-        onClick={handleTransferReservations}
-        sx={{ mb: 2 }}
-        style={{ backgroundColor: "darkred", color: "white" }}
-      >
-        Trocar/Mover Reservas Entre Viagens
-      </Button>
-      <Typography variant="body2"> </Typography>
+      
+      
       <Box
           sx={{
             width: 25,
@@ -312,7 +346,18 @@ const DualReservationsTables = ({ tripIds }) => {
           }}
         />
         <Typography variant="body2">Reserva Destino</Typography>
+        
       </Box>
+      <Button
+        variant="contained"
+        color="error"
+        disabled={selectedReservations.length === 0}
+        onClick={handleTransferReservations}
+        sx={{ mb: 2 }}
+        style={{ backgroundColor: "darkred", color: "white" }}
+      >
+        Trocar/Mover Reservas Entre Viagens
+      </Button>
 
       <Grid
         container
@@ -321,6 +366,14 @@ const DualReservationsTables = ({ tripIds }) => {
         sx={{ overflowX: "auto" }}
       >
         {tripDetails.map((detail, index) => {
+          const buffer = detail.trip.Bus.imagem?.data;
+          const busImage = buffer
+            ? `data:image/png;base64,${btoa(
+                new Uint8Array(buffer).reduce((acc, byte) => acc + String.fromCharCode(byte), "")
+              )}`
+            : null;
+          
+
           if (!detail || !detail.trip) {
             return (
               <Grid item key={index}>
@@ -334,29 +387,67 @@ const DualReservationsTables = ({ tripIds }) => {
           );
 
           return (
-            <Grid item key={index}>
+            <Grid item key={index} sx={{ minWidth: 1100 }}>
               <Typography variant="h6" gutterBottom>
-                {detail.trip.origemCidade} → {detail.trip.destinoCidade} -{" "}
-                {new Date(detail.trip.dataviagem).toLocaleDateString("pt-PT")}
+                {detail.trip.origem} → {detail.trip.destino} 🚌 {detail.trip.Bus.nome}
+             
               </Typography>
-              <Typography variant="subtitle1" gutterBottom>
-                Autocarro: {detail.trip.Bus?.nome || "N/D"} | Motorista:{" "}
-                {detail.trip.motorista}
-              </Typography>
-
-              <Box sx={{ width: "100%", height: 900 }}>
-                <DataGrid
-                  rows={combinedRows}
-                  columns={columns}
-                  pageSize={10}
-                  hideFooter
-                  disableRowSelectionOnClick
-                />
+          
+              <Box sx={{ display: "flex", gap: 4 }}>
+                {/* DataGrid */}
+                <Box sx={{ flex: 1, height: 900 }}>
+                  <DataGrid
+                    rows={combinedRows}
+                    columns={columns}
+                    pageSize={10}
+                    
+                    pagination
+                    
+                    disableRowSelectionOnClick
+                  />
+                </Box>
+          
+                {/* Imagem do autocarro */}
+                
+                {detail.trip.Bus?.imagem && (
+                  <Box
+                    sx={{
+                      maxWidth: 250,
+                      minWidth: 200,
+                      textAlign: "center",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "center",
+                      mt: 4,
+                    }}
+                  >
+                    <img
+                      src={`data:image/png;base64,${btoa(
+                        new Uint8Array(detail.trip.Bus.imagem.data).reduce(
+                          (acc, byte) => acc + String.fromCharCode(byte),
+                          ""
+                        )
+                      )}`}
+                      alt="Autocarro"
+                      style={{
+                        width: "100%",
+                        maxHeight: "850px",
+                        objectFit: "contain",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </Box>
+                  
+                )}
               </Box>
+              
             </Grid>
           );
+          
         })}
       </Grid>
+      
+      
     </Box>
   );
 };

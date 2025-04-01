@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Select,
@@ -9,12 +9,19 @@ import {
   Box,
 } from "@mui/material";
 import DualReservationsTables from "./DualReservationsTables";
+import CreateTripModal from "../Trip/CreateTripModal";
+import AddIcon from '@mui/icons-material/Add'; // ícone de "+"
+
 
 const originOptions = ["Portugal", "Suiça"];
 const destinationOptions = ["Portugal", "Suiça"];
 
+
+
 const normalizeString = (str) =>
-  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  (typeof str === "string" ? str : "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+
 
 const TripsByDayAndDirection = () => {
   const [selectedDate, setSelectedDate] = useState("");
@@ -24,36 +31,95 @@ const TripsByDayAndDirection = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTripIds, setSelectedTripIds] = useState([]);
 
-  const handleSearch = async () => {
-    if (!selectedDate || !selectedOrigin || !selectedDestination) {
-      alert("Por favor, selecione a data, a origem e o destino.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `https://backendreservasnunes.advir.pt/trips/by-date?date=${selectedDate}`
-      );
-      if (!res.ok) {
-        throw new Error("Erro na resposta do servidor ao buscar viagens por data.");
-      }
-      const tripsData = await res.json();
 
-      // Filtrar as viagens com base na origem e destino selecionados
-      const filteredTrips = tripsData.filter(
-        (trip) =>
-          normalizeString(trip.origem) === normalizeString(selectedOrigin) &&
-          normalizeString(trip.destino) === normalizeString(selectedDestination)
-      );
-      setTrips(filteredTrips);
-      setSelectedTripIds([]); // Limpa seleção anterior
-    } catch (error) {
-      console.error("Erro ao buscar viagens:", error);
-      alert("Ocorreu um erro ao buscar as viagens.");
-    } finally {
-      setLoading(false);
+  const [citiesByCountry, setCitiesByCountry] = useState({
+    Portugal: [],
+    Suiça: []
+  });
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const res = await fetch("https://backendreservasnunes.advir.pt/cities");
+        const data = await res.json();
+        const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
+        const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
+        console.log("🇵🇹 Cidades PT:", portugal);
+        console.log("🇨🇭 Cidades CH:", suica);
+        setCitiesByCountry({ Portugal: portugal, Suiça: suica });
+      } catch (err) {
+        console.error("Erro ao buscar cidades:", err);
+      }
+    };
+    fetchCities();
+  }, []);
+  
+  
+  
+
+
+  useEffect(() => {
+    if (selectedDate && selectedOrigin && selectedDestination) {
+      handleSearch();
     }
-  };
+  }, [selectedDate, selectedOrigin, selectedDestination]);
+
+
+
+const handleSearch = async () => {
+  if (!selectedDate || !selectedOrigin || !selectedDestination) {
+    alert("Por favor, selecione a data, a origem e o destino.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await fetch(`https://backendreservasnunes.advir.pt/trips/by-date?date=${selectedDate}`);
+    if (!res.ok) throw new Error("Erro ao buscar viagens.");
+
+    const tripsData = await res.json();
+
+    // ✅ Declara as cidades por país
+    const originCities = citiesByCountry[selectedOrigin] || [];
+    const destinationCities = citiesByCountry[selectedDestination] || [];
+
+    // ✅ Filtra as viagens com base nas cidades da origem/destino
+    const filteredTrips = tripsData.filter((trip) => {
+      const origemMatch =
+        citiesByCountry[selectedOrigin].some(city =>
+          normalizeString(trip.origem) === normalizeString(city)
+        ) ||
+        normalizeString(trip.origem) === normalizeString(selectedOrigin);
+    
+      const destinoMatch =
+        citiesByCountry[selectedDestination].some(city =>
+          normalizeString(trip.destino) === normalizeString(city)
+        ) ||
+        normalizeString(trip.destino) === normalizeString(selectedDestination);
+    
+      if (!origemMatch) {
+        console.log("❌ Origem falhou:", trip.origem);
+      }
+      if (!destinoMatch) {
+        console.log("❌ Destino falhou:", trip.destino);
+      }
+    
+      return origemMatch && destinoMatch;
+    });
+    
+    
+
+    setTrips(filteredTrips);
+    setSelectedTripIds([]);
+  } catch (error) {
+    console.error("Erro ao buscar viagens:", error);
+    alert("Erro ao buscar as viagens.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
 
   // Alternar a seleção de uma viagem
   const toggleSelection = (tripId) => {
@@ -66,13 +132,30 @@ const TripsByDayAndDirection = () => {
     });
   };
 
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+const handleTripCreated = (newTrip) => {
+  // Atualiza a lista de viagens se os critérios coincidirem
+  if (
+    normalizeString(newTrip.origem) === normalizeString(selectedOrigin) &&
+    normalizeString(newTrip.destino) === normalizeString(selectedDestination) &&
+    newTrip.dataViagem === selectedDate
+  ) {
+    setTrips((prev) => [...prev, newTrip]);
+  }
+  handleSearch(); // simples e funcional
+
+};
+
+
   return (
     <Box sx={{ padding: "20px" }}>
       <Typography variant="h4" gutterBottom>
-        Pesquisar Viagens
+        Listagens 
       </Typography>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <TextField
             label="Data da Viagem"
             type="date"
@@ -82,45 +165,39 @@ const TripsByDayAndDirection = () => {
             InputLabelProps={{ shrink: true }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
-          <Select
-            value={selectedOrigin}
-            onChange={(e) => setSelectedOrigin(e.target.value)}
-            displayEmpty
-            fullWidth
-          >
-            <MenuItem value="" disabled>
-              Selecione a Origem
-            </MenuItem>
-            {originOptions.map((origin) => (
-              <MenuItem key={origin} value={origin}>
-                {origin}
-              </MenuItem>
-            ))}
-          </Select>
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <Select
-            value={selectedDestination}
-            onChange={(e) => setSelectedDestination(e.target.value)}
-            displayEmpty
-            fullWidth
-          >
-            <MenuItem value="" disabled>
-              Selecione o Destino
-            </MenuItem>
-            {destinationOptions.map((dest) => (
-              <MenuItem key={dest} value={dest}>
-                {dest}
-              </MenuItem>
-            ))}
-          </Select>
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <Button variant="contained" color="primary" onClick={handleSearch} style={{backgroundColor:"darkred"}} fullWidth> 
-            Pesquisar
-          </Button>
-        </Grid>
+        <Grid item xs={12} sm={4}>
+  <Select
+    value={selectedOrigin}
+    onChange={(e) => {
+      const origem = e.target.value;
+      const destino = origem === "Portugal" ? "Suiça" : "Portugal";
+      setSelectedOrigin(origem);
+      setSelectedDestination(destino);
+    }}
+    displayEmpty
+    fullWidth
+  >
+    <MenuItem value="" disabled>
+      Selecione a Origem
+    </MenuItem>
+    {originOptions.map((origin) => (
+      <MenuItem key={origin} value={origin}>
+        {origin}
+      </MenuItem>
+    ))}
+  </Select>
+</Grid>
+
+<Grid item xs={12} sm={4}>
+  <TextField
+    label="Destino"
+    value={selectedDestination}
+    InputProps={{ readOnly: true }}
+    fullWidth
+  />
+</Grid>
+
+      
       </Grid>
 
       <Box sx={{ marginTop: "20px" }}>
@@ -129,43 +206,87 @@ const TripsByDayAndDirection = () => {
           <Typography>Nenhuma viagem encontrada para os critérios selecionados.</Typography>
         )}
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
-          {trips.map((trip) => {
-            const isSelected = selectedTripIds.includes(trip.id);
-            return (
-              <Box
-                key={trip.id}
-                onClick={() => toggleSelection(trip.id)}
-                sx={{
-                  cursor: "pointer",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  border: isSelected ? "2px solid darkred" : "1px solid darkred",
-                  backgroundColor: isSelected ? "#fff" : "darkred",
-                  color: isSelected ? "darkred" : "#fff",
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    opacity: 0.8,
-                  },
-                }}
-              >
-                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                  {trip.origem} → {trip.destino} ({trip.origemCidade} → {trip.destinoCidade}) {trip.bus}
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(trip.dataviagem).toLocaleDateString("pt-PT")}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
+<Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
+  {selectedDate && (
+    <Button
+      onClick={() => setShowCreateModal(true)}
+      variant="outlined"
+      sx={{
+        borderColor: "darkred",
+        color: "darkred",
+        height: "40px",
+        minWidth: "40px",
+        borderRadius: "50%",
+        fontWeight: "bold",
+        '&:hover': {
+          backgroundColor: "#fbeaea",
+        }
+      }}
+    >
+      <AddIcon />
+    </Button>
+  )}
+
+  {trips.map((trip) => {
+    const isSelected = selectedTripIds.includes(trip.id);
+    return (
+      <Box
+      key={trip.id}
+      onClick={() => toggleSelection(trip.id)}
+      sx={() => {
+        const isPortugueseCity =
+          citiesByCountry["Portugal"].some(
+            city => normalizeString(city) === normalizeString(trip.origem)
+          );
+    
+        const isPortugal =
+          normalizeString(trip.origem) === normalizeString("Portugal");
+    
+        const isFromPortugal = isPortugal || isPortugueseCity;
+    
+        const activeColor = isFromPortugal ? "green" : "darkred";
+        const activeBg = isSelected ? "#fff" : activeColor;
+        const activeText = isSelected ? activeColor : "#fff";
+    
+        return {
+          cursor: "pointer",
+          padding: "8px 16px",
+          borderRadius: "4px",
+          border: isSelected ? `2px solid ${activeColor}` : `1px solid ${activeColor}`,
+          backgroundColor: activeBg,
+          color: activeText,
+          transition: "all 0.2s",
+          "&:hover": {
+            opacity: 0.8,
+          },
+        };
+      }}
+    >
+      <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+        {/*{trip.origem} → {trip.destino}*/} {trip.Bus.nome}
+      </Typography>
+    </Box>
+    
+    );
+  })}
+</Box>
+
+
       </Box>
 
       {/* Se houver viagens selecionadas, mostra automaticamente as reservas */}
       {selectedTripIds.length > 0 && (
         <DualReservationsTables tripIds={selectedTripIds} />
       )}
+      <CreateTripModal
+  isOpen={showCreateModal}
+  onClose={() => setShowCreateModal(false)}
+  date={selectedDate}
+  onTripCreated={handleTripCreated}
+/>
+
     </Box>
+    
   );
 };
 

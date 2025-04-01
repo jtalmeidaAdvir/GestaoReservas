@@ -22,24 +22,36 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${formattedDate}`)
                 .then(response => response.json())
                 .then(data => {
-                    //console.log("📥 Resposta da API (buses disponíveis):", data);
+                    let allBuses = Array.isArray(data) ? data : [];
     
-                    // Filtrar apenas os autocarros ativos e ordená-los por nome
-                    const activeSortedBuses = Array.isArray(data) 
-                        ? data.filter(bus => bus.isActive).sort((a, b) => a.nome.localeCompare(b.nome))
-                        : [];
+                    // Permitir sempre o autocarro com nome vazio
+                    fetch("https://backendreservasnunes.advir.pt/buses") // buscar todos os autocarros
+                        .then(resp => resp.json())
+                        .then(allBusData => {
+                            const emptyBus = allBusData.find(bus => bus.nome === "vazio");
     
-                    setBuses(activeSortedBuses);
+                            // Filtrar ativos e ordenar
+                            let activeSortedBuses = allBuses
+                                .filter(bus => bus.isActive)
+                                .sort((a, b) => a.nome.localeCompare(b.nome));
+    
+                            // Se o autocarro com nome vazio existir, adicioná-lo (caso ainda não esteja incluído)
+                            if (emptyBus && !activeSortedBuses.some(bus => bus.id === emptyBus.id)) {
+                                activeSortedBuses = [emptyBus, ...activeSortedBuses];
+                            }
+    
+                            setBuses(activeSortedBuses);
+                        });
                 });
-
+    
             // Buscar cidades
             fetch(`https://backendreservasnunes.advir.pt/cities`)
                 .then(response => response.json())
                 .then(data => {
-                    //console.log("📥 Resposta da API (cidades disponíveis):", data);
-                    const sortedCities = Array.isArray(data)   ? data.filter(city => city.nome === 'Portugal' || city.nome === 'Suiça').sort((a, b) => a.nome.localeCompare(b.nome))
-                    : [];
-                setCities(sortedCities);
+                    const sortedCities = Array.isArray(data)
+                        ? data.sort((a, b) => a.nome.localeCompare(b.nome))
+                        : [];
+                    setCities(sortedCities);
                 })
                 .catch(error => {
                     console.error("Erro ao carregar cidades:", error);
@@ -47,6 +59,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                 });
         }
     }, [isOpen, date]);
+    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -92,6 +105,9 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             isOpen={isOpen}
             onRequestClose={onClose}
             style={{
+                overlay: {
+                    zIndex: 9998 // ou superior a qualquer outro componente na tua app
+                },
                 content: {
                     width: "320px",
                     height: "550px",
@@ -104,6 +120,8 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                     alignItems: "center",
                     justifyContent: "center",
                     boxShadow: "0px 4px 10px rgba(0,0,0,0.2)",
+                    zIndex: 9999 // <-- aqui
+
                 }
             }}
         >

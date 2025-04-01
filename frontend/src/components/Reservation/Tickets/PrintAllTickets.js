@@ -76,7 +76,7 @@ const handlePrintAllTickets = async (reservations, datatrip, formatDate, returnP
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(9);
         pdf.setTextColor(0, 0, 0); // Vermelho escuro
-        pdf.text(`Reserva Nº ${row.reserva || "----"}`, xOffset + ticketWidth - 38, yOffset + 20);
+        pdf.text(`Nº ${row.reserva || "----"}`, xOffset + ticketWidth - 28, yOffset + 20);
 
         // Seção principal com informações do bilhete
         pdf.setTextColor(80, 80, 80); // Cinza escuro

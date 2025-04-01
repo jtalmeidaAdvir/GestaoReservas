@@ -118,8 +118,9 @@ const totalPages = Math.ceil(sortedTrips.length / tripsPerPage);
                             <div className="trip-info">
                                 <FaMapMarkedAlt size={24} className="trip-icon" />
                                 <div>
-                                    <Card.Title className="trip-title">{trip.origem} → {trip.destino}</Card.Title>
-                                    <Card.Text className="trip-text">{formatDate(trip.dataviagem)}</Card.Text>
+                                    <Card.Title className="trip-title">{trip.origem} → {trip.destino} </Card.Title>
+                                    <Card.Text className="trip-text">{trip.Bus.nome} 🚌 {formatDate(trip.dataviagem)}</Card.Text>
+                      
                                 </div>
                             </div>
                             <div className="trip-actions">

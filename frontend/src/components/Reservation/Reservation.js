@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
+import { DataGrid,DataGridPro, useGridApiRef } from "@mui/x-data-grid";
+
+import * as XLSX from "xlsx";
 import {
   Button,
   Box,
@@ -53,8 +55,8 @@ const Reservation = ({ tripId }) => {
   const [destinotrip, setDestinoTrip] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [motorista, setMotorista] = useState([]);
-  const [origemCidade, setorigemCidade] = useState([]);
-  const [destinoCidade, setdestinoCidade] = useState([]);
+  const [origem, setorigem] = useState([]);
+  const [destino, setdestino] = useState([]);
   const [busSeats, setBusSeats] = useState(0);
   const [busImage, setBusImage] = useState("");
   const [busName, setBusName] = useState("");
@@ -87,6 +89,9 @@ const Reservation = ({ tripId }) => {
 
   const apiRef = useGridApiRef();
 
+
+
+  
   // Trocar a posição de duas reservas selecionadas
   const handleSwapReservations = async () => {
     if (selectedReservations.length !== 2) {
@@ -291,10 +296,10 @@ const Reservation = ({ tripId }) => {
   };
 
   // Enviar email com os dados da viagem
-  const handleSendEmail = (motorista, origemCidade, destinoCidade, datatrip, busName) => {
+  const handleSendEmail = (motorista, origem, destino, datatrip, busName) => {
     const destinatario = "";
-    const assunto = `Documentos da Viagem de ${origemCidade} → ${destinoCidade} - ${datatrip} - ${busName}`;
-    const corpo = `Olá,\n\nSegue abaixo as informações da viagem:\n\n🚌 Motorista: ${motorista}\n📍 Origem: ${origemCidade}\n📍 Destino: ${destinoCidade}\n📅 Data: ${datatrip}\n🚍 Autocarro: ${busName}\n\nCumprimentos,\n`;
+    const assunto = `Documentos da Viagem de ${origem} → ${destino} - ${datatrip} - ${busName}`;
+    const corpo = `Olá,\n\nSegue abaixo as informações da viagem:\n\n🚌 Motorista: ${motorista}\n📍 Origem: ${origem}\n📍 Destino: ${destino}\n📅 Data: ${datatrip}\n🚍 Autocarro: ${busName}\n\nCumprimentos,\n`;
     const mailtoLink = `mailto:${destinatario}?subject=${encodeURIComponent(
       assunto
     )}&body=${encodeURIComponent(corpo)}`;
@@ -576,9 +581,13 @@ const handleDeleteReservation = async (numeroReserva) => {
       // Atualiza a reserva no backend
       await handleRowEdit(newReservation);
       // Atualiza a lista de reservas no estado
-      setReservations((prev) =>
-        prev.map((r) => (r.id === rowId ? newReservation : r))
-      );
+      setReservations((prev) => {
+        const semDuplicarOriginal = prev.filter((r) => r.reserva !== newReservationNumber);
+        return semDuplicarOriginal.map((r) => 
+          r.id === rowId ? newReservation : r
+        );
+      });
+      
       //alert("Reserva em bloco criada: " + newReservationNumber);
     } catch (error) {
       console.error("Erro ao criar reserva em bloco:", error);
@@ -817,24 +826,32 @@ const handleDeleteReservation = async (numeroReserva) => {
   };
 
   const handleSaveOrigemDestino = async () => {
+    if (!origem || !destino) {
+      alert("Por favor, selecione tanto a origem como o destino.");
+      return;
+    }
+  
     try {
       const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/origemdestino`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ origemCidade, destinoCidade }),
+        body: JSON.stringify({ origem, destino }),
       });
-
+  
       if (response.ok) {
         console.log("✅ Origem e Destino atualizado com sucesso!");
         alert("Origem e Destino guardado com sucesso.");
         fetchReservations();
       } else {
-        console.error("❌ Erro ao atualizar Origem e Destino:", await response.text());
+        const err = await response.text();
+        console.error("❌ Erro ao atualizar Origem e Destino:", err);
+        alert("Erro ao guardar Origem e Destino:\n" + err);
       }
     } catch (error) {
       console.error("🔥 Erro ao atualizar Origem e Destino:", error);
     }
   };
+  
 
   const printRef = useRef();
 
@@ -859,8 +876,8 @@ const handleDeleteReservation = async (numeroReserva) => {
         setDestinoTrip(data.trip.destino || "");
         setOrigemTrip(data.trip.origem || "");
         setMotorista(data.trip.motorista || "");
-        setorigemCidade(data.trip.origemCidade || "");
-        setdestinoCidade(data.trip.destinoCidade || "");
+        setorigem(data.trip.origem || "");
+        setdestino(data.trip.destino || "");
         setBusName(data.trip.Bus?.nome || "");
         setDataTrip(data.trip.dataviagem || "");
 
@@ -1098,7 +1115,33 @@ const handleDeleteReservation = async (numeroReserva) => {
         );
       },
     },
-    { field: "reserva", headerName: "Reserva", width: 80, sortable: false, editable: false },
+    {
+      field: "reserva",
+      headerName: "Reserva",
+      width: 80,
+      sortable: false,
+      editable: false,
+      renderCell: (params) => {
+        const valor = (params.value || "").trim();
+    
+        // Se for em bloco, tipo "0003.1", mostra "*"
+        if (/^\d{4}\.\d+$/.test(valor)) {
+          return "*";
+        }
+    
+        // Se for de volta, tipo "0003.v" ou "0034.v", mostra "0003" ou "0034"
+        if (/^\d{1,4}\.v$/i.test(valor)) {
+          return valor.split(".")[0]; // mostra só a parte antes de ".v"
+        }
+    
+        // Caso normal
+        return valor;
+      },
+    },
+    
+    
+    
+
     { field: "apelidoPassageiro", headerName: "Apelido", width: 100, editable: true },
     { field: "nomePassageiro", headerName: "Nome", width: 100, editable: true },
     {
@@ -1287,11 +1330,86 @@ const handleDeleteReservation = async (numeroReserva) => {
   ];
 
   return (
-    <Box sx={{ padding: 2, width: "600px" }}>
+    <Box sx={{ padding: 2, width: "1500px" }}>
       {busName ? (
-        <p>
-          <b>Autocarro:</b> {busName} <b>Data:</b> {formatDate(datatrip)} <b>Viagem:</b> {origemtrip} → {destinotrip}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+
+<Select
+  value={origem}
+  onChange={(e) => setorigem(e.target.value)}
+  displayEmpty
+  style={{ minWidth: 150, backgroundColor: "white", borderRadius: "4px", height: "40px" }}
+>
+  <MenuItem value="">
+    <em>Origem</em>
+  </MenuItem>
+  {cities.map(city => (
+    <MenuItem key={city.id} value={city.nome}>
+      {city.nome}
+    </MenuItem>
+  ))}
+</Select>
+
+<Select
+  value={destino}
+  onChange={(e) => setdestino(e.target.value)}
+  displayEmpty
+  style={{ minWidth: 150, backgroundColor: "white", borderRadius: "4px", height: "40px" }}
+>
+  <MenuItem value="">
+    <em>Destino</em>
+  </MenuItem>
+  {cities.map(city => (
+    <MenuItem key={city.id} value={city.nome}>
+      {city.nome}
+    </MenuItem>
+  ))}
+</Select>
+
+  <Button
+    variant="contained"
+    color="error"
+    onClick={handleSaveOrigemDestino}
+    style={{
+      backgroundColor: "darkred",
+      color: "white",
+      padding: "10px 16px",
+      borderRadius: "5px",
+      fontSize: "14px",
+      border: "none",
+      cursor: "pointer",
+      whiteSpace: 'nowrap'
+    }}
+  >
+    Guardar Origem e Destino
+  </Button>
+  <TextField
+    label="Motorista"
+    variant="outlined"
+    value={motorista}
+    onChange={(e) => setMotorista(e.target.value)}
+    style={{ minWidth: 150 }}
+  />
+  <Button
+    variant="contained"
+    color="error"
+    onClick={handleSaveMotorista}
+    style={{
+      backgroundColor: "darkred",
+      color: "white",
+      padding: "10px 16px",
+      borderRadius: "5px",
+      fontSize: "14px",
+      border: "none",
+      cursor: "pointer",
+      whiteSpace: 'nowrap'
+    }}
+  >
+    Guardar Motorista
+  </Button>
+</div>
+
+
       ) : (
         <Typography variant="h4" gutterBottom>
           Carregando viagem...
@@ -1307,9 +1425,11 @@ const handleDeleteReservation = async (numeroReserva) => {
           rows={reservations}
           apiRef={apiRef}
           columns={columns}
-
           checkboxSelection
-          hideFooter
+          pagination
+          pageSize={1000} // força a mostrar mais
+          rowsPerPageOptions={[1000]} // evita fallback para 100
+          
           disableRowSelectionOnClick
           selectionModel={rowSelectionModel}
           onRowSelectionModelChange={(newSelection) => {
@@ -1381,14 +1501,6 @@ const handleDeleteReservation = async (numeroReserva) => {
             }
           }}
           
-        
-        
-          
-          
-          
-          
-
-          
           
           rowHeight={30}
           processRowUpdate={handleRowEdit}
@@ -1436,61 +1548,8 @@ const handleDeleteReservation = async (numeroReserva) => {
                 gap: 2
               }}
             >
-              <TextField
-                label="Motorista"
-                variant="outlined"
-                fullWidth
-                value={motorista}
-                onChange={(e) => setMotorista(e.target.value)}
-              />
-              <Button
-                variant="contained"
-                color="error"
-                onClick={handleSaveMotorista}
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Guardar Motorista
-              </Button>
-              <TextField
-                label="Origem"
-                variant="outlined"
-                fullWidth
-                value={origemCidade}
-                onChange={(e) => setorigemCidade(e.target.value)}
-              />
-              <TextField
-                label="Destino"
-                variant="outlined"
-                fullWidth
-                value={destinoCidade}
-                onChange={(e) => setdestinoCidade(e.target.value)}
-              />
-              <Button
-                variant="contained"
-                color="error"
-                onClick={handleSaveOrigemDestino}
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Guardar Origem e Destino
-              </Button>
+             
+              
               <Button
                 variant="contained"
                 color="error"
@@ -1595,7 +1654,127 @@ const handleDeleteReservation = async (numeroReserva) => {
                 selectedReservations={selectedReservations}
                 onConfirm={handleMoveReservationsWithinTrip}
               />
+
+
+              <Typography variant="h6" gutterBottom style={{
+                  
+                  marginTop: "100px"
+                 
+                }}>
+                Preço Total:
+              </Typography>
+              <Box
+                sx={{
+                  background: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
+                }}
+              >
+                {Object.entries(totalPreco).map(([moeda, total]) => (
+                  <Typography key={moeda} variant="body1">
+                    <strong>Total ({moeda}):</strong> {total.toFixed(2)}
+                  </Typography>
+                ))}
+              </Box>
+
+              <Typography variant="h6" gutterBottom>
+                Frequência de Preços:
+              </Typography>
+              <Box
+                sx={{
+                  background: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
+                }}
+              >
+                {Object.entries(priceCounts).length > 0 ? (
+                  Object.entries(priceCounts).map(([price, count]) => (
+                    <Typography key={price} variant="body1">
+                      {count} pessoa(s) a {price}
+                    </Typography>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    Nenhum preço registado.
+                  </Typography>
+                )}
+              </Box>
+
+
+            <Button
+                variant="contained"
+                color="error"
+                onClick={() => handlePrintAllTickets(reservations, datatrip, formatDate)}
+                style={{
+                  backgroundColor: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  marginTop: "100px",
+                  borderRadius: "5px",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  width: "100%"
+                }}
+              >
+                Gerar Todos os Bilhetes
+              </Button>
+
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() =>
+                  handlePrintList(
+                    reservations,
+                    origem,
+                    destino,
+                    datatrip,
+                    busName,
+                    motorista,
+                    entrySummary,
+                    closeSummary,
+                    formatDate,
+                    priceCounts
+                  )
+                }
+                style={{
+                  backgroundColor: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  width: "100%"
+                }}
+              >
+                Gerar Listagem de Passageiros
+              </Button>
+
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => handleSendEmail(motorista, origem, destino, datatrip, busName)}
+                style={{
+                  backgroundColor: "darkred",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "5px",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  width: "100%"
+                }}
+              >
+                Enviar Email
+              </Button>
             </Box>
+
+
 
             {/* Coluna da imagem do autocarro */}
             <Box
@@ -1691,116 +1870,8 @@ const handleDeleteReservation = async (numeroReserva) => {
                 )}
               </Box>
 
-              <Typography variant="h6" gutterBottom>
-                Preço Total:
-              </Typography>
-              <Box
-                sx={{
-                  background: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
-                }}
-              >
-                {Object.entries(totalPreco).map(([moeda, total]) => (
-                  <Typography key={moeda} variant="body1">
-                    <strong>Total ({moeda}):</strong> {total.toFixed(2)}
-                  </Typography>
-                ))}
-              </Box>
-
-              <Typography variant="h6" gutterBottom>
-                Frequência de Preços:
-              </Typography>
-              <Box
-                sx={{
-                  background: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  boxShadow: "1px 1px 5px rgba(0,0,0,0.1)"
-                }}
-              >
-                {Object.entries(priceCounts).length > 0 ? (
-                  Object.entries(priceCounts).map(([price, count]) => (
-                    <Typography key={price} variant="body1">
-                      {count} pessoa(s) a {price}
-                    </Typography>
-                  ))
-                ) : (
-                  <Typography variant="body2" color="textSecondary">
-                    Nenhum preço registado.
-                  </Typography>
-                )}
-              </Box>
-
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => handlePrintAllTickets(reservations, datatrip, formatDate)}
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Gerar Todos os Bilhetes
-              </Button>
-
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() =>
-                  handlePrintList(
-                    reservations,
-                    origemCidade,
-                    destinoCidade,
-                    datatrip,
-                    busName,
-                    motorista,
-                    entrySummary,
-                    closeSummary,
-                    formatDate,
-                    priceCounts
-                  )
-                }
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Gerar Listagem de Passageiros
-              </Button>
-
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => handleSendEmail(motorista, origemCidade, destinoCidade, datatrip, busName)}
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Enviar Email
-              </Button>
+             
+             
             </Box>
           </Box>
         )}

@@ -15,6 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         obs: { type: DataTypes.TEXT, allowNull: true },
         carro: { type: DataTypes.TEXT, allowNull: true },
         lugar: { type: DataTypes.INTEGER, allowNull: true },
+        reserva_old: { type: DataTypes.STRING, allowNull: true }, // Código da reserva
         isConfirmed: { type: DataTypes.BOOLEAN, defaultValue: true },
         createdBy: { type: DataTypes.STRING, allowNull: true },
         updatedBy: { type: DataTypes.STRING, allowNull: true }

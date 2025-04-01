@@ -120,7 +120,8 @@ const EditTrip = () => {
                         <Form.Label>Data da Viagem</Form.Label>
                         <Form.Control type="date" name="dataviagem" value={formData.dataviagem} onChange={handleChange} required />
                     </Form.Group>
-                   {/*  
+
+{/*               
                     <Form.Group>
                         <Form.Label>Motorista</Form.Label>
                         <Form.Control type="text" name="motorista" placeholder="Motorista" value={formData.motorista} onChange={handleChange} />

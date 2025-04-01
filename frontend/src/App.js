@@ -27,10 +27,13 @@ import Reservation from "./components/Reservation/Reservation";
 import TripsByDayAndDirection from "./components/Reservation/TripsByDayAndDirection"; 
 import MultiTripReservations from "./components/Reservation/DualReservationsTables"; 
 
+import ExcelImportPage from "./components/Importador/ExcelImportPage"; 
+
 import Manual from "./components/Help/Manual";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/header.css"; // Importação do CSS
+import SearchTripPage from "./components/Reservation/SearchTripPage";
 
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -62,7 +65,7 @@ const App = () => {
                 <Route path="/reservations" element={<TripsByDayAndDirection />} /> {/* ✅ Nova rota */}
                 <Route path="/multireservations" element={<MultiTripReservations />} /> {/* ✅ Nova rota */}
 
-               
+                <Route path="/searchtrip" element={<SearchTripPage />} /> {/* ✅ Nova rota */}
 
                 {/* Gestão de autocarros */}
                 <Route path="/autocarros" element={isAuthenticated ? <BusesList /> : <Navigate to="/login" />} />
@@ -78,6 +81,8 @@ const App = () => {
                 <Route path="/cities" element={isAuthenticated ? <CityList /> : <Navigate to="/login" />} />
                 <Route path="/cities/create" element={isAuthenticated ? <CreateCity /> : <Navigate to="/login" />} />
                 <Route path="/cities/edit/:id" element={<EditCity />} />
+
+                {/* <Route path="/importador" element={<ExcelImportPage />} /> */}
 
                 <Route path="/manual" element={isAuthenticated ? <Manual /> : <Navigate to="/login" />} />
             </Routes>

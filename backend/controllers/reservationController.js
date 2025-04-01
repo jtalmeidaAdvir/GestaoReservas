@@ -29,7 +29,7 @@ exports.getLastReservation = async (req, res) => {
 
 exports.createReservation = async (req, res) => {
     try {
-        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva, createdBy } = req.body;
+        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,reserva_old, createdBy } = req.body;
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
@@ -41,7 +41,7 @@ exports.createReservation = async (req, res) => {
         }
 
         const newReservation = await Reservation.create({
-            tripId, lugar, reserva, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
+            tripId, lugar, reserva, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, reserva_old, createdBy
         });
 
         console.log("✅ Nova reserva criada:", newReservation.dataValues);
