@@ -12,6 +12,7 @@ const handlePrintList = async (
     closeSummary,
     formatDate,
     PriceCounts,
+    tripNotas, // <--- adiciona este parâmetro
     returnPDF = false
 ) => {
     if (!reservations || reservations.length === 0) {
@@ -21,10 +22,8 @@ const handlePrintList = async (
 
     const formattedDate = formatDate(datatrip).replace(/\//g, "-");
 
-    // Função auxiliar para obter código base da reserva
     const getBaseReserva = reserva => reserva?.split(".")[0] || reserva;
 
-    // Agrupar reservas por código base
     const groupedReservations = {};
     reservations
         .filter(row => row.nomePassageiro)
@@ -34,7 +33,6 @@ const handlePrintList = async (
             groupedReservations[base].push(row);
         });
 
-    // === PDF COM PREÇOS ===
     const pdfComPreco = new jsPDF("p", "mm", "a4");
 
     pdfComPreco.setFontSize(14);
@@ -63,58 +61,78 @@ const handlePrintList = async (
         headStyles: { fillColor: [200, 0, 0] },
     });
 
-    startY = pdfComPreco.lastAutoTable.finalY + 10;
-    pdfComPreco.setFontSize(12);
-    pdfComPreco.text("Listagem de Passageiros", 85, startY);
-    startY += 5;
+    let afterResumoY = pdfComPreco.lastAutoTable.finalY;
+
+    if (tripNotas && tripNotas.trim() !== "") {
+        pdfComPreco.setFontSize(10);
+        pdfComPreco.text("Notas da Viagem:", 14, afterResumoY + 8);
+    
+        pdfComPreco.setFontSize(9);
+        const splitNotas = pdfComPreco.splitTextToSize(tripNotas, 180);
+        const alturaNotas = splitNotas.length * 5;
+        const notasY = afterResumoY + 13;
+        
+        // Se o conteúdo das notas ultrapassar a página, cria nova página
+        if (notasY + alturaNotas > 280) { // margem inferior de segurança
+            pdfComPreco.addPage();
+            pdfComPreco.setFontSize(10);
+            pdfComPreco.text("Notas da Viagem:", 14, 20);
+            pdfComPreco.setFontSize(9);
+            pdfComPreco.text(splitNotas, 14, 25);
+            afterResumoY = 25 + alturaNotas;
+        } else {
+            pdfComPreco.setFontSize(10);
+            pdfComPreco.text("Notas da Viagem:", 14, notasY - 5);
+            pdfComPreco.setFontSize(9);
+            pdfComPreco.text(splitNotas, 14, notasY);
+            afterResumoY = notasY + alturaNotas;
+        }
+    }        
+    
+   // Usa o Y correto depois das notas
+let startYListagem = afterResumoY + 10;
+
+// ⚠️ Usa esta linha!
+startY = startYListagem;
+
+pdfComPreco.setFontSize(12);
+pdfComPreco.text("Listagem de Passageiros", 85, startY);
+startY += 5;
+
 
     const passengerBody = [];
     Object.entries(groupedReservations).forEach(([base, group]) => {
-        let totalGrupo = 0;
         const hasMultiplePassengers = group.length > 1;
-    
+
         group.forEach((row, idx) => {
             const preco = parseFloat(row.preco) || 0;
-            totalGrupo += preco;
-    
-            const linha = [
-                row.lugar || "----",
-                preco ? `${preco}` : "----",
-                hasMultiplePassengers && idx > 0 ? "*" : (row.reserva || "----"),
-                row.entrada || "----",
-                row.saida || "----",
-                row.volta || "----",
-                `${row.apelidoPassageiro || ""}, ${row.nomePassageiro || ""}`,
-                row.telefone || "----",
-                row.carro || "----"
-            ];
-    
-            // Se for parte de um grupo, aplicar estilo à linha toda
+
+            const baseReserva = getBaseReserva(row.reserva);
+const linha = [
+    row.lugar || "----",
+    preco ? `${preco}` : "----",
+    hasMultiplePassengers && idx > 0 ? `*(${baseReserva})` : (row.reserva || "----"),
+    row.entrada || "----",
+    row.saida || "----",
+    row.volta || "----",
+    `${row.apelidoPassageiro || ""}, ${row.nomePassageiro || ""}`,
+    row.telefone || "----",
+    row.carro || "----"
+];
+
+
             if (hasMultiplePassengers) {
                 passengerBody.push(
                     linha.map(cell => ({
                         content: cell,
-                        styles: { fillColor: [245, 245, 245] } // tom pastel suave
+                        styles: { fillColor: [255, 255, 255] }
                     }))
                 );
             } else {
-                passengerBody.push(linha); // reserva individual normal
+                passengerBody.push(linha);
             }
         });
-    
-        if (hasMultiplePassengers) {
-            passengerBody.push([
-                {
-                    content: `Subtotal   ${ totalGrupo}`,
-                    colSpan: 9,
-                    styles: { fontStyle: 'bold', fillColor: [245, 245, 245],halign: 'right'}
-                }
-            ]);
-        }
     });
-    
-    
-    
 
     pdfComPreco.autoTable({
         startY,
@@ -127,6 +145,56 @@ const handlePrintList = async (
 
     const fileNameComPreco = `Lista_${origemCidade}_para_${destinoCidade}_${formattedDate}.pdf`;
     pdfComPreco.save(fileNameComPreco);
+
+
+
+
+    const pdfNomes = new jsPDF("p", "mm", "a4");
+
+    pdfNomes.setFontSize(14);
+    pdfNomes.text(`${origemCidade} -> ${destinoCidade}`, 105, 15, { align: "center" });
+    
+    pdfNomes.setFontSize(10);
+    pdfNomes.text(
+        `Data: ${formatDate(datatrip)} | Autocarro: ${busName} | Motorista: ${motorista}`,
+        60,
+        25
+    );
+    
+    pdfNomes.setFontSize(12);
+    pdfNomes.text("Listagem Passageiros", 85, 35);
+    
+    // === Preparar nomes ===
+    const nomesLista = [];
+    Object.entries(groupedReservations).forEach(([_, group]) => {
+        group.forEach(row => {
+            nomesLista.push(`${row.nomePassageiro || ""} ${row.apelidoPassageiro || ""}`);
+        });
+    });
+    
+    // === Parâmetros para layout manual ===
+    const col1X = 20;
+    const col2X = 110;
+    startY = 45;
+    const lineHeight = 5;
+    const maxLines = 45;
+    
+    pdfNomes.setFontSize(9);
+    
+    // Escrever os nomes em duas colunas
+    for (let i = 0; i < nomesLista.length; i++) {
+        const y = startY + (i % maxLines) * lineHeight;
+        const x = i < maxLines ? col1X : col2X;
+        pdfNomes.text(nomesLista[i], x, y);
+    }
+    
+    const fileNameNomes = `Lista_${origemCidade}_para_${destinoCidade}_${formattedDate}_Nomes.pdf`;
+    pdfNomes.save(fileNameNomes);
+    
+
+
+
+
 
     // === PDF SEM PREÇOS ===
     const pdfSemPreco = new jsPDF("p", "mm", "a4");
@@ -166,7 +234,8 @@ const handlePrintList = async (
         group.forEach((row, idx) => {
             passengerBodySemPreco.push([
                 row.lugar || "----",
-                idx === 0 ? row.reserva || "----" : "*",
+    idx === 0 ? (row.reserva || "----") : `*(${getBaseReserva(row.reserva)})`,
+
                 row.entrada || "----",
                 row.saida || "----",
                 row.volta || "----",
@@ -188,7 +257,7 @@ const handlePrintList = async (
         headStyles: { fillColor: [200, 0, 0] },
     });
 
-    const fileNameSemPreco = `Lista_${origemCidade}_para_${destinoCidade}_${formattedDate}_SemPrecos.pdf`;
+    const fileNameSemPreco = `Listagem Carregamento ${origemCidade}_para_${destinoCidade}_${formattedDate}.pdf`;
     pdfSemPreco.save(fileNameSemPreco);
 };
 

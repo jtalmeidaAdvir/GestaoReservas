@@ -59,7 +59,7 @@ exports.createTrip = async (req, res) => {
     try {
         console.log("Dados recebidos no backend:", req.body); // 🔥 Debug
 
-        const { busId, dataViagem, origem, origemCidade, destino, destinoCidade, motorista, horaPartida, horaChegada } = req.body;
+        const { busId, dataViagem, origem, origemCidade, destino, destinoCidade, motorista,notas, horaPartida, horaChegada } = req.body;
 
         if (!dataViagem) return res.status(400).json({ error: "Data da viagem não fornecida" });
 
@@ -71,6 +71,7 @@ exports.createTrip = async (req, res) => {
             destino,
             destinoCidade,
             motorista,
+            notas,
             horaPartida,
             horaChegada
         });
@@ -231,6 +232,34 @@ exports.updateTripMotorista = async (req, res) => {
     } catch (error) {
         console.error("❌ Erro ao atualizar motorista:", error);
         res.status(500).json({ error: "Erro ao atualizar motorista" });
+    }
+};
+
+
+exports.updateTripNotas = async (req, res) => {
+    try {
+        const { tripId } = req.params;
+        const { notas } = req.body;
+
+
+        if (!notas) {
+            return res.status(400).json({ error: "O campo notas é obrigatório" });
+        }
+
+        const trip = await Trip.findByPk(tripId);
+
+        if (!trip) {
+            return res.status(404).json({ error: "Viagem não encontrada" });
+        }
+
+        trip.notas = notas;
+        await trip.save();
+
+
+        res.json({ success: true, message: "Notas atualizadas com sucesso!" });
+    } catch (error) {
+        console.error("❌ Erro ao atualizar notas:", error);
+        res.status(500).json({ error: "Erro ao atualizar notas" });
     }
 };
 

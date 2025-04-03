@@ -8,6 +8,7 @@ console.log("🔍 tripController:", tripController);
 
 // Rotas específicas (estáticas) devem vir primeiro:
 router.put("/:tripId/motorista", tripController.updateTripMotorista); 
+router.put("/:tripId/notas", tripController.updateTripNotas);
 router.put("/:tripId/origemdestino", tripController.updateTripOrigemDestino); 
 router.put("/:id/disable", tripController.disableTrip); 
 router.put("/:id/reactivate", tripController.reactivateTrip); 

@@ -15,6 +15,7 @@ router.post("/create-return", reservationController.createReturnReservation);
 router.get("/by-telefone/:telefone", reservationController.getReservationByPhone); // Buscar reserva pelo código
 router.get("/trip/:tripId", reservationController.ReturnReservationsOfBus);
 router.delete("/delete/:reserva", reservationController.deleteReservation);
+router.get("/volta/aberto", reservationController.getOpenReturnReservations);
 
 
 

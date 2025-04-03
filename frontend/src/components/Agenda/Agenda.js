@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
+import Modal from "react-modal";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import moment from "moment";
 import "moment/locale/pt";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import * as XLSX from "xlsx";
 
 const localizer = momentLocalizer(moment);
 moment.locale("pt");
 
 const Agenda = () => {
     const navigate = useNavigate();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm3, setSearchTerm3] = useState("");
     const location = useLocation();
+    const [openReservations, setOpenReservations] = useState([]);
+const [isModalOpen, setIsModalOpen] = useState(false);
+
     const agendaState = location.state;
+
+    
+
+const filteredReservations = openReservations.filter((res) => {
+    const termo = searchTerm3.toLowerCase();
+    return (
+        res.reserva?.toString().toLowerCase().includes(termo) ||
+        `${res.nomePassageiro} ${res.apelidoPassageiro}`.toLowerCase().includes(termo) ||
+        res.telefone?.toLowerCase().includes(termo)
+    );
+});
 
 
     useEffect(() => {
@@ -34,7 +53,7 @@ const Agenda = () => {
     const [view, setView] = useState("month");
     const [date, setDate] = useState(new Date());
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
+
     const [searchTerm1, setSearchTerm1] = useState("");
     const [searchFullName, setSearchFullName] = useState("");
     const [availableMonths, setAvailableMonths] = useState([]);
@@ -56,6 +75,29 @@ useEffect(() => {
   };
   fetchCities();
 }, []);
+
+
+const handleShowOpenReturnReservations = async () => {
+    try {
+        const response = await fetch("https://backendreservasnunes.advir.pt/reservations/volta/aberto");
+        if (!response.ok) throw new Error("Erro ao buscar reservas em aberto.");
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+            alert("Nenhuma reserva com volta em aberto encontrada.");
+            return;
+        }
+
+        setOpenReservations(data);
+        setIsModalOpen(true);
+    } catch (error) {
+        console.error("❌ Erro ao buscar reservas em aberto:", error);
+        alert("Erro ao carregar reservas em aberto.");
+    }
+};
+
+
 
 
     useEffect(() => {
@@ -431,16 +473,38 @@ useEffect(() => {
                         </div>
                     </div>
                 </div>
+                
             </div>
+            
 
             {/* Área do calendário */}
-            <div style={{
-                background: "white",
-                padding: "15px",
-                borderRadius: "8px",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                marginBottom: "20px"
-            }}>
+<div style={{
+    background: "white",
+    padding: "15px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+    marginBottom: "20px"
+}}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+       
+
+    <button
+    onClick={handleShowOpenReturnReservations}
+    style={{
+        padding: "10px 20px",
+        backgroundColor: "darkgreen",
+        color: "white",
+        border: "none",
+        borderRadius: "5px",
+        cursor: "pointer",
+        fontSize: "14px"
+    }}
+>
+    📋 Ver Reservas em Aberto
+</button>
+
+    </div>
+
                 {/* Se houver meses disponíveis, exibe o seletor */}
                 {availableMonths.length > 0 && (
                     <div style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -556,6 +620,97 @@ useEffect(() => {
                     <span>Portugal - Suiça</span>
                 </div>
             </div>
+            <Modal
+    isOpen={isModalOpen}
+    onRequestClose={() => setIsModalOpen(false)}
+    contentLabel="Reservas com Volta em Aberto"
+    style={{
+        overlay: {
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            zIndex: 9999, // garante que esteja à frente de tudo
+        },
+        content: {
+            maxWidth: "90%",
+            maxHeight: "80vh",
+            margin: "auto",
+            padding: "20px",
+            borderRadius: "10px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+        }
+    }}
+>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+        <h2 style={{ color: "darkred", margin: 0 }}>Reservas com Volta em Aberto</h2>
+        <button
+            onClick={() => setIsModalOpen(false)}
+            style={{
+                fontSize: "20px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#555"
+            }}
+        >
+            ❌
+        </button>
+    </div>
+    <input
+    type="text"
+    placeholder="Pesquisar por reserva, nome ou telefone..."
+    value={searchTerm3}
+    onChange={(e) => setSearchTerm3(e.target.value)}
+    style={{
+        padding: "8px",
+        borderRadius: "6px",
+        border: "1px solid #ccc",
+        width: "100%",
+        marginBottom: "10px"
+    }}
+/>
+    <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ddd", borderRadius: "8px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead style={{ position: "sticky", top: 0, backgroundColor: "#f9f9f9", zIndex: 1 }}>
+                <tr>
+                    <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Reserva</th>
+                    <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Passageiro</th>
+                    <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Telefone</th>
+                    <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Data</th>
+                    <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Origem → Destino</th>
+                </tr>
+            </thead>
+            <tbody>
+            {filteredReservations.map((res, index) => (
+    <tr
+        key={index}
+        onClick={() => {
+            if (res.Trip?.dataviagem && res.tripId) {
+                localStorage.setItem("selectedDate", res.Trip.dataviagem);
+                localStorage.setItem("selectedTripId", res.tripId);
+                setIsModalOpen(false);
+                navigate("/trips");
+            } else {
+                alert("Dados da viagem não encontrados para esta reserva.");
+            }
+        }}
+        style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
+    >
+        <td style={{ padding: "8px" }}>{res.reserva}</td>
+        <td style={{ padding: "8px" }}>{res.nomePassageiro} {res.apelidoPassageiro}</td>
+        <td style={{ padding: "8px" }}>{res.telefone}</td>
+        <td style={{ padding: "8px" }}>{res.Trip?.dataviagem || "-"}</td>
+        <td style={{ padding: "8px" }}>{res.Trip?.origem} → {res.Trip?.destino}</td>
+    </tr>
+))}
+
+
+            </tbody>
+        </table>
+    </div>
+</Modal>
+
+
         </div>
     );
 };

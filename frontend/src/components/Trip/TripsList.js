@@ -36,6 +36,18 @@ const TripsList = () => {
         setTrips((prevTrips) => [newTrip, ...prevTrips]); // Adiciona a nova viagem à lista
     };
 
+
+    useEffect(() => {
+        const storedTripId = localStorage.getItem("selectedTripId");
+        if (storedTripId && trips.length > 0) {
+            const exists = trips.some(t => t.id === Number(storedTripId));
+            if (exists) {
+                setSelectedTripId(Number(storedTripId));
+            }
+        }
+    }, [trips]);
+    
+
     useEffect(() => {
         ////console.log(`🔍 Buscando viagens para a data: ${selectedDate}`);
         const fetchTrips = async () => {

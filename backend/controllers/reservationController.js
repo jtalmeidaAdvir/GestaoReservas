@@ -1,5 +1,5 @@
 const { Reservation, Trip, Bus } = require("../models");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 
 let io; // Variável global para armazenar io
 
@@ -362,3 +362,25 @@ exports.deleteReservation = async (req, res) => {
     }
 };
 
+exports.getOpenReturnReservations = async (req, res) => {
+    try {
+        const reservations = await Reservation.findAll({
+            where: Sequelize.where(
+                Sequelize.fn("LOWER", Sequelize.col("volta")),
+                {
+                    [Op.like]: "%aberto%"
+                }
+            ),
+            include: [{ model: Trip }] // Opcional: inclui a viagem associada
+        });
+
+        if (!reservations || reservations.length === 0) {
+            return res.status(404).json({ message: "Nenhuma reserva com 'volta' em aberto encontrada." });
+        }
+
+        res.json(reservations);
+    } catch (error) {
+        console.error("🔥 Erro ao buscar reservas com 'volta' em aberto:", error);
+        res.status(500).json({ error: "Erro ao buscar reservas com volta em aberto" });
+    }
+};

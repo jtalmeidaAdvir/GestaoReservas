@@ -11,16 +11,20 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
 
     useEffect(() => {
         if (open && tripId) {
-            //console.log("Fetching data for trip ID:", tripId);
-
             fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/available-seats`)
                 .then(res => res.json())
                 .then(data => {
-                    //console.log("Lugares disponíveis:", data);
-                    setAvailableSeats(Array.isArray(data) ? data : []);
+                    const formattedSeats = Array.isArray(data) ? data : [];
+                    setAvailableSeats(formattedSeats);
+    
+                    // ✅ Selecionar automaticamente o primeiro lugar disponível
+                    if (formattedSeats.length > 0) {
+                        const firstSeat = formattedSeats[0];
+                        setSelectedSeat(firstSeat.numero || firstSeat);
+                    }
                 })
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
-
+    
             fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`)
                 .then(res => res.json())
                 .then(data => {
@@ -34,6 +38,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
                 .catch(error => console.error("Erro ao buscar detalhes da viagem:", error));
         }
     }, [open, tripId]);
+    
 
     // Função para controlar o fecho do modal
     const handleClose = (event, reason) => {

@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
         destinoCidade: { type: DataTypes.STRING, allowNull: true }, // 🆕 Novo campo
 
         motorista: { type: DataTypes.STRING, allowNull: true },
+        notas: { type: DataTypes.STRING, allowNull: true },
         horaPartida: { type: DataTypes.TIME, allowNull: true },
         horaChegada: { type: DataTypes.TIME, allowNull: true },
         isActive: { type: DataTypes.BOOLEAN, defaultValue: true }

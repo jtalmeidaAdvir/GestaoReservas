@@ -86,10 +86,21 @@ const Reservation = ({ tripId }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   // Estado para a reserva copiada (para cópia/colagem)
   const [copiedReservation, setCopiedReservation] = useState(null);
+  const [tripNotas, setTripNotas] = useState("");
+  const [notasCarregadas, setNotasCarregadas] = useState(false);
+
+
 
   const apiRef = useGridApiRef();
 
+  const storedTripId = localStorage.getItem("selectedTripId");
+  const storedDate = localStorage.getItem("selectedDate");
 
+  // Se `tripId` ainda não estiver definido, tenta redirecionar automaticamente
+  if (!tripId && storedTripId) {
+    // Redireciona para o mesmo componente mas com o tripId da reserva
+    window.location.href = `/trips/${storedTripId}`;
+  }
 
   
   // Trocar a posição de duas reservas selecionadas
@@ -665,7 +676,12 @@ const handleDeleteReservation = async (numeroReserva) => {
       }
 
       // Se houver alteração no campo "volta", tenta criar a reserva de regresso
-      if (oldRow && oldRow.volta !== undefined && oldRow.volta !== updatedRow.volta && updatedRow.volta) {
+      if (
+        oldRow &&
+        oldRow.volta !== updatedRow.volta &&
+        updatedRow.volta &&
+        /^\d{2}\/\d{2}\/\d{4}$/.test(updatedRow.volta) // apenas se for uma data válida tipo "12/04/2025"
+      ) {
         console.log(`🔙 Criando reserva de volta para ${updatedRow.volta}`);
 
         const origemDeIda = origemtrip;
@@ -852,6 +868,29 @@ const handleDeleteReservation = async (numeroReserva) => {
     }
   };
   
+  const handleSaveNotas = async () => {
+    try {
+      const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/notas`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notas: tripNotas }),
+      });
+  
+      if (response.ok) {
+        alert("Notas atualizadas com sucesso!");
+        // fetchReservations(); <-- REMOVE ISTO
+      } else {
+        const errorText = await response.text();
+        console.error("Erro ao atualizar notas:", errorText);
+        alert("Erro ao guardar notas: " + errorText);
+      }
+    } catch (error) {
+      console.error("🔥 Erro ao guardar notas:", error);
+      alert("Erro ao guardar notas.");
+    }
+  };
+  
+  
 
   const printRef = useRef();
 
@@ -880,6 +919,13 @@ const handleDeleteReservation = async (numeroReserva) => {
         setdestino(data.trip.destino || "");
         setBusName(data.trip.Bus?.nome || "");
         setDataTrip(data.trip.dataviagem || "");
+        if (!notasCarregadas) {
+          setTripNotas(data.trip.notas || "");
+          setNotasCarregadas(true);
+        }
+        
+
+
 
         const citiesResponse = await fetch(`https://backendreservasnunes.advir.pt/cities`);
         const citiesData = await citiesResponse.json();
@@ -1205,46 +1251,39 @@ const handleDeleteReservation = async (numeroReserva) => {
         );
       },
     },
-
     {
       field: "volta",
       headerName: "Volta",
       width: 110,
       editable: true,
       renderEditCell: (params) => {
-        const { id, field, api, value } = params;
-    
-        // Expressão regular para validar o formato DD/MM/AAAA
-        const validarData = (valor) => /^\d{2}\/\d{2}\/\d{4}$/.test(valor);
-    
-        const handleBlur = (e) => {
-          const novoValor = e.target.value.trim();
-    
-          if (!validarData(novoValor)) {
-            api.setEditCellValue({ id, field, value: "" }); // ❌ Se inválido, limpa
-          }
-    
-          setTimeout(() => {
-            if (apiRef.current.getCellMode(id, field) === "edit") {
-              apiRef.current.stopCellEditMode({ id, field });
-            }
-          }, 50);
-          
-        };
+        const { id, field, api } = params;
     
         return (
-          <input
-            type="text"
-            style={{ width: "100%" }}
-            placeholder="DD/MM/AAAA"
-            value={value || ""}
-            onChange={(e) => api.setEditCellValue({ id, field, value: e.target.value })}
-            onBlur={handleBlur} // 🚀 Validação e encerramento seguro
+          <TextField
+            fullWidth
+            variant="standard"
             autoFocus
+            defaultValue={params.value || ""}
+            onChange={(e) => {
+              api.setEditCellValue({ id, field, value: e.target.value });
+            }}
+            onBlur={() => {
+              apiRef.current.stopCellEditMode({ id, field });
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                apiRef.current.stopCellEditMode({ id, field });
+              }
+            }}
+            placeholder="dd/mm/aaaa"
           />
         );
-      },
-    },
+      }
+    }
+,    
+    
     
 
     
@@ -1529,9 +1568,40 @@ const handleDeleteReservation = async (numeroReserva) => {
             }
           }}
         />
-
+<Typography variant="h6" gutterBottom>
+    Notas da Viagem
+  </Typography>
+  <TextField
+    value={tripNotas}
+    onChange={(e) => setTripNotas(e.target.value)}
+    placeholder="Notas sobre a viagem..."
+    fullWidth
+    multiline
+    rows={4}
+    variant="outlined"
+    sx={{ backgroundColor: "white", borderRadius: "5px" }}
+  />
+  <Button
+    variant="contained"
+    color="error"
+    onClick={handleSaveNotas}
+    style={{
+      backgroundColor: "darkred",
+      color: "white",
+      marginTop: "10px",
+      padding: "10px 16px",
+      borderRadius: "5px",
+      fontSize: "14px",
+      border: "none",
+      cursor: "pointer"
+    }}
+  >
+    Guardar Notas
+  </Button>
 
         </Box>
+       
+
 
         {/* Secção da Imagem e Resumos */}
         {busImage && (
@@ -1738,7 +1808,8 @@ const handleDeleteReservation = async (numeroReserva) => {
                     entrySummary,
                     closeSummary,
                     formatDate,
-                    priceCounts
+                    priceCounts,
+                    tripNotas
                   )
                 }
                 style={{
