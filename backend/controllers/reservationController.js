@@ -29,7 +29,7 @@ exports.getLastReservation = async (req, res) => {
 
 exports.createReservation = async (req, res) => {
     try {
-        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva, createdBy } = req.body;
+        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,valorCarro, valorVolume, impresso, bilhete, createdBy } = req.body;
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
@@ -41,7 +41,7 @@ exports.createReservation = async (req, res) => {
         }
 
         const newReservation = await Reservation.create({
-            tripId, lugar, reserva, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
+            tripId, lugar, reserva, valorCarro, valorVolume, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
         });
 
         console.log("✅ Nova reserva criada:", newReservation.dataValues);
@@ -231,6 +231,10 @@ exports.createReturnReservation = async (req, res) => {
             preco,
             moeda,
             carro,
+            valorCarro,
+            valorVolume,
+            impresso,
+            bilhete,
             createdBy
         } = req.body;
 
@@ -259,6 +263,10 @@ exports.createReturnReservation = async (req, res) => {
             obs,
             carro,
             lugar: 0, // Define um lugar disponível mais tarde
+            valorCarro,
+            valorVolume,
+            impresso,
+            bilhete,
             createdBy
         });
 
@@ -384,3 +392,37 @@ exports.getOpenReturnReservations = async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar reservas com volta em aberto" });
     }
 };
+
+
+
+exports.getAllReservations = async (req, res) => {
+    try {
+      const reservations = await Reservation.findAll({
+        include: [{ model: Trip }], // Inclui dados da viagem
+        order: [["createdAt", "DESC"]] // ou ["dataviagem", "DESC"] se preferires
+      });
+      res.json(reservations);
+    } catch (error) {
+      console.error("🔥 Erro ao buscar todas as reservas:", error);
+      res.status(500).json({ error: "Erro ao buscar todas as reservas" });
+    }
+  };
+  
+
+
+exports.getLastTicket = async (req, res) => {
+    try {
+      // Lê o maior valor da coluna "bilhete" na tabela "reservations"
+      const lastTicket = await Reservation.max("bilhete"); 
+      // Se nunca existiu nenhum bilhete, retorna 0
+      const lastBilhete = lastTicket || 0;
+  
+      return res.json({ bilhete: lastBilhete });
+    } catch (error) {
+      console.error("Erro ao buscar último bilhete:", error);
+      return res.status(500).json({
+        error: "Erro ao buscar último bilhete"
+      });
+    }
+  };
+  

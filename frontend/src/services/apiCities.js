@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://backendreservasnunes.advir.pt/cities"; // Endpoint da API
+const API_URL = "http://localhost:3010/cities"; // Endpoint da API
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");
@@ -93,7 +93,7 @@ export const deleteCityPermanently = async (id) => {
 
 // Obter todos os países
 export const fetchCountries = async () => {
-    const response = await axios.get("https://backendreservasnunes.advir.pt/countries", {
+    const response = await axios.get("http://localhost:3010/countries", {
         headers: { Authorization: `Bearer ${getToken()}` }
     });
     return response.data;

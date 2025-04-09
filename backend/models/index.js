@@ -9,6 +9,7 @@ const Trip = require("./Trip")(sequelize, DataTypes);
 const Reservation = require("./Reservation")(sequelize, DataTypes);
 const Country = require("./Country")(sequelize, DataTypes);
 const City = require("./City")(sequelize, DataTypes);
+const Price = require("./Prices")(sequelize, DataTypes);
 
 const db = {
     sequelize,
@@ -18,8 +19,11 @@ const db = {
     Trip,
     Reservation,
     Country,
-    City
+    City,
+    Price
 };
+db.Price = Price;
+
 
 // 🛠️ **Associações**
 Bus.hasMany(Trip, { foreignKey: "busId" });
@@ -31,6 +35,13 @@ Reservation.belongsTo(Trip, { foreignKey: "tripId" });
 // 📌 **Associação entre País e Cidade (1 país pode ter várias cidades)**
 Country.hasMany(City, { foreignKey: "countryId", onDelete: "CASCADE" });
 City.belongsTo(Country, { foreignKey: "countryId" });
+
+// Relação 1:N -> Um país tem muitos preços
+Country.hasMany(Price, { foreignKey: 'countryId' });
+Price.belongsTo(Country, { foreignKey: 'countryId', as: 'Country' });
+
+
+
 
 // 📌 **Função para garantir a criação do utilizador de suporte**
 async function createSupportUser() {
@@ -63,7 +74,10 @@ async function createSupportUser() {
 // 📌 **Sincronizar a base de dados e criar conta de suporte**
 async function initializeDatabase() {
     try {
-        await sequelize.sync();
+        await sequelize.sync({ alter: true }); // ou { force: true } para apagar e recriar
+        console.log("🧱 Tabelas disponíveis:");
+console.log(Object.keys(sequelize.models));
+
         console.log("✅ Base de dados sincronizada!");
         await createSupportUser();
     } catch (error) {

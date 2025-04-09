@@ -40,7 +40,7 @@ const TripsByDayAndDirection = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const res = await fetch("https://backendreservasnunes.advir.pt/cities");
+        const res = await fetch("http://localhost:3010/cities");
         const data = await res.json();
         const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
         const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -74,7 +74,7 @@ const handleSearch = async () => {
 
   setLoading(true);
   try {
-    const res = await fetch(`https://backendreservasnunes.advir.pt/trips/by-date?date=${selectedDate}`);
+    const res = await fetch(`http://localhost:3010/trips/by-date?date=${selectedDate}`);
     if (!res.ok) throw new Error("Erro ao buscar viagens.");
 
     const tripsData = await res.json();

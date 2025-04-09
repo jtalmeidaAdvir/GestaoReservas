@@ -36,6 +36,7 @@ const busRoutes = require("./routes/busRoutes");
 const tripRoutes = require("./routes/tripRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
 const countryRoutes = require("./routes/countryRoutes");
+const pricesRoutes = require("./routes/pricesRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const emailRoutes = require("./routes/email");
 const { initializeDatabase } = require("./config/database");
@@ -46,6 +47,8 @@ app.use("/buses", busRoutes);
 app.use("/trips", tripRoutes);
 app.use("/reservations", reservationRoutes);
 app.use("/countries", countryRoutes);
+
+app.use("/prices", pricesRoutes);
 app.use("/cities", cityRoutes);
 app.use("/email", emailRoutes);
 
@@ -60,6 +63,7 @@ io.on("connection", (socket) => {
 // Inicializa a base de dados e inicia o servidor
 initializeDatabase()
     .then(() => {
+        
         server.listen(3010, () => console.log("🚀 Servidor a correr na porta 3010 com WebSockets"));
     })
     .catch(error => console.log("🔥 Erro ao iniciar o servidor:", error));

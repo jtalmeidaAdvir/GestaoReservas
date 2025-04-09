@@ -64,7 +64,7 @@ const filteredReservations = openReservations.filter((res) => {
 useEffect(() => {
   const fetchCities = async () => {
     try {
-      const res = await fetch("https://backendreservasnunes.advir.pt/cities");
+      const res = await fetch("http://localhost:3010/cities");
       const data = await res.json();
       const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
       const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -79,7 +79,7 @@ useEffect(() => {
 
 const handleShowOpenReturnReservations = async () => {
     try {
-        const response = await fetch("https://backendreservasnunes.advir.pt/reservations/volta/aberto");
+        const response = await fetch("http://localhost:3010/reservations/volta/aberto");
         if (!response.ok) throw new Error("Erro ao buscar reservas em aberto.");
 
         const data = await response.json();
@@ -103,7 +103,7 @@ const handleShowOpenReturnReservations = async () => {
     useEffect(() => {
         const fetchTripsSummary = async () => {
             try {
-                const response = await fetch("https://backendreservasnunes.advir.pt/trips/summary");
+                const response = await fetch("http://localhost:3010/trips/summary");
                 if (!response.ok) {
                     throw new Error(`Erro na API: ${response.statusText}`);
                 }
@@ -134,13 +134,13 @@ const handleShowOpenReturnReservations = async () => {
                         const directionNormalized = directionRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
                         
                         try {
-                            const detailResponse = await fetch(`https://backendreservasnunes.advir.pt/trips/${id}`);
+                            const detailResponse = await fetch(`http://localhost:3010/trips/${id}`);
                             if (!detailResponse.ok) throw new Error("Erro ao buscar detalhes da viagem");
                             const tripDetail = await detailResponse.json();
                             const busName = tripDetail.Bus ? tripDetail.Bus.nome : "Autocarro Desconhecido";
                             const totalSeats = tripDetail.Bus ? tripDetail.Bus.nlugares : 0;
 
-                            const seatsResponse = await fetch(`https://backendreservasnunes.advir.pt/trips/${id}/available-seats`);
+                            const seatsResponse = await fetch(`http://localhost:3010/trips/${id}/available-seats`);
                             let occupiedSeats = "?";
                             if (seatsResponse.ok) {
                                 const availableSeats = await seatsResponse.json();
@@ -191,7 +191,7 @@ const handleShowOpenReturnReservations = async () => {
     const handleSearch = async () => {
         if (!searchTerm) return;
         try {
-            const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-reserva/${searchTerm}`);
+            const response = await fetch(`http://localhost:3010/reservations/by-reserva/${searchTerm}`);
             const reservation = await response.json();
 
             if (reservation && reservation.tripId && reservation.Trip && reservation.Trip.dataviagem) {
@@ -221,7 +221,7 @@ const handleShowOpenReturnReservations = async () => {
         const nome = nameParts[0];
         const apelido = nameParts.slice(1).join(" ");
         try {
-            const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-passageiro/${nome}/${apelido}`);
+            const response = await fetch(`http://localhost:3010/reservations/by-passageiro/${nome}/${apelido}`);
             if (!response.ok) {
                 console.error("Erro HTTP:", response.status);
                 alert(`Erro ao procurar reserva: ${response.status}`);
@@ -259,7 +259,7 @@ const handleShowOpenReturnReservations = async () => {
     const handleSearchPhone = async () => {
         if (!searchTerm1) return;
         try {
-            const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-telefone/${searchTerm1}`);
+            const response = await fetch(`http://localhost:3010/reservations/by-telefone/${searchTerm1}`);
             if (!response.ok) {
                 console.error("Erro HTTP:", response.status);
                 alert(`Erro ao procurar reserva: ${response.status}`);

@@ -52,14 +52,18 @@ const sequelize = new Sequelize(dbName, dbUsername, dbPassword, {
 });
 
 async function initializeDatabase() {
-    await createDatabaseIfNotExists();
     try {
-        await sequelize.authenticate();
-        console.log("Conexão ao Sequelize bem-sucedida!");
+        console.log("⏳ A sincronizar com a BD...");
+        await sequelize.sync({ alter: true });
+
+        console.log("✅ Tabelas sincronizadas com sucesso!");
+        console.log("📦 Modelos registados:", Object.keys(sequelize.models));
+
+        await createSupportUser();
     } catch (error) {
-        console.error("Erro ao conectar ao Sequelize:", error);
-        throw error;
+        console.error("🔥 Erro ao sincronizar base de dados:", error);
     }
 }
+
 
 module.exports = { sequelize, initializeDatabase };

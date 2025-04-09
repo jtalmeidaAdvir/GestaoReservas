@@ -16,6 +16,9 @@ router.get("/by-telefone/:telefone", reservationController.getReservationByPhone
 router.get("/trip/:tripId", reservationController.ReturnReservationsOfBus);
 router.delete("/delete/:reserva", reservationController.deleteReservation);
 router.get("/volta/aberto", reservationController.getOpenReturnReservations);
+router.get("/all", reservationController.getAllReservations);
+router.get("/lastTicket", reservationController.getLastTicket);
+
 
 
 

@@ -19,13 +19,13 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             const formattedDate = moment(date).format("YYYY-MM-DD");
     
             // Buscar autocarros disponíveis
-            fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${formattedDate}`)
+            fetch(`http://localhost:3010/buses/available?date=${formattedDate}`)
                 .then(response => response.json())
                 .then(data => {
                     let allBuses = Array.isArray(data) ? data : [];
     
                     // Permitir sempre o autocarro com nome vazio
-                    fetch("https://backendreservasnunes.advir.pt/buses") // buscar todos os autocarros
+                    fetch("http://localhost:3010/buses") // buscar todos os autocarros
                         .then(resp => resp.json())
                         .then(allBusData => {
                             const emptyBus = allBusData.find(bus => bus.nome === "vazio");
@@ -45,7 +45,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
                 });
     
             // Buscar cidades
-            fetch(`https://backendreservasnunes.advir.pt/cities`)
+            fetch(`http://localhost:3010/cities`)
                 .then(response => response.json())
                 .then(data => {
                     const sortedCities = Array.isArray(data)
@@ -77,7 +77,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
         };
     
         try {
-            const response = await fetch("https://backendreservasnunes.advir.pt/trips/create", {
+            const response = await fetch("http://localhost:3010/trips/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newTrip),

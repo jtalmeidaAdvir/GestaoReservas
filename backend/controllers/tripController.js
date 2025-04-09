@@ -1,5 +1,6 @@
 const { Trip, Bus, Reservation, City, Country } = require("../models");
-const {Op, Sequelize,literal, fn, col} = require("sequelize")
+const { Op, Sequelize, fn, col, where } = require("sequelize");
+
 const moment = require("moment");
 
 
@@ -265,63 +266,76 @@ exports.updateTripNotas = async (req, res) => {
 
 
 
+
+// Função auxiliar para normalizar nomes (acentos + caixa)
+// utils/normalize.js (se quiseres criar como utilitário)
+const normalize = (str) =>
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  
+
 // GET /trips/return?origem=XYZ&destino=ABC&dataviagem=2025-12-25&createIfNotFound=true
 exports.findOrCreateReturnTrip = async (req, res) => {
     try {
-      const { origem, destino, dataviagem, createIfNotFound } = req.query;
+      const { origem, destino, dataviagem } = req.query;
   
-      // 1. Procurar as cidades para obter o país
-      const origemCity = await City.findOne({ where: { nome: origem }, include: Country });
-      const destinoCity = await City.findOne({ where: { nome: destino }, include: Country });
+      const cidadeOrigem = await City.findOne({
+        where: where(fn("lower", col("City.nome")), origem.toLowerCase()),
+        include: Country,
+      });
   
-      if (!origemCity || !destinoCity) {
-        return res.status(400).json({ error: "Cidades não encontradas." });
+      const cidadeDestino = await City.findOne({
+        where: where(fn("lower", col("City.nome")), destino.toLowerCase()),
+        include: Country,
+      });
+  
+      if (!cidadeOrigem || !cidadeDestino) {
+        return res.status(404).json({ error: "Cidades não encontradas." });
       }
   
-      const paisOrigem = origemCity.Country.nome;
-      const paisDestino = destinoCity.Country.nome;
+      const paisOrigem = cidadeOrigem.Country.nome;
+      const paisDestino = cidadeDestino.Country.nome;
   
-      // 2. Obter todas as cidades do país de origem e destino
       const cidadesOrigem = await City.findAll({
-        where: { "$Country.nome$": paisDestino }, // inverter!
-        include: Country
+        include: {
+          model: Country,
+          where: { nome: paisDestino },
+        },
       });
+  
       const cidadesDestino = await City.findAll({
-        where: { "$Country.nome$": paisOrigem }, // inverter!
-        include: Country
+        include: {
+          model: Country,
+          where: { nome: paisOrigem },
+        },
       });
   
-      const nomesCidadesOrigem = cidadesOrigem.map(c => c.nome);
-      const nomesCidadesDestino = cidadesDestino.map(c => c.nome);
+      const nomesOrigem = cidadesOrigem.map((c) => c.nome);
+      const nomesDestino = cidadesDestino.map((c) => c.nome);
   
-      // 3. Procurar por viagem com qualquer cidade desses países
-      const tripRegresso = await Trip.findOne({
+      const viagem = await Trip.findOne({
         where: {
-          origem: nomesCidadesOrigem,
-          destino: nomesCidadesDestino,
-          dataviagem
-        }
+            origem: { [Op.in]: nomesDestino },    // Origem: cidades da Suiça
+            destino: { [Op.in]: nomesOrigem },      // Destino: cidades de Portugal
+            dataviagem: dataviagem
+          },
+          
+        include: [{ model: Bus }]
       });
+      
+      
   
-      if (tripRegresso) {
-        return res.json(tripRegresso);
+      if (!viagem) {
+        return res.status(404).json({ error: "Viagem de regresso não encontrada." });
       }
   
-      if (createIfNotFound === "true") {
-        const newTrip = await Trip.create({
-          origem,
-          destino,
-          dataviagem
-        });
-        return res.json(newTrip);
-      }
-  
-      return res.status(404).json({ error: "Viagem de regresso não encontrada." });
-    } catch (error) {
-      console.error("🔥 Erro ao procurar/criar viagem de regresso:", error);
-      return res.status(500).json({ error: "Erro interno do servidor" });
+      return res.json(viagem);
+    } catch (err) {
+      console.error("Erro ao procurar viagem de regresso:", err);
+      return res.status(500).json({ error: "Erro interno do servidor." });
     }
   };
+
+
 
 
 exports.disableTrip = async (req, res) => {

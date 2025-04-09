@@ -1,57 +1,59 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Box, Button, Typography, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 
-const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConfirm }) => {
+const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm }) => {
     const [availableSeats, setAvailableSeats] = useState([]);
     const [busName, setBusName] = useState("");
-    const [tripDate, setTripDate] = useState("");
     const [tripOrigem, setTripOrigem] = useState("");
     const [tripDestino, setTripDestino] = useState("");
     const [selectedSeat, setSelectedSeat] = useState("");
 
     useEffect(() => {
         if (open && tripId) {
-            fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/available-seats`)
+            // Busca os lugares disponíveis para a viagem de regresso
+            fetch(`http://localhost:3010/trips/${tripId}/available-seats`)
                 .then(res => res.json())
                 .then(data => {
                     const formattedSeats = Array.isArray(data) ? data : [];
                     setAvailableSeats(formattedSeats);
-    
-                    // ✅ Selecionar automaticamente o primeiro lugar disponível
+
+                    // Seleciona automaticamente o primeiro lugar disponível
                     if (formattedSeats.length > 0) {
                         const firstSeat = formattedSeats[0];
                         setSelectedSeat(firstSeat.numero || firstSeat);
                     }
                 })
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
-    
-            fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`)
+
+            // Busca detalhes da viagem de regresso (exceto a data, que vamos obter da reserva principal)
+            fetch(`http://localhost:3010/trips/trip/${tripId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.trip) {
                         setBusName(data.trip.Bus?.nome || "Desconhecido");
-                        setTripOrigem(data.trip.origem || "Data não disponível");
-                        setTripDestino(data.trip.destino || "Data não disponível");
-                        setTripDate(data.trip.dataviagem || "Data não disponível");
+                        setTripOrigem(data.trip.origem || "Origem não disponível");
+                        setTripDestino(data.trip.destino || "Destino não disponível");
+                        // Note: não estamos a utilizar a data do return trip, pois queremos a data da viagem original
                     }
                 })
                 .catch(error => console.error("Erro ao buscar detalhes da viagem:", error));
         }
     }, [open, tripId]);
-    
 
-    // Função para controlar o fecho do modal
+    // Usa a prop mainTripDate para exibir a data da viagem original
+    const dataFormatada = mainTripDate 
+        ? new Date(mainTripDate).toLocaleDateString('pt-PT') 
+        : "Data não disponível";
+
     const handleClose = (event, reason) => {
-        if (reason === "backdropClick") {
-            return;
-        }
+        if (reason === "backdropClick") return;
         onClose();
     };
 
-    // Função para confirmar a seleção do lugar
+    // Ao confirmar, envia o lugar selecionado e a data da viagem original (mainTripDate)
     const handleConfirm = () => {
         if (selectedSeat) {
-            onConfirm(selectedSeat, tripOriginalDate); // ✅ Agora passa a data original
+            onConfirm(selectedSeat, mainTripDate);
             onClose();
         }
     };
@@ -61,13 +63,14 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
             <Box sx={{ backgroundColor: "white", padding: 3, borderRadius: 2, width: 400, margin: "auto", marginTop: "10%" }}>
                 <Typography variant="h6" gutterBottom>Escolha o lugar de regresso</Typography>
 
-                {/* Informações da viagem */}
+                {/* Exibe as informações da viagem de regresso */}
                 <Typography variant="body1"><b>Origem:</b> {tripOrigem}</Typography>
                 <Typography variant="body1"><b>Destino:</b> {tripDestino}</Typography>
                 <Typography variant="body1"><b>Autocarro:</b> {busName}</Typography>
-                <Typography variant="body1"><b>Data da viagem original:</b> {tripOriginalDate ? new Date(tripOriginalDate).toLocaleDateString('pt-PT') : "Data não disponível"}</Typography>
+                <Typography variant="body1">
+                    <b>Data da viagem original:</b> {dataFormatada}
+                </Typography>
 
-                {/* Dropdown para selecionar o lugar */}
                 <FormControl fullWidth sx={{ mt: 2 }}>
                     <InputLabel>Selecione o lugar</InputLabel>
                     <Select
@@ -83,7 +86,6 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, tripOriginalDate, onConf
                     </Select>
                 </FormControl>
 
-                {/* Botões */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
                     <Button onClick={onClose} color="error">Cancelar</Button>
                     <Button onClick={handleConfirm} color="primary" disabled={!selectedSeat}>

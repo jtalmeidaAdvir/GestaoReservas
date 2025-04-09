@@ -13,6 +13,11 @@ import EditBus from "./components/Buses/EditBus";
 import CountryList from "./components/Country/CountryList";
 import CreateCountry from "./components/Country/CreateCountry";  
 
+import PricesList from "./components/Prices/PricesList";
+import CreatePrice from "./components/Prices/CreatePrice";  
+import EditPrice from "./components/Prices/EditPrice";
+
+
 import CityList from "./components/City/CityList";
 import CreateCity from "./components/City/CreateCity";  
 import EditCity from "./components/City/EditCity";
@@ -77,6 +82,11 @@ const App = () => {
                 
                 <Route path="/countries" element={isAuthenticated ? <CountryList /> : <Navigate to="/login" />} />
                 <Route path="/countries/create" element={isAuthenticated ? <CreateCountry /> : <Navigate to="/login" />} />
+
+                <Route path="/prices" element={isAuthenticated ? <PricesList /> : <Navigate to="/login" />} />
+                <Route path="/prices/create" element={isAuthenticated ? <CreatePrice /> : <Navigate to="/login" />} />
+                <Route path="/prices/edit/:id" element={<EditPrice />} />
+
 
                 <Route path="/cities" element={isAuthenticated ? <CityList /> : <Navigate to="/login" />} />
                 <Route path="/cities/create" element={isAuthenticated ? <CreateCity /> : <Navigate to="/login" />} />
