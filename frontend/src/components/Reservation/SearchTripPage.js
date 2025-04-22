@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
+  Stack,
   Typography,
   TextField,
   MenuItem,
@@ -41,7 +42,7 @@ const SearchTripPage = () => {
   const commonFieldProps = {
     size: "small",
     sx: {
-      width: "220px",
+      width: { xs: "100%", sm: 220 },
       "& .MuiInputBase-input": { fontWeight: "bold" },
       "& .MuiInputLabel-root": { fontWeight: "bold" },
       m: 0,
@@ -49,6 +50,7 @@ const SearchTripPage = () => {
     InputProps: { style: { fontWeight: "bold" } },
     InputLabelProps: { style: { fontWeight: "bold" } },
   };
+  
   
 
   const [selectedReservation, setSelectedReservation] = useState({
@@ -1236,8 +1238,8 @@ setSaidaOptions(sorted);
 
       {/* FORMULÁRIO PRINCIPAL */}
       <Box sx={{ display: "flex",gap:2, p: 1 }}>
-        <Box sx={{ display: "inline-flex", gap: 2 }}>
-        <Autocomplete
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+      <Autocomplete
   options={tripOptions}
   getOptionLabel={(option) => option.label}
   filterOptions={(options, state) =>
@@ -1468,12 +1470,14 @@ setSaidaOptions(sorted);
 
 
           
-        </Box>
+        </Stack>
       </Box>
 
       {/* NOVA BOX PARA TELEFONE, NOME, APELIDO */}
       <Box sx={{ display: "flex",gap:2, p: 1 }}>
-        <Box sx={{ display: "inline-flex", gap: 2 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+
+
           <TextField
             label="Telefone"
             value={selectedReservation.telefone || ""}
@@ -1500,12 +1504,12 @@ setSaidaOptions(sorted);
             }
             sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
           />
-        </Box>
+        </Stack>
       </Box>
 
       {/* BOX PARA CARRO E VALOR CARRO */}
       <Box sx={{ display: "flex",gap:2, p: 1 }}>
-        <Box sx={{ display: "inline-flex", gap: 2 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <TextField
             label="Carro OBS."
             value={selectedReservation.carro || ""}
@@ -1523,12 +1527,12 @@ setSaidaOptions(sorted);
             }
             sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
           />
-        </Box>
+        </Stack>
       </Box>
 
       {/* BOX PARA OBS, VALOR VOLUME E TOTAL BILHETE */}
       <Box sx={{ display: "flex",gap:2, p: 1, marginBottom: 2 }}>
-        <Box sx={{ display: "inline-flex", gap: 2 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <TextField
             label="OBS."
             value={selectedReservation.obs || ""}
@@ -1647,7 +1651,7 @@ setSaidaOptions(sorted);
 
 
           
-        </Box>
+        </Stack>
       </Box>
 
           {/* PASSAGEIROS ADICIONAIS (cada um no seu bloco, também numa só linha) */}
