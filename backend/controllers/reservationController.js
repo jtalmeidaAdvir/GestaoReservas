@@ -29,7 +29,9 @@ exports.getLastReservation = async (req, res) => {
 
 exports.createReservation = async (req, res) => {
     try {
-        const { tripId, preco, precoBase, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,valorCarro, valorVolume, impresso, bilhete, createdBy } = req.body;
+        const tripId = Number(req.body.tripId);
+
+        const { preco, precoBase, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,valorCarro, valorVolume, impresso, bilhete, createdBy } = req.body;
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
