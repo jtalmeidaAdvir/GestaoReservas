@@ -27,6 +27,14 @@ const db = {
 };
 db.Price = Price;
 
+// 🚀 Chamar associate() para cada modelo que o tenha
+Object.keys(db).forEach(modelName => {
+    if (db[modelName].associate) {
+      db[modelName].associate(db);
+    }
+  });
+  
+
 
 // 🛠️ **Associações**
 Bus.hasMany(Trip, { foreignKey: "busId" });
@@ -87,5 +95,7 @@ console.log(Object.keys(sequelize.models));
         console.error("🔥 Erro ao sincronizar base de dados:", error);
     }
 }
+
+
 
 module.exports = { ...db, initializeDatabase };
