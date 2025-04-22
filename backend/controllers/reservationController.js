@@ -414,10 +414,12 @@ exports.getAllReservations = async (req, res) => {
         order: [["createdAt", "DESC"]] // ou ["dataviagem", "DESC"] se preferires
       });
       res.json(reservations);
-    } catch (error) {
-      console.error("🔥 Erro ao buscar todas as reservas:", error);
-      res.status(500).json({ error: "Erro ao buscar todas as reservas" });
-    }
+    } catch (err) {
+        console.error("🔥 ERRO AO BUSCAR RESERVAS:");
+        console.error(err.message);       // Erro principal
+        console.error(err.original);      // Erro do SQL Server (RequestError)
+        res.status(500).json({ erro: "Erro ao buscar reservas", detalhe: err.message });
+      }
   };
   
 
