@@ -127,9 +127,10 @@ async function handlePrintAllTickets(
       // Nº do BILHETE (mais à esquerda)
       pdf.text(
         `Bilhete ${row.bilhete || "----"}`,
-        xOffset + ticketWidth - 120,
+        contentAreaX + 2,
         yOffset + 20
       );
+      
 
       // Campos de texto do bilhete
       pdf.setTextColor(80, 80, 80);
@@ -228,10 +229,10 @@ async function handlePrintAllTickets(
       pdf.text(`${row.lugar || "----"}`, contentAreaX + 15, yOffset + 50);
 
       // Preço = preco + valorCarro + valorVolume
-      const basePrice = parseFloat(row.preco || 0);
       const carPrice = parseFloat(row.valorCarro || 0);
       const volumePrice = parseFloat(row.valorVolume || 0);
-      const finalPrice = basePrice + carPrice + volumePrice;
+      const finalPrice = parseFloat(row.preco || 0);
+
 
       if (finalPrice > 0) {
         pdf.text(

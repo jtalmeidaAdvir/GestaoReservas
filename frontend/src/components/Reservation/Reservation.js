@@ -747,9 +747,12 @@ const handleGenerateTicket = async (row) => {
   
 // No teu handleRowEdit (ou processRowUpdate):
 const bilheteInfo = prices.find(p => p.id === updatedRow.bilhete);
-const valorBase = bilheteInfo ? parseFloat(bilheteInfo.valor) : 0;
+const valorBase = bilheteInfo ? parseFloat(bilheteInfo.valor) : parseFloat(updatedRow.preco) || 0;
 const valorCarro = parseFloat(updatedRow.valorCarro) || 0;
 const valorVolume = parseFloat(updatedRow.valorVolume) || 0;
+
+updatedRow.preco = (valorBase + valorCarro + valorVolume).toFixed(2);
+
 
 // Só calcula se preco não tiver valor (ou tiver "0.00")
 if (!updatedRow.preco || updatedRow.preco === "0.00") {

@@ -936,7 +936,16 @@ setSaidaOptions(sorted);
   
   
   
-   
+  useEffect(() => {
+    if (multiPassengers.length > 0 && editingPassengerIndex === null) {
+      // assume que o índice 0 é sempre a principal
+      setSelectedReservation(prev => ({
+        ...multiPassengers[0],
+        precoBase: parseFloat(multiPassengers[0].precoBase || multiPassengers[0].preco) || 0
+      }));
+    }
+  }, [multiPassengers, editingPassengerIndex]);
+  
   
 
   useEffect(() => {
@@ -1034,8 +1043,13 @@ setSaidaOptions(sorted);
       
     });
 
-    return response.ok;
-  };
+     if (!response.ok) {
+         return null;
+       }
+       // devolve o objeto criado/atualizado
+       const saved = await response.json();
+       return saved;
+      };
 
   // Handler para salvar a reserva principal e as reservas adicionais
   const handleSaveAll = async () => {
@@ -1136,29 +1150,43 @@ setSaidaOptions(sorted);
       // ------------------------------------------------------------------------
       // 6) GRAVAR A RESERVA PRINCIPAL
       // ------------------------------------------------------------------------
-      const principalSaved = await saveReservation(mainReservation);
-      if (!principalSaved) {
-        alert("Erro ao salvar a reserva principal.");
-        return;
-      }
+      const savedMain = await saveReservation(mainReservation);
+        if (!savedMain) {
+          alert("Erro ao salvar a reserva principal.");
+          return;
+        }
   
       // ------------------------------------------------------------------------
       // 7) GRAVAR AS SUBRESERVAS
       // ------------------------------------------------------------------------
-      for (const passenger of additionalReservations) {
-        const saved = await saveReservation(passenger);
-        if (!saved) {
-          alert("Erro ao criar/atualizar uma das reservas adicionais.");
-          return;
+      const savedAdditionals = [];
+        for (const passenger of additionalReservations) {
+          const saved = await saveReservation(passenger);
+          if (!saved) {
+            alert("Erro ao criar/atualizar uma das reservas adicionais.");
+            return;
+          }
+          savedAdditionals.push(saved);
         }
-      }
   
       // ------------------------------------------------------------------------
       // 8) LIMPAR ESTADOS E AVISAR
       // ------------------------------------------------------------------------
       alert(`Reservas criadas/actualizadas com sucesso! Nº: ${blockCode}`);
-  
-      setMultiPassengers([mainReservation, ...additionalReservations]);
+      const novoBloco = [savedMain, ...savedAdditionals];
+      setMultiPassengers(novoBloco);
+      setSelectedReservation(savedMain);
+
+      
+      setPrecoBase(parseFloat(mainReservation.precoBase) || 0);
+      setEditingPassengerIndex(0);  // ← assume que a principal é a 0 no novo array
+      setSelectedRow(mainReservation);
+      console.log("mainReservation:", mainReservation);
+console.log("multiPassengers:", [mainReservation, ...additionalReservations]);
+console.log("Index 0 no multiPassengers:", multiPassengers[0]);
+
+
+      
 
 
       // passageiro(s) com data de volta entram na fila
