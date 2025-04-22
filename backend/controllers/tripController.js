@@ -157,7 +157,8 @@ exports.getTripsDates = async (req, res) => {
 
 exports.getTripWithBus = async (req, res) => {
     try {
-        const { tripId } = req.params;
+        const tripId = Number(req.params.tripId);
+
 
         const trip = await Trip.findByPk(tripId, {
             include: Bus
@@ -421,7 +422,8 @@ exports.updateTrip = async (req, res) => {
 // Obter os lugares disponíveis para uma viagem específica
 exports.getAvailableSeats = async (req, res) => {
     try {
-        const { tripId } = req.params;
+        const tripId = Number(req.params.tripId);
+
 
         // Verificar se a viagem existe
         const trip = await Trip.findByPk(tripId, {
