@@ -309,7 +309,7 @@ exports.createReturnReservation = async (req, res) => {
 
         // Buscar reservas já existentes para esta viagem
         const reservations = await Reservation.findAll({
-            where: { tripId: tripId },
+            where: { tripId: Number(req.params.tripId) },
             attributes: ["lugar"]
         });
 
