@@ -64,7 +64,7 @@ exports.createReservation = async (req, res) => {
 exports.getReservationsByTrip = async (req, res) => {
     try {
         const { tripId } = req.params;
-        const reservations = await Reservation.findAll({ where: { tripId } });
+        const reservations = await Reservation.findAll({ where: { tripId: Number(req.params.tripId) } });
 
         res.json(reservations);
     } catch (error) {
