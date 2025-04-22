@@ -170,7 +170,7 @@ const handlePrintAndMarkSingle = async (row) => {
     }
 
     // 3) Próximo nº de bilhete
-    const resp = await fetch("http://localhost:3010/reservations/lastTicket");
+    const resp = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
     if (!resp.ok) throw new Error("Falha a obter último nº de bilhete");
     const last = await resp.json();
     row.bilhete = String(parseInt(last.bilhete, 10) + 1).padStart(4, "0");
@@ -271,7 +271,7 @@ const handleDeletePassenger = async (row, index) => {
   try {
     // 👉 ajusta a rota se o teu ficheiro de routes usar outro path
     const resp = await fetch(
-      `http://localhost:3010/reservations/delete/${row.reserva}`,
+      `https://backendreservasnunes.advir.pt/reservations/delete/${row.reserva}`,
       { method: "DELETE" }
     );
 
@@ -704,7 +704,7 @@ const openReturnModal = async (
       const origem = reservation.saida; // na volta, origem é a "saida" da ida
       const destino = reservation.entrada; // na volta, destino é a "entrada" da ida
 
-      const url = `http://localhost:3010/trips/return?origem=${encodeURIComponent(
+      const url = `https://backendreservasnunes.advir.pt/trips/return?origem=${encodeURIComponent(
         origem
       )}&destino=${encodeURIComponent(destino)}&dataviagem=${dbFormatDate}`;
       console.log("URL de busca da viagem de regresso:", url);
@@ -725,7 +725,7 @@ const openReturnModal = async (
   const fetchAvailableReturnSeats = async (tripIdReturn) => {
     try {
       const res = await fetch(
-        `http://localhost:3010/trips/${tripIdReturn}/available-seats`
+        `https://backendreservasnunes.advir.pt/trips/${tripIdReturn}/available-seats`
       );
       const data = await res.json();
       const formattedSeats = Array.isArray(data) ? data : [];
@@ -764,7 +764,7 @@ const openReturnModal = async (
     };
 
     try {
-      const res = await fetch(`http://localhost:3010/reservations/create`, {
+      const res = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -837,7 +837,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
   /* 5.  buscar lugares livres como já fazias */
   try {
     const res = await fetch(
-      `http://localhost:3010/reservations/trip/${selectedTripId}`
+      `https://backendreservasnunes.advir.pt/reservations/trip/${selectedTripId}`
     );
     const data  = await res.json();
     const seats = Array.isArray(data.freeSeats)
@@ -866,7 +866,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
 
   // Carrega dados iniciais: cidades, viagens, reservas, países
   useEffect(() => {
-    fetch("http://localhost:3010/cities")
+    fetch("https://backendreservasnunes.advir.pt/cities")
       .then((res) => res.json())
       .then((data) => {
         const sorted = Array.isArray(data)
@@ -884,7 +884,7 @@ setSaidaOptions(sorted);
 
     fetchAllReservations();
 
-    fetch("http://localhost:3010/countries")
+    fetch("https://backendreservasnunes.advir.pt/countries")
       .then((res) => res.json())
       .then((data) => setCountries(data))
       .catch((err) => {
@@ -892,7 +892,7 @@ setSaidaOptions(sorted);
         setCountries([]);
       });
 
-      fetch("http://localhost:3010/trips")
+      fetch("https://backendreservasnunes.advir.pt/trips")
       .then((res) => res.json())
       .then((data) => {
         const hoje = new Date();
@@ -914,7 +914,7 @@ setSaidaOptions(sorted);
 
   const fetchAllReservations = async () => {
     try {
-      const res = await fetch("http://localhost:3010/reservations/all");
+      const res = await fetch("https://backendreservasnunes.advir.pt/reservations/all");
       const data = await res.json();
       // Garante que cada reserva tem a propriedade tripId
       const reservationsWithTripId = data.map(r => ({
@@ -987,7 +987,7 @@ setSaidaOptions(sorted);
     // Gerar código de reserva caso seja nova e não tenha ponto (p. ex. "0001")
     if (!reservationData.id && (!reservaCode || reservaCode.indexOf(".") === -1)) {
       try {
-        const lastRes = await fetch("http://localhost:3010/reservations/last");
+        const lastRes = await fetch("https://backendreservasnunes.advir.pt/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         reservaCode = String(lastNumber + 1).padStart(4, "0");
@@ -1000,8 +1000,8 @@ setSaidaOptions(sorted);
 
     const method = reservationData.id ? "PUT" : "POST";
     const url = reservationData.id
-      ? `http://localhost:3010/reservations/${reservationData.id}`
-      : "http://localhost:3010/reservations/create";
+      ? `https://backendreservasnunes.advir.pt/reservations/${reservationData.id}`
+      : "https://backendreservasnunes.advir.pt/reservations/create";
 
     const response = await fetch(url, {
       method,
@@ -1090,7 +1090,7 @@ setSaidaOptions(sorted);
   
       // Se a reserva for nova (sem ID) e sem blockCode, geramos agora
       if (!mainReservationObj.id && !blockCode) {
-        const lastRes = await fetch("http://localhost:3010/reservations/last");
+        const lastRes = await fetch("https://backendreservasnunes.advir.pt/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         blockCode = String(lastNumber + 1).padStart(4, "0");

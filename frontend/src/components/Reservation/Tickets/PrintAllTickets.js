@@ -22,7 +22,7 @@ async function handlePrintAllTickets(
     }
 
     // 2) Buscar o último número de bilhete ao backend
-    const lastTicketResponse = await fetch("http://localhost:3010/reservations/lastTicket");
+    const lastTicketResponse = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
     if (!lastTicketResponse.ok) {
       throw new Error("Erro ao obter último nº de bilhete do backend.");
     }

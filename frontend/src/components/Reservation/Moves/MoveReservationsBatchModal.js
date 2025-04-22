@@ -8,7 +8,7 @@ const MoveReservationsBatchModal = ({ open, onClose, trips, onMove, selectedRese
 
     useEffect(() => {
         if (selectedTrip) {
-            fetch(`http://localhost:3010/reservations/trip/${selectedTrip}`)
+            fetch(`https://backendreservasnunes.advir.pt/reservations/trip/${selectedTrip}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && Array.isArray(data.freeSeats)) {

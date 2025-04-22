@@ -54,8 +54,8 @@ const sequelize = new Sequelize(dbName, dbUsername, dbPassword, {
 async function initializeDatabase() {
     try {
         console.log("⏳ A sincronizar com a BD...");
-        await sequelize.sync({ alter: true });
-
+        await sequelize.authenticate(); // em vez de sync()
+        console.log("🔗 Conexão com a base de dados estabelecida com sucesso!");
         console.log("✅ Tabelas sincronizadas com sucesso!");
         console.log("📦 Modelos registados:", Object.keys(sequelize.models));
 

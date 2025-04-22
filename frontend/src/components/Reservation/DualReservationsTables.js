@@ -28,7 +28,7 @@ const DualReservationsTables = ({ tripIds }) => {
     try {
       const responses = await Promise.all(
         tripIds.map((tripId) =>
-          fetch(`http://localhost:3010/trips/trip/${tripId}`)
+          fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`)
         )
       );
       const data = await Promise.all(responses.map((res) => res.json()));
@@ -184,7 +184,7 @@ const DualReservationsTables = ({ tripIds }) => {
   // 6. Atualizar reserva no backend
   const updateReservationInBackend = async (updatedReservation) => {
     const response = await fetch(
-      `http://localhost:3010/reservations/${updatedReservation.id}`,
+      `https://backendreservasnunes.advir.pt/reservations/${updatedReservation.id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

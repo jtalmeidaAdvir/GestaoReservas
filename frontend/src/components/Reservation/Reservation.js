@@ -169,7 +169,7 @@ const Reservation = ({ tripId }) => {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const response = await fetch("http://localhost:3010/prices");
+        const response = await fetch("https://backendreservasnunes.advir.pt/prices");
         if (response.ok) {
           const data = await response.json();
           setPrices(data); // aqui guardamos o array de objetos
@@ -189,7 +189,7 @@ const Reservation = ({ tripId }) => {
 
   // Buscar a lista de cidades
   useEffect(() => {
-    fetch("http://localhost:3010/cities")
+    fetch("https://backendreservasnunes.advir.pt/cities")
       .then(response => response.json())
       .then(data => {
         console.log("📥 Resposta da API (cidades disponíveis):", data);
@@ -239,7 +239,7 @@ const Reservation = ({ tripId }) => {
 
     useEffect(() => {
       if (open) {
-        fetch(`http://localhost:3010/reservations/trip/${tripId}`)
+        fetch(`https://backendreservasnunes.advir.pt/reservations/trip/${tripId}`)
           .then(response => response.json())
           .then(data => {
             if (data && Array.isArray(data.freeSeats)) {
@@ -453,7 +453,7 @@ const handleDeleteReservation = async (numeroReserva) => {
   // Tentar obter a reserva de regresso diretamente do backend
   let reservaVolta = null;
   try {
-    const voltaResponse = await fetch(`http://localhost:3010/reservations/by-reserva/${voltaReservaNumber}`);
+    const voltaResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-reserva/${voltaReservaNumber}`);
     if (voltaResponse.ok) {
       reservaVolta = await voltaResponse.json();
     }
@@ -473,7 +473,7 @@ const handleDeleteReservation = async (numeroReserva) => {
 
   try {
     // Eliminar a reserva principal
-    const response = await fetch(`http://localhost:3010/reservations/delete/${numeroReserva}`, {
+    const response = await fetch(`https://backendreservasnunes.advir.pt/reservations/delete/${numeroReserva}`, {
       method: "DELETE",
     });
 
@@ -485,7 +485,7 @@ const handleDeleteReservation = async (numeroReserva) => {
 
     // Se existir uma reserva de regresso, eliminá-la também
     if (reservaVolta) {
-      const voltaDeleteResponse = await fetch(`http://localhost:3010/reservations/delete/${voltaReservaNumber}`, {
+      const voltaDeleteResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/delete/${voltaReservaNumber}`, {
         method: "DELETE",
       });
       if (!voltaDeleteResponse.ok) {
@@ -507,7 +507,7 @@ const handleGenerateTicket = async (row) => {
 
     // Se a reserva ainda não tiver bilhete, buscar do backend
     if (!newBilheteNumber) {
-      const lastTicketResponse = await fetch("http://localhost:3010/reservations/lastTicket");
+      const lastTicketResponse = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
       if (!lastTicketResponse.ok) {
         throw new Error("Erro ao obter último nº de bilhete");
       }
@@ -553,7 +553,7 @@ const handleGenerateTicket = async (row) => {
   // Alterar autocarro e reatribuir reservas
   const handleChangeBus = async (busId) => {
     try {
-      const busInfoResponse = await fetch(`http://localhost:3010/buses/${busId}`);
+      const busInfoResponse = await fetch(`https://backendreservasnunes.advir.pt/buses/${busId}`);
       const busInfo = await busInfoResponse.json();
 
       if (!busInfo || !busInfo.nlugares) {
@@ -613,7 +613,7 @@ const handleGenerateTicket = async (row) => {
         tripId: tripId,
       }));
 
-      const updateBusResponse = await fetch(`http://localhost:3010/trips/${tripId}/bus`, {
+      const updateBusResponse = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/bus`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ busId }),
@@ -764,7 +764,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
       }
 
       if (!updatedRow.reserva) {
-        let lastReservationResponse = await fetch(`http://localhost:3010/reservations/last`);
+        let lastReservationResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/last`);
         let lastReservation = await lastReservationResponse.json();
         let newReservaNumber = lastReservation?.reserva ? parseInt(lastReservation.reserva) + 1 : 1;
         updatedRow.reserva = String(newReservaNumber).padStart(4, "0");
@@ -773,17 +773,17 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
       const userEmail = localStorage.getItem("email") || "desconhecido";
 
-      let checkResponse = await fetch(`http://localhost:3010/reservations/by-reserva/${updatedRow.reserva}`);
+      let checkResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-reserva/${updatedRow.reserva}`);
       if (checkResponse.ok) {
         const existingReservation = await checkResponse.json();
-        let response = await fetch(`http://localhost:3010/reservations/${existingReservation.id}`, {
+        let response = await fetch(`https://backendreservasnunes.advir.pt/reservations/${existingReservation.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...updatedRow, updatedBy: userEmail }),
         });
         if (!response.ok) throw new Error("Erro ao atualizar reserva");
       } else {
-        let response = await fetch(`http://localhost:3010/reservations/create`, {
+        let response = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...updatedRow, tripId, createdBy: userEmail }),
@@ -807,7 +807,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
         const dbFormatDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
         const tripRegressoResponse = await fetch(
-          `http://localhost:3010/trips/return?origem=${destinoDeIda}&destino=${origemDeIda}&dataviagem=${dbFormatDate}`
+          `https://backendreservasnunes.advir.pt/trips/return?origem=${destinoDeIda}&destino=${origemDeIda}&dataviagem=${dbFormatDate}`
         );
 
         if (tripRegressoResponse.ok) {
@@ -846,7 +846,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
         const baseReserva = parts.join(".");
         const returnReservaId = `${baseReserva}.v`;
 
-        let returnResponse = await fetch(`http://localhost:3010/reservations/by-reserva/${returnReservaId}`);
+        let returnResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/by-reserva/${returnReservaId}`);
         if (returnResponse.ok) {
           const existingReturn = await returnResponse.json();
           const updatedReturnRow = {
@@ -859,7 +859,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
             obs: updatedRow.obs,
           };
 
-          let updateReturnResponse = await fetch(`http://localhost:3010/reservations/${existingReturn.id}`, {
+          let updateReturnResponse = await fetch(`https://backendreservasnunes.advir.pt/reservations/${existingReturn.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...updatedReturnRow, updatedBy: userEmail }),
@@ -940,7 +940,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
   const handleSaveMotorista = async () => {
     try {
-      const response = await fetch(`http://localhost:3010/trips/${tripId}/motorista`, {
+      const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/motorista`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ motorista }),
@@ -965,7 +965,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     }
   
     try {
-      const response = await fetch(`http://localhost:3010/trips/${tripId}/origemdestino`, {
+      const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/origemdestino`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ origem, destino }),
@@ -987,7 +987,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
   
   const handleSaveNotas = async () => {
     try {
-      const response = await fetch(`http://localhost:3010/trips/${tripId}/notas`, {
+      const response = await fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/notas`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notas: tripNotas }),
@@ -1018,7 +1018,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     }
 
     try {
-      const response = await fetch(`http://localhost:3010/trips/trip/${tripId}`);
+      const response = await fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`);
       const data = await response.json();
       console.log("📩 Dados da viagem recebidos:", data);
 
@@ -1044,7 +1044,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
 
 
-        const citiesResponse = await fetch(`http://localhost:3010/cities`);
+        const citiesResponse = await fetch(`https://backendreservasnunes.advir.pt/cities`);
         const citiesData = await citiesResponse.json();
         console.log("📩 Lista de cidades recebida:", citiesData);
 
@@ -1918,7 +1918,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
                 }}
                 disabled={selectedReservations.length === 0}
                 onClick={async () => {
-                  const response = await fetch(`http://localhost:3010/trips`);
+                  const response = await fetch(`https://backendreservasnunes.advir.pt/trips`);
                   const trips = await response.json();
                   setAvailableTrips(trips.filter(trip => trip.id !== tripId));
                   setModalMoveBatchOpen(true);
@@ -2235,7 +2235,7 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
             };
 
             console.log("🛑 Reserva de regresso antes de enviar:", updatedReservationData);
-            let resCreateReturn = await fetch(`http://localhost:3010/reservations/create`, {
+            let resCreateReturn = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
