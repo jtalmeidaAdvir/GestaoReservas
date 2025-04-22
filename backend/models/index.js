@@ -3,6 +3,7 @@ const { sequelize } = require("../config/database");
 const bcrypt = require("bcryptjs"); // 🔥 Importa o bcryptjs
 
 
+
 const User = require("./User")(sequelize, DataTypes);
 const Bus = require("./Bus")(sequelize, DataTypes);
 const Trip = require("./Trip")(sequelize, DataTypes);
@@ -10,6 +11,7 @@ const Reservation = require("./Reservation")(sequelize, DataTypes);
 const Country = require("./Country")(sequelize, DataTypes);
 const City = require("./City")(sequelize, DataTypes);
 const Price = require("./Prices")(sequelize, DataTypes);
+const BlackList = require("./BlackList")        (sequelize, DataTypes);
 
 const db = {
     sequelize,
@@ -20,7 +22,8 @@ const db = {
     Reservation,
     Country,
     City,
-    Price
+    Price,
+    BlackList
 };
 db.Price = Price;
 

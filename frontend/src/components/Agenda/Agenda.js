@@ -7,6 +7,8 @@ import moment from "moment";
 import "moment/locale/pt";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import * as XLSX from "xlsx";
+import axios from "axios";
+
 
 const localizer = momentLocalizer(moment);
 moment.locale("pt");
@@ -20,6 +22,10 @@ const Agenda = () => {
 const [isModalOpen, setIsModalOpen] = useState(false);
 
     const agendaState = location.state;
+// logo depois do openReservations / isModalOpen
+const [blacklistReservations, setBlacklistReservations] = useState([]);
+const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
+const [searchTermBL, setSearchTermBL] = useState("");
 
     
 
@@ -32,6 +38,13 @@ const filteredReservations = openReservations.filter((res) => {
     );
 });
 
+
+// Logo no início do Agenda.jsx
+useEffect(() => {
+    // Assim que Agenda é montado, limpa o antigo searchFilter
+    localStorage.removeItem("searchFilter");
+  }, []);
+  
 
     useEffect(() => {
         if (agendaState) {
@@ -97,9 +110,51 @@ const handleShowOpenReturnReservations = async () => {
     }
 };
 
+const handleShowBlacklist = async () => {
+    try {
+      const res = await fetch("http://localhost:3010/api/blacklist"); // adapta à tua rota
+      if (!res.ok) throw new Error("Erro ao buscar Lista Negra");
+      const data = await res.json();
+  
+      if (!Array.isArray(data) || data.length === 0) {
+        alert("Nenhuma reserva eliminada encontrada.");
+        return;
+      }
+  
+      setBlacklistReservations(data);
+      setIsBlacklistModalOpen(true);
+    } catch (err) {
+      console.error("❌ Erro ao buscar black‑list:", err);
+      alert("Erro ao carregar reservas eliminadas.");
+    }
+  };
 
 
+  const handleDelete = async (id) => {
+    const confirm = window.confirm("Tens a certeza que queres eliminar esta reserva da lista negra?");
+    if (!confirm) return;
+  
+    try {
+      await axios.delete(`http://localhost:3010/api/blacklist/${id}`);
+      setBlacklistReservations(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error("Erro ao eliminar:", error);
+      alert("Ocorreu um erro ao eliminar a reserva da lista negra.");
+    }
+  };
+  
+  
+  
 
+  const filteredBlacklist = blacklistReservations.filter((res) => {
+    const termo = searchTermBL.toLowerCase();
+    return (
+      res.reserva?.toString().toLowerCase().includes(termo) ||
+      `${res.nomePassageiro} ${res.apelidoPassageiro}`.toLowerCase().includes(termo) ||
+      res.telefone?.toLowerCase().includes(termo)
+    );
+  });
+  
     useEffect(() => {
         const fetchTripsSummary = async () => {
             try {
@@ -148,9 +203,12 @@ const handleShowOpenReturnReservations = async () => {
                             }
 
                             return {
-                                title: `${nomes[index]} - 🚌 ${busName} (${occupiedSeats} lugares ocupados)`,
+                                title: `${nomes[index].split("-")[0].trim()}`,
+
                                 start: startTime,
                                 end: endTime,
+
+
                                 // Guarda a direção normalizada (ex.: "portugal - suica" ou "suica - portugal")
                                 direction: directionNormalized
                             };
@@ -188,24 +246,31 @@ const handleShowOpenReturnReservations = async () => {
 
 
     // Função para pesquisar reserva por número e abrir a viagem associada
-    const handleSearch = async () => {
-        if (!searchTerm) return;
-        try {
-            const response = await fetch(`http://localhost:3010/reservations/by-reserva/${searchTerm}`);
-            const reservation = await response.json();
-
-            if (reservation && reservation.tripId && reservation.Trip && reservation.Trip.dataviagem) {
-                localStorage.setItem("selectedDate", reservation.Trip.dataviagem);
-                localStorage.setItem("selectedTripId", reservation.tripId);
-                navigate("/trips");
-            } else {
-                alert("Reserva não encontrada ou viagem sem data de viagem");
-            }
-        } catch (error) {
-            console.error("Erro ao procurar reserva:", error);
-            alert("Erro ao procurar reserva");
-        }
-    };
+    // Exemplo para handleSearch() por número de reserva
+const handleSearch = async () => {
+    if (!searchTerm) return;
+    try {
+      const response = await fetch(`http://localhost:3010/reservations/by-reserva/${searchTerm}`);
+      const reservation = await response.json();
+  
+      if (reservation && reservation.tripId && reservation.Trip && reservation.Trip.dataviagem) {
+        // Guardas no localStorage
+        localStorage.setItem("selectedDate", reservation.Trip.dataviagem);
+        localStorage.setItem("selectedTripId", reservation.tripId);
+  
+        // NEW: guardar tb o termo pesquisado
+        localStorage.setItem("searchFilter", searchTerm);
+  
+        navigate("/trips");
+      } else {
+        alert("Reserva não encontrada ou viagem sem data de viagem");
+      }
+    } catch (error) {
+      console.error("Erro ao procurar reserva:", error);
+      alert("Erro ao procurar reserva");
+    }
+  };
+  
 
     // Função para pesquisar reserva pelo Nome e Apelido
     const handleSearchPassengerName = async () => {
@@ -503,6 +568,22 @@ const handleShowOpenReturnReservations = async () => {
     📋 Ver Reservas em Aberto
 </button>
 
+<button
+  onClick={handleShowBlacklist}
+  style={{
+    padding: "10px 20px",
+    backgroundColor: "black",
+    color: "white",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    fontSize: "14px"
+  }}
+>
+  🗑️ Lista Negra
+</button>
+
+
     </div>
 
                 {/* Se houver meses disponíveis, exibe o seletor */}
@@ -682,26 +763,36 @@ const handleShowOpenReturnReservations = async () => {
             </thead>
             <tbody>
             {filteredReservations.map((res, index) => (
-    <tr
-        key={index}
-        onClick={() => {
-            if (res.Trip?.dataviagem && res.tripId) {
-                localStorage.setItem("selectedDate", res.Trip.dataviagem);
-                localStorage.setItem("selectedTripId", res.tripId);
-                setIsModalOpen(false);
-                navigate("/trips");
-            } else {
-                alert("Dados da viagem não encontrados para esta reserva.");
-            }
-        }}
-        style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
+      <tr
+      key={index}
+      onClick={() => {
+        if (res.Trip?.dataviagem && res.tripId) {
+          // Se o input de pesquisa estiver vazio, usa o valor da reserva em vez disso
+          const filtro =
+            searchTerm3.trim() !== "" ? searchTerm3.trim() : res.reserva.toString().trim();
+          console.log("Valor do filtro que vai ser guardado:", filtro);
+          localStorage.setItem("searchFilter", filtro);
+          localStorage.setItem("selectedDate", res.Trip.dataviagem);
+          localStorage.setItem("selectedTripId", res.tripId);
+          setIsModalOpen(false);
+          navigate("/trips");
+        } else {
+          alert("Dados da viagem não encontrados para esta reserva.");
+        }
+      }}
+      style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
     >
-        <td style={{ padding: "8px" }}>{res.reserva}</td>
-        <td style={{ padding: "8px" }}>{res.nomePassageiro} {res.apelidoPassageiro}</td>
-        <td style={{ padding: "8px" }}>{res.telefone}</td>
-        <td style={{ padding: "8px" }}>{res.Trip?.dataviagem || "-"}</td>
-        <td style={{ padding: "8px" }}>{res.Trip?.origem} → {res.Trip?.destino}</td>
+      <td style={{ padding: "8px" }}>{res.reserva}</td>
+      <td style={{ padding: "8px" }}>{res.nomePassageiro} {res.apelidoPassageiro}</td>
+      <td style={{ padding: "8px" }}>{res.telefone}</td>
+      <td style={{ padding: "8px" }}>{res.Trip?.dataviagem || "-"}</td>
+      <td style={{ padding: "8px" }}>{res.Trip?.origem} → {res.Trip?.destino}</td>
     </tr>
+    
+
+ 
+ 
+  
 ))}
 
 
@@ -709,6 +800,78 @@ const handleShowOpenReturnReservations = async () => {
         </table>
     </div>
 </Modal>
+<Modal
+  isOpen={isBlacklistModalOpen}
+  onRequestClose={() => setIsBlacklistModalOpen(false)}
+  contentLabel="Reservas Eliminadas"
+  style={{
+    overlay: { backgroundColor: "rgba(0,0,0,0.6)", zIndex: 9999 },
+    content: {
+      maxWidth: "90%", maxHeight: "80vh", margin: "auto",
+      padding: "20px", borderRadius: "10px", overflow: "hidden",
+      display: "flex", flexDirection: "column"
+    }
+  }}
+>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+    <h2 style={{ color: "darkslateblue", margin: 0 }}>Reservas Eliminadas (Lista Negra)</h2>
+    <button
+      onClick={() => setIsBlacklistModalOpen(false)}
+      style={{ fontSize: "20px", background: "transparent", border: "none", cursor: "pointer", color: "#555" }}
+    >
+      ❌
+    </button>
+  </div>
+
+  <input
+    type="text"
+    placeholder="Pesquisar por reserva, nome ou telefone..."
+    value={searchTermBL}
+    onChange={(e) => setSearchTermBL(e.target.value)}
+    style={{ padding: "8px", borderRadius: "6px", border: "1px solid #ccc", width: "100%", marginBottom: "10px" }}
+  />
+
+  <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ddd", borderRadius: "8px" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead style={{ position: "sticky", top: 0, backgroundColor: "#f9f9f9", zIndex: 1 }}>
+        <tr>
+          <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Reserva</th>
+          <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Passageiro</th>
+          <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Telefone</th>
+          <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Origem → Destino</th>
+        </tr>
+      </thead>
+      <tbody>
+  {filteredBlacklist.map((res, i) => (
+    <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
+      <td style={{ padding: "8px" }}>{res.reserva}</td>
+      <td style={{ padding: "8px" }}>{res.nomePassageiro} {res.apelidoPassageiro}</td>
+      <td style={{ padding: "8px" }}>{res.telefone}</td>
+      <td style={{ padding: "8px" }}>{res.entrada} → {res.saida}</td>
+      
+      <td style={{ padding: "8px", textAlign: "center" }}>
+  <button
+    onClick={() => handleDelete(res.id)}
+    style={{
+      color: "darkred",
+      border: "none",
+    
+
+    }}
+  >
+    x
+  </button>
+</td>
+
+
+    </tr>
+  ))}
+</tbody>
+
+    </table>
+  </div>
+</Modal>
+
 
 
         </div>

@@ -14,7 +14,10 @@ const EditUser = () => {
         email: "",
         telefone: "",
         tipo: "",
+        password: "",
+
     });
+    
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -35,7 +38,11 @@ const EditUser = () => {
         setSuccess("");
 
         try {
-            await updateUser(id, formData);
+            const dataToSend = { ...formData };
+if (!formData.password) delete dataToSend.password;
+
+await updateUser(id, dataToSend);
+
             setSuccess("Utilizador atualizado com sucesso!");
             setTimeout(() => navigate("/users"), 2000); // Redireciona após 2s
         } catch (error) {
@@ -96,6 +103,17 @@ const EditUser = () => {
                                     onChange={handleChange}
                                 />
                             </Form.Group>
+
+                            <Form.Group controlId="formPassword">
+                                <Form.Control
+                                    type="password"
+                                    name="password"
+                                    placeholder="Nova password (opcional)"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+
 
                             <Form.Group controlId="formTipo">
                                 <Form.Select name="tipo" value={formData.tipo} onChange={handleChange}>

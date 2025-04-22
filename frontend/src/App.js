@@ -55,7 +55,7 @@ const App = () => {
 
             <div className="app-content">
             <Routes>
-                <Route path="/" element={<Navigate to={isAuthenticated ? "/agenda" : "/login"} />} />
+                <Route path="/" element={<Navigate to={isAuthenticated ? "/searchtrip" : "/login"} />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
                 <Route path="/users" element={isAuthenticated ? <UserList /> : <Navigate to="/login" />} />

@@ -14,6 +14,9 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
     const [buses, setBuses] = useState([]);
     const [cities, setCities] = useState([]); // Adicionando estado para cidades
 
+    const [filteredDestinations, setFilteredDestinations] = useState([]);
+
+
     useEffect(() => {
         if (isOpen && date) {
             const formattedDate = moment(date).format("YYYY-MM-DD");
@@ -61,6 +64,26 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
     }, [isOpen, date]);
     
 
+
+    const handleOrigemChange = (e) => {
+        const selectedOrigem = e.target.value;
+        setOrigem(selectedOrigem);
+    
+        const origemCity = cities.find(c => c.nome === selectedOrigem);
+        if (!origemCity || !origemCity.Country) return setFilteredDestinations([]);
+    
+        const origemCountry = origemCity.Country.nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const destinoCountry = origemCountry === "portugal" ? "suica" : "portugal";
+    
+        const destinos = cities.filter(c =>
+            c.Country &&
+            c.Country.nome?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === destinoCountry
+        );
+    
+        setFilteredDestinations(destinos);
+    };
+    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
     
@@ -86,11 +109,13 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             if (!response.ok) throw new Error("Erro ao criar viagem");
     
             const createdTrip = await response.json();
-    
-            //console.log("✅ Viagem criada com sucesso:", createdTrip);
-    
-            // Chama a função para atualizar a lista de viagens
-            onTripCreated(createdTrip);
+
+// Ir buscar a viagem completa com dados do autocarro
+const res = await fetch(`http://localhost:3010/trips/${createdTrip.id}`);
+const fullTrip = await res.json();
+
+onTripCreated(fullTrip);
+
     
             // Fecha o modal
             onClose();
@@ -133,11 +158,12 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
 
                 {/* Dropdown de Origem */}
                 <select
-                    value={origem}
-                    onChange={(e) => setOrigem(e.target.value)}
-                    required
-                    style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
-                >
+    value={origem}
+    onChange={handleOrigemChange}
+    required
+    style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
+>
+
                     <option value="">Selecione a origem</option>
                     {cities.map(city => (
                         <option key={city.id} value={city.nome}>
@@ -148,18 +174,19 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
 
                 {/* Dropdown de Destino */}
                 <select
-                    value={destino}
-                    onChange={(e) => setDestino(e.target.value)}
-                    required
-                    style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
-                >
-                    <option value="">Selecione o destino</option>
-                    {cities.map(city => (
-                        <option key={city.id} value={city.nome}>
-                            {city.nome}
-                        </option>
-                    ))}
-                </select>
+    value={destino}
+    onChange={(e) => setDestino(e.target.value)}
+    required
+    style={{ padding: "8px", border: "1px solid darkred", borderRadius: "5px", fontSize: "14px" }}
+>
+    <option value="">Selecione o destino</option>
+    {filteredDestinations.map(city => (
+        <option key={city.id} value={city.nome}>
+            {city.nome}
+        </option>
+    ))}
+</select>
+
 
                 {/* Dropdown de Autocarros */}
                 <select

@@ -1,4 +1,4 @@
-const { Reservation, Trip, Bus } = require("../models");
+const { Reservation, Trip, Bus, BlackList,sequelize } = require("../models");
 const { Op, Sequelize } = require("sequelize");
 
 let io; // Variável global para armazenar io
@@ -29,7 +29,7 @@ exports.getLastReservation = async (req, res) => {
 
 exports.createReservation = async (req, res) => {
     try {
-        const { tripId, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,valorCarro, valorVolume, impresso, bilhete, createdBy } = req.body;
+        const { tripId, preco, precoBase, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, lugar, carro, reserva,valorCarro, valorVolume, impresso, bilhete, createdBy } = req.body;
 
         console.log(`🔹 Tentando criar reserva Nº ${reserva} para o lugar ${lugar}`);
 
@@ -41,7 +41,7 @@ exports.createReservation = async (req, res) => {
         }
 
         const newReservation = await Reservation.create({
-            tripId, lugar, reserva, valorCarro, valorVolume, preco, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
+            tripId, lugar, reserva, valorCarro, valorVolume, preco, precoBase, moeda, entrada, nomePassageiro, apelidoPassageiro, saida, volta, telefone, email, obs, carro, createdBy
         });
 
         console.log("✅ Nova reserva criada:", newReservation.dataValues);
@@ -229,6 +229,7 @@ exports.createReturnReservation = async (req, res) => {
             email,
             obs,
             preco,
+            precoBase,
             moeda,
             carro,
             valorCarro,
@@ -252,6 +253,7 @@ exports.createReturnReservation = async (req, res) => {
             tripId: tripRegresso.id,
             reserva: reservaVolta, // ✅ Agora mantém-se igual
             preco,
+            precoBase,
             moeda,
             entrada: saidaIda, 
             saida: dataVolta,  
@@ -335,40 +337,50 @@ exports.createReturnReservation = async (req, res) => {
 // controllers/reservationController.js
 
 exports.deleteReservation = async (req, res) => {
+    const { reserva } = req.params;
+  
     try {
-        const { reserva } = req.params;
-
-        console.log(`🗑️ Tentando eliminar reserva com número: ${reserva}`);
-
-        if (!reserva) {
-            console.error("❌ Número de reserva inválido:", reserva);
-            return res.status(400).json({ error: "Número de reserva inválido" });
-        }
-
-        // Buscar a reserva pelo número de reserva
-        const reservation = await Reservation.findOne({ where: { reserva } });
-
+      let tripIdDeleted = null;              // ➊ variável para usar depois da transacção
+  
+      await sequelize.transaction(async (t) => {
+        const reservation = await Reservation.findOne({
+          where: { reserva },
+          transaction: t,
+        });
+  
         if (!reservation) {
-            console.warn(`❌ Reserva com número ${reserva} não encontrada.`);
-            return res.status(404).json({ error: "Reserva não encontrada" });
+          // atira erro para ser apanhado fora da transaction
+          throw new Error("NOT_FOUND");
         }
-
-        const tripId = reservation.tripId; // Guardar o tripId antes da eliminação
-
-        // Eliminar a reserva
-        await reservation.destroy();
-
-        console.log(`✅ Reserva ${reserva} eliminada com sucesso!`);
-
-        // Emitir evento WebSocket para atualização em tempo real
-        req.io.emit("reservationUpdated", { tripId });
-
-        res.json({ message: `Reserva ${reserva} eliminada com sucesso!` });
+  
+        tripIdDeleted = reservation.tripId;  // ➋ guardar antes de destruir
+  
+        // Clonar dados sem o id
+        const dataToBlacklist = { ...reservation.get({ plain: true }) };
+        delete dataToBlacklist.id;
+        dataToBlacklist.deletedAt = new Date();
+  
+        await BlackList.create(dataToBlacklist, { transaction: t });
+        await reservation.destroy({ transaction: t });
+      });
+  
+      // ➌ Notificar via WebSocket se tivermos um tripId válido
+      if (io && tripIdDeleted) {
+        io.emit("reservationUpdated", { tripId: tripIdDeleted });
+      }
+  
+      return res.json({
+        message: `Reserva ${reserva} eliminada e movida para ListaNegra.`,
+      });
     } catch (error) {
-        console.error("🔥 Erro ao eliminar reserva:", error);
-        res.status(500).json({ error: "Erro ao eliminar reserva" });
+      if (error.message === "NOT_FOUND") {
+        return res.status(404).json({ error: "Reserva não encontrada" });
+      }
+      console.error("🔥 Erro ao mover para ListaNegra:", error);
+      return res.status(500).json({ error: "Erro ao eliminar reserva" });
     }
-};
+  };
+  
 
 exports.getOpenReturnReservations = async (req, res) => {
     try {

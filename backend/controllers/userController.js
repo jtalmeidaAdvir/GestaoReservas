@@ -57,7 +57,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -68,22 +67,24 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ error: "Utilizador não encontrado" });
         }
 
-        // Se for enviada uma nova password, encripta antes de atualizar
-        if (password) {
-            user.password = await bcrypt.hash(password, 10);
-        }
-
-        // Atualiza os campos enviados
-        await user.update({ 
+        const updateData = {
             nome: nome || user.nome,
             apelido: apelido || user.apelido,
             email: email || user.email,
             telefone: telefone || user.telefone,
-            tipo: tipo || user.tipo
-        });
+            tipo: tipo || user.tipo,
+        };
+
+        // Se foi enviada uma nova password, adiciona à atualização
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
+
+        await user.update(updateData);
 
         res.json({ message: "Utilizador atualizado com sucesso", user });
     } catch (error) {
         res.status(500).json({ error: "Erro ao atualizar utilizador" });
     }
 };
+

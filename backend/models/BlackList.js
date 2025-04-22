@@ -1,8 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
-    const Reservation = sequelize.define("Reservation", {
+    const BlackList = sequelize.define(
+      "BlackList",
+      {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
         tripId: { type: DataTypes.INTEGER, allowNull: false },
-        reserva: { type: DataTypes.STRING, allowNull: false }, // Código da reserva
+        reserva: { type: DataTypes.STRING, allowNull: false },
         preco: { type: DataTypes.FLOAT, allowNull: true },
         moeda: { type: DataTypes.STRING, allowNull: true },
         entrada: { type: DataTypes.STRING, allowNull: true },
@@ -22,12 +24,15 @@ module.exports = (sequelize, DataTypes) => {
         precoBase: { type: DataTypes.FLOAT,allowNull: true,},
         isConfirmed: { type: DataTypes.BOOLEAN, defaultValue: true },
         createdBy: { type: DataTypes.STRING, allowNull: true },
-        updatedBy: { type: DataTypes.STRING, allowNull: true }
-    });
-
-    Reservation.associate = (models) => {
-        Reservation.belongsTo(models.Trip, { foreignKey: "tripId" });
+        deletedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW } // opcional
+      },
+      { tableName: "ListaNegra" }
+    );
+  
+    BlackList.associate = (models) => {
+      BlackList.belongsTo(models.Trip, { foreignKey: "tripId" });
     };
-
-    return Reservation;
-};
+  
+    return BlackList;
+  };
+  

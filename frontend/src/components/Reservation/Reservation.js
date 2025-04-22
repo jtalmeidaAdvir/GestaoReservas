@@ -96,6 +96,35 @@ const Reservation = ({ tripId }) => {
 
   const storedTripId = localStorage.getItem("selectedTripId");
   const storedDate = localStorage.getItem("selectedDate");
+  const [searchFilter, setSearchFilter] = useState("");
+
+  // Ler do localStorage no useEffect, antes ou depois do fetchReservations
+  useEffect(() => {
+    const storedFilter = localStorage.getItem("searchFilter");
+    if (storedFilter) {
+      setSearchFilter(storedFilter);
+    }
+  }, []);
+
+
+
+  const filteredReservations = reservations.filter((r) => {
+    if (!searchFilter) return true;
+    
+    const lowerSearch = searchFilter.toLowerCase();
+    
+    // Exemplo: filtrar por 'reserva', 'nomePassageiro', 'apelidoPassageiro', telefone, etc.
+    return (
+      (r.reserva && r.reserva.toLowerCase().includes(lowerSearch)) ||
+      (r.nomePassageiro && r.nomePassageiro.toLowerCase().includes(lowerSearch)) ||
+      (r.apelidoPassageiro && r.apelidoPassageiro.toLowerCase().includes(lowerSearch)) ||
+      (r.telefone && r.telefone.toLowerCase().includes(lowerSearch))
+    );
+  });
+  
+
+
+
 
   // Se `tripId` ainda não estiver definido, tenta redirecionar automaticamente
   if (!tripId && storedTripId) {
@@ -504,7 +533,8 @@ const handleGenerateTicket = async (row) => {
       impresso: true,
     };
 
-    await handleRowEdit(updatedReservation);
+    await handleRowEdit(updatedReservation, row, { skipReturnCreation: true });
+
 
     // Gera/imprime bilhete
     handlePrintTicket(updatedReservation, datatrip, formatDate);
@@ -716,16 +746,16 @@ const handleGenerateTicket = async (row) => {
 
   
 // No teu handleRowEdit (ou processRowUpdate):
-// Só recalcula o preço se houver uma tarifaId válida
-if (updatedRow.tarifaId) {
-  const bilheteInfo = prices.find(p => p.id === updatedRow.tarifaId);
-  if (bilheteInfo) {
-    const valorBase = parseFloat(bilheteInfo.valor) || 0;
-    const valorCarro = parseFloat(updatedRow.valorCarro) || 0;
-    const valorVolume = parseFloat(updatedRow.valorVolume) || 0;
-    updatedRow.preco = (valorBase + valorCarro + valorVolume).toFixed(2);
-  }
+const bilheteInfo = prices.find(p => p.id === updatedRow.bilhete);
+const valorBase = bilheteInfo ? parseFloat(bilheteInfo.valor) : 0;
+const valorCarro = parseFloat(updatedRow.valorCarro) || 0;
+const valorVolume = parseFloat(updatedRow.valorVolume) || 0;
+
+// Só calcula se preco não tiver valor (ou tiver "0.00")
+if (!updatedRow.preco || updatedRow.preco === "0.00") {
+  updatedRow.preco = (valorBase + valorCarro + valorVolume).toFixed(2);
 }
+
 
 
       if (!updatedRow) {
@@ -1177,7 +1207,57 @@ if (updatedRow.tarifaId) {
   const columns = [
     { field: "id", headerName: "Lugar", width: 60, editable: false },
     { field: "moeda", headerName: "", width: 10, editable: false },
-    { field: "preco", headerName: "Preço", width: 80, editable: true },
+    {
+      field: "preco",
+      headerName: "Preço",
+      width: 100,
+      editable: true,
+      renderEditCell: (params) => {
+        const paisFiltrado = origemtrip
+          ? cities.find(city => city.nome === origemtrip)?.Country?.nome?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+          : "";
+      
+        const filteredPrices = prices.filter((p) =>
+          p.Country?.nome?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === paisFiltrado
+        );
+      
+        return (
+          <Select
+            value={params.value || ""}
+            onChange={(e) => {
+              const valorSelecionado = e.target.value;
+              params.api.setEditCellValue({ id: params.id, field: "preco", value: valorSelecionado });
+      
+              const isEditing = apiRef.current.getCellMode(params.id, "preco") === "edit";
+              if (isEditing) {
+                apiRef.current.stopCellEditMode({ id: params.id, field: "preco" });
+              }
+            }}
+            autoFocus
+            fullWidth
+            variant="standard"
+          >
+            {filteredPrices.map((p, index) => (
+              <MenuItem key={index} value={p.valor}>
+                {p.valor} {paisFiltrado === "suica" ? "Fr" : "€"} - {p.descricao}
+              </MenuItem>
+            ))}
+          </Select>
+        );
+      }
+      
+      
+      
+      
+      
+      
+      
+    }
+    
+    
+    ,
+    
+    
     {
       field: "entrada",
       headerName: "Entrada",
@@ -1381,52 +1461,71 @@ if (updatedRow.tarifaId) {
     { field: "carro", headerName: "Carro", width: 200, editable: true },
     { field: "valorCarro", headerName: "V.Carro", width: 100, editable: true },
     { field: "valorVolume", headerName: "V.Volume", width: 100, editable: true },
-    { field: "bilhete", headerName: "Bilhete", width: 80, editable: true },
-    { field: "impresso", headerName: "Impresso", width: 50, editable: true },
+    { field: "bilhete", headerName: "Bilhete", width: 80, editable: false },
+    {
+      field: "impresso",
+      headerName: "Impresso",
+      width: 50,
+      renderCell: (params) => {
+        if (!params || !params.value) {
+          return "";
+        }
+        return params.value === "1" ? "✔" : "";
+      },
+    },
     {
       field: "bilhet",
-      headerName: "Bilhete",
+      headerName: "",
       width: 100,
       renderCell: (params) => {
         const row = params.row;
-        
-        // Só exibe o botão se houver uma reserva definida
-        if (!row.reserva) return null;
+    
+        // Não mostrar se não houver reserva ou se 'impresso' for 1
+        if (!row.reserva || row.impresso === "1" || row.impresso === 1) {
+          return null;
+        }
     
         return (
           <Button
             onClick={() => handleGenerateTicket(row)}
             variant="outlined"
-            style={{ 
+            style={{
               height: "15px",
               fontSize: "12px",
               color: "darkred",
-              borderColor: "darkred"
+              borderColor: "darkred",
             }}
           >
             Gerar
           </Button>
         );
-      }
+      },
     },
-    
     {
       field: "eliminar",
       headerName: "",
       width: 60,
-      renderCell: (params) =>
-        params.row.reserva ? (
-          <IconButton
-            onClick={() => {
-              console.log("🗑️ Reserva a eliminar:", params.row.reserva);
-              handleDeleteReservation(params.row.reserva);
-            }}
-            title="Eliminar Reserva"
-          >
-            <DeleteIcon fontSize="small" style={{ color: "darkred" }} />
-          </IconButton>
-        ) : null
+      renderCell: (params) => {
+        const row = params.row;
+    
+        // Só mostrar o botão se houver reserva e se 'impresso' não for 1
+        if (row.reserva && row.impresso !== "1" && row.impresso !== 1) {
+          return (
+            <IconButton
+              onClick={() => {
+                console.log("🗑️ Reserva a eliminar:", row.reserva);
+                handleDeleteReservation(row.reserva);
+              }}
+              title="Eliminar Reserva"
+            >
+              <DeleteIcon fontSize="small" style={{ color: "darkred" }} />
+            </IconButton>
+          );
+        }
+        return null;
+      },
     },
+    
     {
       field: "acoes",
       headerName: "",
@@ -1564,8 +1663,8 @@ if (updatedRow.tarifaId) {
         <Box sx={{ flexGrow: 1 }}>
         
         <DataGrid
-          rows={reservations}
-          apiRef={apiRef}
+  rows={filteredReservations}
+  apiRef={apiRef}
           columns={columns}
           isCellEditable={(params) => {
             // Se impresso for "1" (ou 1), desativar edição daquela linha
@@ -1885,24 +1984,33 @@ if (updatedRow.tarifaId) {
               </Box>
 
 
-            <Button
-                variant="contained"
-                color="error"
-                onClick={() => handlePrintAllTickets(reservations, datatrip, formatDate)}
-                style={{
-                  backgroundColor: "darkred",
-                  color: "white",
-                  padding: "10px",
-                  marginTop: "100px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%"
-                }}
-              >
-                Gerar Todos os Bilhetes
-              </Button>
+              <Button
+  variant="contained"
+  color="error"
+  onClick={() =>
+    handlePrintAllTickets(
+      reservations,
+      datatrip,
+      formatDate,
+      handleRowEdit  // Passa a função de update para o backend
+    )
+  }
+  style={{
+    backgroundColor: "darkred",
+    color: "white",
+    padding: "10px",
+    marginTop: "100px",
+    borderRadius: "5px",
+    fontSize: "14px",
+    border: "none",
+    cursor: "pointer",
+    width: "100%"
+  }}
+>
+  Gerar Todos os Bilhetes
+</Button>
+
+
 
               <Button
                 variant="contained"

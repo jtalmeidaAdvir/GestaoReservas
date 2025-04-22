@@ -39,6 +39,8 @@ const countryRoutes = require("./routes/countryRoutes");
 const pricesRoutes = require("./routes/pricesRoutes");
 const cityRoutes = require("./routes/cityRoutes");
 const emailRoutes = require("./routes/email");
+const blackListRoutes = require("./routes/blackListRoutes");
+
 const { initializeDatabase } = require("./config/database");
 
 // Configuração das rotas
@@ -51,6 +53,8 @@ app.use("/countries", countryRoutes);
 app.use("/prices", pricesRoutes);
 app.use("/cities", cityRoutes);
 app.use("/email", emailRoutes);
+app.use("/api/blacklist", blackListRoutes);
+
 
 // Configuração dos WebSockets
 io.on("connection", (socket) => {

@@ -95,3 +95,72 @@
 .user-icon {
     font-size: 1.2rem;
 }
+
+
+
+
+/* Remover fundo branco e bordas */
+.drawer-accordion .accordion-item {
+    background-color: darkred !important;
+    border: none;
+}
+
+.drawer-accordion .accordion-header {
+    background-color: darkred !important;
+    padding: 0;
+}
+
+/* Corrige o botão do Accordion para se parecer com os outros links */
+.drawer-accordion .accordion-button {
+    background-color: darkred !important;
+    color: white;
+    font-weight: normal;
+    padding: 0.75rem 1.50rem;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+}
+
+
+.drawer-accordion .accordion-button::after {
+    filter: invert(1); /* Seta branca */
+}
+
+/* Quando aberto */
+.drawer-accordion .accordion-button:not(.collapsed) {
+    background-color: darkred !important;
+    color: white;
+}
+
+/* Corpo do accordion */
+.drawer-accordion .accordion-body {
+    background-color: darkred !important;
+    padding: 0.5rem 1rem;
+    color: white;
+}
+
+/* Submenus */
+.drawer-link {
+    background-color: darkred !important;
+    padding-left: 1.5rem !important;
+    color: white !important;
+}
+
+/* Hover opcional para feedback visual */
+.drawer-link:hover {
+    background-color: darkred !important;
+    color: #fff !important;
+}
+
+/* Remove o contorno azul/roxo ao clicar */
+.drawer-accordion .accordion-button:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+/* Remove qualquer cor residual de fundo ao clicar/selecionar */
+.drawer-accordion .accordion-button:active,
+.drawer-accordion .accordion-button:focus-visible {
+    background-color: darkred !important;
+    color: white !important;
+}

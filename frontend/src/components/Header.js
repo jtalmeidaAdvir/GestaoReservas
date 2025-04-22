@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Offcanvas, Nav } from "react-bootstrap";
+
+import { Offcanvas, Nav, Accordion } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity, FaBook, FaTripadvisor, FaFileImport, FaTicketAlt } from "react-icons/fa";
+import { FaCalendarAlt, FaBus, FaSignOutAlt, FaBars, FaUser, FaSuitcase, FaCity, FaBook, FaTripadvisor, FaFileImport, FaTicketAlt, FaTable } from "react-icons/fa";
 import logo from "../assets/logo.svg";
 import "../styles/header.css"; // Importação do CSS
 
@@ -55,29 +56,47 @@ const Header = ({ isAuthenticated }) => {
                 <Offcanvas.Body>
                     <Nav className="flex-column">
                     <Nav.Link as={Link} to="/searchtrip" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaFileImport className="drawer-icon" /> Lançar Reservas
-                        </Nav.Link>
-                        <Nav.Link as={Link} to="/agenda" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaCalendarAlt className="drawer-icon" /> Agenda
+                            <FaFileImport className="drawer-icon" /> Nova Reserva
                         </Nav.Link>
                         <Nav.Link as={Link} to="/reservations" className="drawer-link" onClick={handleCloseDrawer}>
                             <FaTripadvisor className="drawer-icon" /> Listagens
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/trippage" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaSuitcase className="drawer-icon" /> Viagens
+                        <Nav.Link as={Link} to="/agenda" className="drawer-link" onClick={handleCloseDrawer}>
+                            <FaCalendarAlt className="drawer-icon" /> Agenda
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/autocarros" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaBus className="drawer-icon" /> Autocarros
-                        </Nav.Link>
-                        <Nav.Link as={Link} to="/countries" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaCity className="drawer-icon" /> Países
-                        </Nav.Link>
-                        <Nav.Link as={Link} to="/prices" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaTicketAlt className="drawer-icon" /> Preços Bilhetes
-                        </Nav.Link>
-                        <Nav.Link as={Link} to="/manual" className="drawer-link" onClick={handleCloseDrawer}>
-                            <FaBook className="drawer-icon" /> Manual Utilização
-                        </Nav.Link>
+                       
+                        <Accordion alwaysOpen flush className="drawer-accordion">
+  <Accordion.Item eventKey="0">
+    <Accordion.Header>
+      <div className="d-flex align-items-center gap-3">
+        <FaTable /> {/* Ícone das tabelas */}
+        <span>Tabelas</span>
+      </div>
+    </Accordion.Header>
+    <Accordion.Body className="p-0 m-0">
+      <Nav className="flex-column">
+        <Nav.Link as={Link} to="/trippage" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaSuitcase className="drawer-icon" /> Viagens
+        </Nav.Link>
+        <Nav.Link as={Link} to="/autocarros" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaBus className="drawer-icon" /> Autocarros
+        </Nav.Link>
+        <Nav.Link as={Link} to="/countries" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaCity className="drawer-icon" /> Países
+        </Nav.Link>
+        <Nav.Link as={Link} to="/prices" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaTicketAlt className="drawer-icon" /> Preços Bilhetes
+        </Nav.Link>
+        <Nav.Link as={Link} to="/manual" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaBook className="drawer-icon" /> Manual Utilização
+        </Nav.Link>
+      </Nav>
+    </Accordion.Body>
+  </Accordion.Item>
+</Accordion>
+
+
+
                         {/*<Nav.Link as={Link} to="/importador" className="drawer-link" onClick={handleCloseDrawer}>
                             <FaFileImport className="drawer-icon" /> Importador
                         </Nav.Link>*/}

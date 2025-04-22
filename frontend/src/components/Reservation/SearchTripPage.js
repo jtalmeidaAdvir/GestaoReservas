@@ -6,20 +6,51 @@ import {
   MenuItem,
   Select,
   Autocomplete,
+  Checkbox,
+  FormControlLabel, 
   Button,
   FormControl,
   InputLabel,
   Modal,
   Grid,
 } from "@mui/material";
+import DeleteIcon from '@mui/icons-material/Delete';
+import CancelIcon from '@mui/icons-material/Cancel';
+import SaveIcon from '@mui/icons-material/Save';
+import PrintIcon from '@mui/icons-material/Print';
+import EditIcon from '@mui/icons-material/Edit';
+
 import { DataGrid } from "@mui/x-data-grid";
 import SelectReturnSeatModal from "./SelectReturnSeatModal";
 import { fetchPrices } from "../../services/apiPrices"; // Ajusta o caminho se necessário
 
+import handlePrintTicket from "../Reservation/Tickets/PrintTicket";
+import handlePrintAllTickets from "../Reservation/Tickets/PrintAllTickets";
+
+
 const SearchTripPage = () => {
   // Estados principais da reserva
   const [reservations, setReservations] = useState([]);
+  const [isChild, setIsChild] = useState(false); 
   const [loading, setLoading] = useState(true);
+  const [editingPassengerIndex, setEditingPassengerIndex] = useState(null);
+
+
+
+  // Propriedades comuns para os campos: largura, texto a negrito e espaçamento reduzido
+  const commonFieldProps = {
+    size: "small",
+    sx: {
+      width: "220px",
+      "& .MuiInputBase-input": { fontWeight: "bold" },
+      "& .MuiInputLabel-root": { fontWeight: "bold" },
+      m: 0,
+    },
+    InputProps: { style: { fontWeight: "bold" } },
+    InputLabelProps: { style: { fontWeight: "bold" } },
+  };
+  
+
   const [selectedReservation, setSelectedReservation] = useState({
     nomePassageiro: "",
     apelidoPassageiro: "",
@@ -49,6 +80,8 @@ const SearchTripPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Lista de passageiros adicionais
+  const [multiPassengerOptions, setMultiPassengerOptions] = useState({});
+
   const [multiPassengers, setMultiPassengers] = useState([]);
 
   // Estados para a criação da viagem de volta
@@ -66,18 +99,452 @@ const SearchTripPage = () => {
   // Preço base do bilhete selecionado (no formulário principal)
   const [precoBase, setPrecoBase] = useState(0);
 
+  const [entradaOptions, setEntradaOptions] = useState([]);
+  const [saidaOptions, setSaidaOptions] = useState([]);
+  
+  const [totalReserva, setTotalReserva] = useState(0);
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  const [mainReservation, setMainReservation] = useState({});
+  const [subPassengers, setSubPassengers] = useState([]);
+
+  const [isManualPriceSelection, setIsManualPriceSelection] = useState(false);
+
+
+  useEffect(() => {
+    const totalAdicionais = multiPassengers.reduce((acc, p) => {
+      return acc + (parseFloat(p.preco) || 0);
+    }, 0);
+  
+    setTotalReserva((totalAdicionais).toFixed(2));
+  }, [selectedReservation.preco, multiPassengers]);
+  
+
+  const gerarProximaSubReserva = () => {
+    if (multiPassengers.length === 0) return "";
+  
+    // Encontra o código base (ex: "0001")
+    const principal = multiPassengers.find(p => p.reserva && !p.reserva.includes("."));
+    if (!principal || !principal.reserva) return "";
+  
+    const base = principal.reserva;
+  
+    // Verifica quantas subreservas já existem
+    const subreservas = multiPassengers.filter(p => p.reserva?.startsWith(`${base}.`));
+    const numerosUsados = subreservas.map(s => {
+      const partes = s.reserva.split(".");
+      return parseInt(partes[1]) || 0;
+    });
+  
+    const proximoNumero = numerosUsados.length > 0
+      ? Math.max(...numerosUsados) + 1
+      : 1;
+  
+    return `${base}.${proximoNumero}`;
+  };
+
+
+  // -------------------------------------------------------------
+// Imprime 1 bilhete, gerando nº de bilhete e marcando impresso
+// -------------------------------------------------------------
+const handlePrintAndMarkSingle = async (row) => {
+  try {
+    // 0) Encontrar o id se ainda não existir
+    if (!row.id) {
+      const dbRow = reservations.find(
+        (r) => r.reserva === row.reserva && r.tripId === row.tripId
+      );
+      if (dbRow) row.id = dbRow.id;
+    }
+
+    // 1) Se continuar sem id, avisa e sai
+    if (!row.id) {
+      alert("Esta reserva ainda não está gravada. Guarda antes de imprimir.");
+      return;
+    }
+
+    // 2) Já impresso?
+    if (row.impresso === true || row.impresso === "1") {
+      alert("Este bilhete já foi impresso.");
+      return;
+    }
+
+    // 3) Próximo nº de bilhete
+    const resp = await fetch("http://localhost:3010/reservations/lastTicket");
+    if (!resp.ok) throw new Error("Falha a obter último nº de bilhete");
+    const last = await resp.json();
+    row.bilhete = String(parseInt(last.bilhete, 10) + 1).padStart(4, "0");
+    row.impresso = 1;
+
+    // 4) Gravar alteração (PUT)
+    await handleRowEdit(row);
+
+    // 5) Gerar PDF
+    const tripDate = availableTrips.find(t => t.id === row.tripId)?.dataviagem;
+    await handlePrintTicket(row, tripDate, formatDate);
+
+  } catch (e) {
+    console.error("Erro ao imprimir bilhete:", e);
+    alert("Erro ao imprimir bilhete.");
+  }
+};
+
+
+  
+
 
   const tripOptions = availableTrips.map((trip) => {
     const dateStr = new Date(trip.dataviagem).toLocaleDateString("pt-PT");
+  
+    // descobrir a cidade de origem dentro do array cities
+    const origemCity = cities.find(
+      (c) => c.nome.toLowerCase() === trip.origem.toLowerCase()
+    );
+  
+    // normalizar o nome do país (sem acentos e em minúsculas)
+    const paisOrigem = origemCity?.Country?.nome
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase() || "";
+  
     return {
       id: trip.id,
-      label: `${trip.origem} → ${trip.destino} | ${dateStr}`,
+      label: `${dateStr}`,
       origem: trip.origem,
       destino: trip.destino,
-      dateStr: dateStr,
+      dateStr,
+      paisOrigem,          //  <-- novo campo
     };
   });
+
+
+  // Datas da viagem de volta (origen/destino trocados em relação à ida)
+/* utilitário: devolve o nome do país (sem acentos, em minúsculas)
+   a partir do nome da cidade                                       */
+   const getPaisNormalizado = (cityName) => {
+    const c = cities.find(
+      (c) => c.nome?.toLowerCase() === cityName?.toLowerCase()
+    );
+    return c?.Country?.nome
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase() || "";
+  };
   
+  /* opções para o campo Data Volta – agora filtradas por PAÍS */
+  const returnTripOptions = React.useMemo(() => {
+    if (!selectedReservation.tripId) return [{ id: "Aberto", label: "Aberto" }];
+  
+    const ida = availableTrips.find(t => t.id === selectedReservation.tripId);
+    if (!ida) return [{ id: "Aberto", label: "Aberto" }];
+  
+    const paisOrigIda = getPaisNormalizado(ida.origem);
+    const paisDestIda = getPaisNormalizado(ida.destino);
+  
+    const viagensInversas = availableTrips
+      .filter(t => {
+        const paisOrigT = getPaisNormalizado(t.origem);
+        const paisDestT = getPaisNormalizado(t.destino);
+        return paisOrigT === paisDestIda && paisDestT === paisOrigIda;
+      })
+      .sort((a, b) => new Date(a.dataviagem) - new Date(b.dataviagem))
+      .map(t => ({
+        id:    t.id,
+        label: new Date(t.dataviagem).toLocaleDateString("pt-PT"),
+        data:  t.dataviagem,
+      }));
+  
+    /* devolve "Aberto" + viagens ordenadas */
+    return [{ id: "Aberto", label: "Aberto" }, ...viagensInversas];
+  }, [selectedReservation.tripId, availableTrips, cities]);
+  
+  
+
+  
+  // Elimina a reserva na BD (move‑a para ListaNegra) e actualiza a UI
+const handleDeletePassenger = async (row, index) => {
+  const ok = window.confirm(
+    `Tens a certeza que queres eliminar a reserva ${row.reserva}?`
+  );
+  if (!ok) return;
+
+  try {
+    // 👉 ajusta a rota se o teu ficheiro de routes usar outro path
+    const resp = await fetch(
+      `http://localhost:3010/reservations/delete/${row.reserva}`,
+      { method: "DELETE" }
+    );
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(txt || "Erro ao eliminar reserva");
+    }
+
+    // 1) retira do array visível
+    setMultiPassengers((prev) => prev.filter((_, i) => i !== index));
+
+    // 2) refresca a lista global
+    fetchAllReservations();
+
+    alert(`Reserva ${row.reserva} eliminada com sucesso!`);
+  } catch (err) {
+    console.error("Erro ao eliminar reserva:", err);
+    alert("Falhou a eliminação da reserva.");
+  }
+};
+
+
+
+// Converte uma data ISO (yyyy‑mm‑dd…) para dd/mm/aaaa
+const formatDate = (iso) =>
+  new Date(iso).toLocaleDateString("pt-PT");
+
+// Recebe a reserva modificada (bilhete atribuído, impresso=1)  
+// e reaproveita a tua saveReservation + refresh
+const handleRowEdit = async (updatedRow) => {
+  await saveReservation(updatedRow);   // PUT no backend
+  await fetchAllReservations();        // refresca a lista
+};
+
+
+
+  // devolve o 1.º lugar que continua livre
+const getNextFreeSeat = () => {
+  return availableSeats.find(
+    s => !multiPassengers.some(p => p.lugar === s)
+  ) || "";        // "" caso já não haja lugares
+};
+
+
+
+const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild) => {
+  const temVolta = voltaValue &&
+    voltaValue.trim() !== "" &&
+    (voltaValue.trim().toLowerCase() !== "aberto" ? true : true); // "aberto" é tratado como ida e volta
+
+  let sortedPrices = getPricesForTrip(tripId)
+    .map(p => ({
+      ...p,
+      descNorm: p.descricao.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
+    }))
+    .filter(p => childFlag ? p.descNorm.includes("crianca") : p.descNorm.includes("adulto"))
+    .sort((a, b) => getBilheteOrder(a.descricao) - getBilheteOrder(b.descricao));
+
+  if (!sortedPrices.length) return;
+
+  let chosen;
+  if (temVolta) {
+    chosen = sortedPrices.find(p => p.descNorm.includes("ida e volta"));
+  }
+
+  if (!chosen) {
+    chosen = sortedPrices.find(p => p.descNorm.includes("ida") && !p.descNorm.includes("ida e volta"));
+  }
+
+  if (!chosen) {
+    chosen = sortedPrices[0];
+  }
+
+  if (!chosen) return;
+
+  const base = parseFloat(chosen.valor || 0);
+  const moeda = getMoedaByCountryId(chosen.countryId);
+
+
+  if (isManualPriceSelection) return; // ⛔️ se o utilizador escolheu, não alteras nada
+
+
+  setSelectedReservation(prev => ({
+    
+    ...prev,
+    bilhete: chosen.id,
+    preco: base.toFixed(2),
+    moeda,
+  }));
+
+  setPrecoBase(base);
+};
+
+  
+  
+  
+  
+  
+  const additionalPassengerColumns = [
+    {
+      field: "reserva",
+      headerName: "Reserva",
+      width: 100,
+      renderCell: ({ value }) => {
+        const code = String(value ?? "");
+        return code.includes(".") ? "*" : code;   // sub‑reservas → *, principal → 0004
+      },
+    },
+    
+
+    
+    {
+      field: "tripId",
+      headerName: "Viagem",
+      width: 200,
+      renderCell: (params) => {
+        const trip = tripOptions.find((opt) => opt.id === params.value);
+        return trip ? trip.label : params.value;
+      },
+    },
+    { field: "nomePassageiro", headerName: "Nome", width: 150 },
+    { field: "apelidoPassageiro", headerName: "Apelido", width: 150 },
+    { field: "entrada", headerName: "Entrada", width: 130 },
+    { field: "saida", headerName: "Saída", width: 130 },
+    { field: "preco", headerName: "Total Bilhete", width: 120 },
+    {
+      field: "actions",
+      headerName: "Ações",
+      width: 180,
+      renderCell: (params) => {
+        const row = params.row;                               // <‑‑ agora existe
+        const tripDate = availableTrips.find(                 // <‑‑ idem
+          (t) => t.id === row.tripId
+        )?.dataviagem;
+        const index = params.row._index;
+        return (
+          <>
+            
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: "darkred", color: "white", minWidth: 30, mr: 1 }}
+              onClick={() => {
+                const p = multiPassengers[index];
+              
+                // 1) carrega os dados do passageiro a editar
+                setSelectedReservation({
+                  ...p,
+                  preco: p.preco,
+                  precoBase: parseFloat(p.precoBase || 0),
+                  id: p.id,
+                });
+              
+                /* ---- NÃO precisamos de validar o lugar aqui ---- */
+              
+                setPrecoBase(parseFloat(p.precoBase || 0));
+                setEditingPassengerIndex(index);
+              
+                // mantém os seats actuais mas não altera o lugar dele
+                if (p.tripId) handleTripSelect(p.tripId, true);
+              }}
+              
+            >
+              <EditIcon fontSize="small" />
+            </Button>
+
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ backgroundColor: "darkred", color: "white",mr: 1, minWidth: 30 }}
+              disabled={row.impresso === "1" || row.impresso === true}
+              onClick={() => handlePrintAndMarkSingle(row)}
+            >
+              <PrintIcon fontSize="small" />
+            </Button>
+
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              onClick={() => handleDeletePassenger(row, index)}
+              sx={{ minWidth: 30,  backgroundColor: "darkred", color: "white", }}
+            >
+              <DeleteIcon fontSize="small" />
+            </Button>
+
+
+
+            
+          </>
+        );
+      },
+    },
+   
+  ];
+  
+
+  const additionalPassengerRows = multiPassengers.map((p, i) => ({
+    ...p,
+    _rowId: i,     // apenas para o DataGrid
+    _index: i,     // continua a ser usado nos botões
+  }));
+  
+  useEffect(() => {
+    // Quando muda a viagem, apaga o bilhete atual para evitar "conflitos"
+    setSelectedReservation((prev) => ({ ...prev, bilhete: "" }));
+  }, [selectedReservation.tripId]);
+  
+  useEffect(() => {
+    if (
+      selectedReservation.tripId &&
+      selectedReservation.entrada &&
+      selectedReservation.saida
+    ) {
+      preencherBilheteAutomaticamente(
+        selectedReservation.tripId,
+        selectedReservation.volta,
+        isChild
+      );
+    }
+  }, [
+    selectedReservation.tripId,
+    selectedReservation.entrada,
+    selectedReservation.saida,
+    selectedReservation.volta,
+    isChild, // Adiciona esta dependência se ainda não tiveres
+  ]);
+  
+  
+  
+  
+  useEffect(() => {
+    if (!selectedReservation.tripId || !precoBase) return;
+    if (isManualPriceSelection) return; // 👈 ignora se foi seleção manual
+  
+    const bilhetesPossiveis = getPricesForTrip(selectedReservation.tripId);
+    const matchingPrice = bilhetesPossiveis.find(
+      (p) => parseFloat(p.valor) === parseFloat(precoBase)
+    );
+  
+    if (matchingPrice) {
+      setSelectedReservation((prev) => ({
+        ...prev,
+        bilhete: matchingPrice.id,
+        moeda: getMoedaByCountryId(matchingPrice.countryId),
+      }));
+    } else {
+      setSelectedReservation((prev) => ({
+        ...prev,
+        bilhete: "",
+      }));
+    }
+  }, [precoBase, selectedReservation.tripId, isManualPriceSelection]);
+  
+
+  
+
+  const getCidadesDoPaisOposto = (cidadeSelecionada) => {
+    const cidade = cities.find(c => c.nome === cidadeSelecionada);
+    if (!cidade || !cidade.Country) return [];
+  
+    const paisOrigem = cidade.Country.nome
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const paisDestino = paisOrigem === "portugal" ? "suica" : "portugal";
+  
+    return cities.filter(
+      c => c.Country &&
+      c.Country.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === paisDestino
+    );
+  };
+  
+
 
   const getPricesForTrip = (tripId) => {
     console.log(">> getPricesForTrip tripId:", tripId);
@@ -105,7 +572,33 @@ const SearchTripPage = () => {
     return filtered;
   };
   
-
+  function getBilheteOrder(desc) {
+    desc = desc
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  
+    // 1 – Adulto Ida
+    if (desc.includes("adulto") && desc.includes("ida") && !desc.includes("volta"))
+      return 1;
+  
+    // 2 – Adulto Ida e Volta
+    if (desc.includes("adulto") && desc.includes("ida e volta"))
+      return 2;
+  
+    // 3 – Criança Ida
+    if (desc.includes("crianca") && desc.includes("ida") && !desc.includes("volta"))
+      return 3;
+  
+    // 4 – Criança Ida e Volta
+    if (desc.includes("crianca") && desc.includes("ida e volta"))
+      return 4;
+  
+    return 99;
+  }
+  
+  
+  
+  
 
   // Carregar lista de preços ao montar o componente
   useEffect(() => {
@@ -170,33 +663,34 @@ const SearchTripPage = () => {
   };
   
 
-  // Abre modal para criar reserva de volta
-  const openReturnModal = async (
-    reservaBase,
-    reservaData = selectedReservation
-  ) => {
-    if (!reservaData.volta) {
-      alert("Por favor, preencha a data de regresso na reserva.");
-      return;
-    }
+// Abre modal para criar reserva de volta
+const openReturnModal = async (
+  reservaBase,
+  reservaData = selectedReservation
+) => {
+  if (!reservaData.volta || reservaData.volta.toLowerCase() === "aberto") {
+    // Não procura viagem de regresso se for "Aberto"
+    return;
+  }
 
-    const tripIdReturn = await getReturnTripId(reservaData);
-    const tripData = availableTrips.find(
-      (trip) => trip.id === reservaData.tripId
-    );
+  const tripIdReturn = await getReturnTripId(reservaData);
+  const tripData = availableTrips.find(
+    (trip) => trip.id === reservaData.tripId
+  );
 
-    if (tripIdReturn && tripData) {
-      setReturnReservationData({
-        ...reservaData,
-        reserva: reservaBase,
-        tripReturnId: tripIdReturn,
-        mainTripDate: tripData.dataviagem,
-      });
-      setModalReturnOpen(true);
-    } else {
-      alert("Nenhuma viagem de regresso encontrada.");
-    }
-  };
+  if (tripIdReturn && tripData) {
+    setReturnReservationData({
+      ...reservaData,
+      reserva: reservaBase,
+      tripReturnId: tripIdReturn,
+      mainTripDate: tripData.dataviagem,
+    });
+    setModalReturnOpen(true);
+  } else {
+    alert("Nenhuma viagem de regresso encontrada.");
+  }
+};
+
 
   // Obter o tripId da viagem de regresso
   const getReturnTripId = async (reservation) => {
@@ -275,6 +769,7 @@ const SearchTripPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...updatedReservationData,
+          
           createdBy: localStorage.getItem("email") || "admin",
         }),
       });
@@ -305,35 +800,69 @@ const SearchTripPage = () => {
   };
 
   // Ao selecionar uma viagem, busca os lugares disponíveis
-  const handleTripSelect = async (selectedTripId) => {
-    const trip = availableTrips.find((t) => t.id === selectedTripId);
-    let moeda = "€";
-    const origemCity = cities.find(
-      (c) => c.nome.toLowerCase() === trip.origem?.toLowerCase()
-    );
-    const pais = origemCity?.Country?.nome
-      ?.normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-    if (pais === "suica") moeda = "Fr";
+// utilitário — devolve todas as cidades de um país
+const getCitiesByCountryId = (countryId) =>
+  cities.filter((c) => c.countryId === countryId);
 
-    try {
-      const res = await fetch(`http://localhost:3010/reservations/trip/${selectedTripId}`);
-      const data = await res.json();
-      const seats = Array.isArray(data.freeSeats)
-        ? data.freeSeats.sort((a, b) => a - b)
-        : [];
-      setAvailableSeats(seats);
-      setSelectedReservation((prev) => ({
-        ...prev,
-        tripId: selectedTripId,
-        moeda,
-        lugar: seats[0] || "",
-      }));
-    } catch (error) {
-      console.error("Erro ao buscar lugares disponíveis:", error);
-    }
-  };
+// ────────────────────────────────────────────────
+const handleTripSelect = async (selectedTripId, keepSeat = false) => {
+  /* 1.  encontrar a viagem escolhida */
+  const trip = availableTrips.find((t) => t.id === selectedTripId);
+  if (!trip) return;
+
+  /* 2.  descobrir as cidades de origem e destino da viagem */
+  const origemCity  = cities.find(
+    (c) => c.nome.toLowerCase() === trip.origem?.toLowerCase()
+  );
+  const destinoCity = cities.find(
+    (c) => c.nome.toLowerCase() === trip.destino?.toLowerCase()
+  );
+
+  /* 3.  definir a moeda (mantém‑se a tua lógica) */
+  let moeda = "€";
+  const paisOrigem = origemCity?.Country?.nome
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (paisOrigem === "suica") moeda = "Fr";
+
+  /* 4.  filtrar as listas de Entrada e Saída */
+  setEntradaOptions(
+    origemCity ? getCitiesByCountryId(origemCity.countryId) : []
+  );
+  setSaidaOptions(
+    destinoCity ? getCitiesByCountryId(destinoCity.countryId) : []
+  );
+
+  /* 5.  buscar lugares livres como já fazias */
+  try {
+    const res = await fetch(
+      `http://localhost:3010/reservations/trip/${selectedTripId}`
+    );
+    const data  = await res.json();
+    const seats = Array.isArray(data.freeSeats)
+      ? data.freeSeats.sort((a, b) => a - b)
+      : [];
+    setAvailableSeats(seats);
+
+    /* 6.  actualizar a reserva seleccionada
+          (pré‑preenche Entrada/Saída se quiseres)           */
+    setSelectedReservation((prev) => ({
+      ...prev,
+      tripId: selectedTripId,
+      moeda,
+
+      ...(keepSeat ? {} : { lugar: seats[0] || "" }),
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar lugares disponíveis:", error);
+  }
+};
+
+  
+  
+  
+  
 
   // Carrega dados iniciais: cidades, viagens, reservas, países
   useEffect(() => {
@@ -344,6 +873,9 @@ const SearchTripPage = () => {
           ? data.sort((a, b) => a.nome.localeCompare(b.nome))
           : [];
         setCities(sorted);
+        setEntradaOptions(sorted);
+setSaidaOptions(sorted);
+
       })
       .catch((err) => {
         console.error("Erro ao buscar cidades:", err);
@@ -360,24 +892,36 @@ const SearchTripPage = () => {
         setCountries([]);
       });
 
-    fetch("http://localhost:3010/trips")
+      fetch("http://localhost:3010/trips")
       .then((res) => res.json())
       .then((data) => {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0); // ignora a hora, só compara datas
+    
         const sortedTrips = data
-          .filter((trip) => !!trip.dataviagem)
+          .filter((trip) => {
+            if (!trip.dataviagem) return false;
+            const dataViagem = new Date(trip.dataviagem);
+            dataViagem.setHours(0, 0, 0, 0);
+            return dataViagem >= hoje;
+          })
           .sort((a, b) => new Date(a.dataviagem) - new Date(b.dataviagem));
+    
         setAvailableTrips(sortedTrips);
       })
-      .catch((err) => {
-        console.error("Erro ao buscar viagens:", err);
-      });
+    
   }, []);
 
   const fetchAllReservations = async () => {
     try {
       const res = await fetch("http://localhost:3010/reservations/all");
       const data = await res.json();
-      const sorted = data.sort(
+      // Garante que cada reserva tem a propriedade tripId
+      const reservationsWithTripId = data.map(r => ({
+        ...r,
+        tripId: r.tripId || (r.Trip && r.Trip.id) || null,
+      }));
+      const sorted = reservationsWithTripId.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
       setReservations(sorted);
@@ -387,6 +931,11 @@ const SearchTripPage = () => {
       setLoading(false);
     }
   };
+  
+  
+  
+   
+  
 
   useEffect(() => {
     fetchAllReservations();
@@ -397,12 +946,11 @@ const SearchTripPage = () => {
     { field: "reserva", headerName: "Reserva", width: 100 },
     { field: "preco", headerName: "Preço", width: 80 },
     { field: "moeda", headerName: "Moeda", width: 80 },
-    
+    { field: "dataviagem", headerName: "Data da Viagem", width: 130 },
     { field: "apelidoPassageiro", headerName: "Apelido", width: 150 },
     { field: "nomePassageiro", headerName: "Nome", width: 150 },
     { field: "entrada", headerName: "Entrada", width: 120 },
     { field: "saida", headerName: "Saída", width: 120 },
-    { field: "dataviagem", headerName: "Data da Viagem", width: 130 },
     { field: "volta", headerName: "Volta", width: 130 },
     { field: "telefone", headerName: "Tel.", width: 130 },
     { field: "email", headerName: "Email", width: 200 },
@@ -435,6 +983,7 @@ const SearchTripPage = () => {
     const email = localStorage.getItem("email") || "admin";
     let reservaCode = reservationData.reserva;
 
+    
     // Gerar código de reserva caso seja nova e não tenha ponto (p. ex. "0001")
     if (!reservationData.id && (!reservaCode || reservaCode.indexOf(".") === -1)) {
       try {
@@ -459,10 +1008,28 @@ const SearchTripPage = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...reservationData,
-        bilhete: reservationData.bilhete,
+       
         reserva: reservaCode,
+        obs: reservationData.obs,
+        entrada: reservationData.entrada,
+        saida: reservationData.saida,
+        lugar: reservationData.lugar,
+        carro: reservationData.carro,
+        telefone: reservationData.telefone,
+        nomePassageiro: reservationData.nomePassageiro,
+        apelidoPassageiro: reservationData.apelidoPassageiro,
+        email: reservationData.email,
+        tripId: reservationData.tripId,
+        volta: reservationData.volta,
+        valorCarro: reservationData.valorCarro,
+        valorVolume: reservationData.valorVolume,
+        impresso: reservationData.impresso,
+        preco: reservationData.preco,
+        precoBase: reservationData.precoBase,
+        moeda: reservationData.moeda,
         [reservationData.id ? "updatedBy" : "createdBy"]: email,
       }),
+      
     });
 
     return response.ok;
@@ -470,752 +1037,760 @@ const SearchTripPage = () => {
 
   // Handler para salvar a reserva principal e as reservas adicionais
   const handleSaveAll = async () => {
-    let blockCode = selectedReservation.reserva;
+    if (multiPassengers.length === 0) {
+      alert("Adiciona pelo menos uma reserva à lista.");
+      return;
+    }
 
-    // Se houver passageiros adicionais e ainda não tivermos blockCode definido, gera-se aqui
-    if (multiPassengers.length > 0 && !blockCode) {
-      try {
+      /* ----------------------------------------------------------
++   *   CASO 100 % UPDATE → evita gerar novo bloco/reserva
++   * ---------------------------------------------------------- */
+  const soActualizacoes = multiPassengers.every(p => p.id);
+  if (soActualizacoes) {
+    for (const p of multiPassengers) {
+      const ok = await saveReservation(p);   // PUT
+      if (!ok) {
+        alert("Falhou a actualização de uma das reservas.");
+        return;
+      }
+    }
+    alert("Reservas actualizadas com sucesso!");
+    fetchAllReservations();
+        return;
+  }
+  
+    try {
+      // ------------------------------------------------------------------------
+      // 1) ENCONTRAR QUAL É A RESERVA PRINCIPAL NO ARRAY
+      // ------------------------------------------------------------------------
+      // Critério comum: a reserva principal é a que não tem ponto (ex: "0001").
+      // Se todas tiverem, então pegamos a primeira e extraímos o prefixo.
+  
+      let mainIndex = multiPassengers.findIndex((r) => {
+        return r.reserva && !r.reserva.includes(".");
+      });
+  
+      // Se não encontrou nenhuma que não tenha ".", assume a [0] por padrão
+      if (mainIndex === -1) {
+        mainIndex = 0;
+      }
+  
+      // Agora, tens o objecto principal
+      const mainReservationObj = multiPassengers[mainIndex];
+  
+      // ------------------------------------------------------------------------
+      // 2) DETERMINAR O PREFIXO DO CÓDIGO (blockCode)
+      // ------------------------------------------------------------------------
+      let blockCode = ""; 
+      if (mainReservationObj.reserva) {
+        // Se a reserva for algo tipo "0001" ou "0001.1"
+        // extrai sempre o prefixo antes do ponto
+        blockCode = mainReservationObj.reserva.split(".")[0];
+      }
+  
+      // Se a reserva for nova (sem ID) e sem blockCode, geramos agora
+      if (!mainReservationObj.id && !blockCode) {
         const lastRes = await fetch("http://localhost:3010/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         blockCode = String(lastNumber + 1).padStart(4, "0");
-
-        // Reserva principal
-        const mainReservation = { ...selectedReservation, reserva: blockCode };
-        // Passageiros adicionais com a reserva -> "blockCode.1", "blockCode.2", etc.
-        const additionalReservations = multiPassengers.map((p, index) => ({
-          ...p,
-          reserva: `${blockCode}.${index + 1}`,
-        }));
-
-        // Salva a reserva principal
-        const principalSaved = await saveReservation(mainReservation);
-        if (!principalSaved) {
-          alert("Erro ao salvar a reserva principal.");
+      }
+  
+      // ------------------------------------------------------------------------
+      // 3) REORDENAR O ARRAY => principal + resto dos passageiros
+      // ------------------------------------------------------------------------
+      const reordered = [
+        mainReservationObj,
+        ...multiPassengers.filter((_, i) => i !== mainIndex),
+      ];
+  
+      // ------------------------------------------------------------------------
+      // 4) CONSTRUIR O OBJECTO PRINCIPAL SEM PONTO NO 'reserva'
+      // ------------------------------------------------------------------------
+      const mainReservation = {
+        ...mainReservationObj,
+        // Garante que o main terá o prefixo sem ponto
+        reserva: blockCode,
+      };
+  
+      // ------------------------------------------------------------------------
+      // 5) CONSTRUIR AS SUBRESERVAS
+      // ------------------------------------------------------------------------
+      // Pega todos os que não são a primeira posição do reordered
+      const additionalReservations = reordered.slice(1).map((passenger, index) => {
+        // Se o passenger já tiver um ID, respeitamos esse ID.
+        // Mas se a reserva não tiver ponto, damos um sufixo .1, .2, etc.
+        let subCode = passenger.reserva;
+        if (!subCode || !subCode.includes(".")) {
+          // gerar "0001.1", "0001.2", ...
+          subCode = `${blockCode}.${index + 1}`;
+        }
+        return {
+          ...passenger,
+          reserva: subCode,
+        };
+      });
+  
+      // ------------------------------------------------------------------------
+      // 6) GRAVAR A RESERVA PRINCIPAL
+      // ------------------------------------------------------------------------
+      const principalSaved = await saveReservation(mainReservation);
+      if (!principalSaved) {
+        alert("Erro ao salvar a reserva principal.");
+        return;
+      }
+  
+      // ------------------------------------------------------------------------
+      // 7) GRAVAR AS SUBRESERVAS
+      // ------------------------------------------------------------------------
+      for (const passenger of additionalReservations) {
+        const saved = await saveReservation(passenger);
+        if (!saved) {
+          alert("Erro ao criar/atualizar uma das reservas adicionais.");
           return;
         }
-        // Salva os passageiros adicionais
-        for (const passenger of additionalReservations) {
-          const saved = await saveReservation(passenger);
-          if (!saved) {
-            alert("Erro ao criar uma das reservas adicionais.");
-            return;
-          }
-        }
-
-        // Coloca na fila (returnQueue) quem tiver data de volta preenchida
-        const toOpenModals = [];
-        if (selectedReservation.volta) {
-          toOpenModals.push({ ...selectedReservation, reserva: blockCode });
-        }
-        additionalReservations.forEach((p) => {
-          if (p.volta) {
-            toOpenModals.push(p);
-          }
-        });
-        setReturnQueue(toOpenModals);
-
-        alert("Reserva (e passageiros adicionais) criados/atualizados com sucesso!");
-        fetchAllReservations();
-        // Limpa formulário
-        setSelectedReservation({
-          nomePassageiro: "",
-          apelidoPassageiro: "",
-          entrada: "",
-          saida: "",
-          telefone: "",
-          email:"",
-          carro: "",
-          obs: "",
-          preco: "",
-          moeda: "",
-          tripId: "",
-          reserva: "",
-          lugar: "",
-          volta: "",
-          valorCarro: "",
-          valorVolume: "",
-          impresso: "",
-          bilhete: "",
-        });
-        setMultiPassengers([]);
-        setAvailableSeats([]);
-      } catch (error) {
-        console.error("Erro ao gerar número da reserva (bloco):", error);
-        alert("Erro ao gerar número da reserva!");
       }
-    } else {
-      // Caso seja apenas o principal OU já exista blockCode
-      const principalSaved = await saveReservation({
-        ...selectedReservation,
-        reserva: blockCode,
-      });
-      if (principalSaved) {
-        alert("Reserva criada/atualizada com sucesso!");
-        fetchAllReservations();
+  
+      // ------------------------------------------------------------------------
+      // 8) LIMPAR ESTADOS E AVISAR
+      // ------------------------------------------------------------------------
+      alert(`Reservas criadas/actualizadas com sucesso! Nº: ${blockCode}`);
+  
+      setMultiPassengers([mainReservation, ...additionalReservations]);
 
-        // Verifica se há datas de volta tanto no principal quanto nos adicionais
-        const toOpenModals = [];
-        if (selectedReservation.volta) {
-          toOpenModals.push({ ...selectedReservation, reserva: blockCode });
-        }
-        multiPassengers.forEach((p) => {
-          if (p.volta) {
-            toOpenModals.push(p);
-          }
-        });
-        setReturnQueue(toOpenModals);
 
-        // Limpa formulário
-        setSelectedReservation({
-          nomePassageiro: "",
-          apelidoPassageiro: "",
-          entrada: "",
-          saida: "",
-          telefone: "",
-          email:"",
-          carro: "",
-          obs: "",
-          preco: "",
-          moeda: "",
-          tripId: "",
-          reserva: "",
-          lugar: "",
-          volta: "",
-          valorCarro: "",
-          valorVolume: "",
-          impresso: "",
-          bilhete: "",
-        });
-      } else {
-        alert("Erro ao salvar a reserva principal.");
+      // passageiro(s) com data de volta entram na fila
+      const passageirosComVolta = [mainReservation, ...additionalReservations]
+        .filter(p => p.volta?.trim());
+      if (passageirosComVolta.length) {
+        setReturnQueue(prev => [...prev, ...passageirosComVolta]);
       }
+
+  
+      fetchAllReservations();
+  
+    } catch (error) {
+      console.error("Erro ao gerar número da reserva (bloco):", error);
+      alert("Erro ao gerar número da reserva!");
     }
   };
+  
+  
 
   // Função utilitária para atualizar um passageiro adicional no array multiPassengers
   const updateMultiPassengerField = (index, field, value) => {
     setMultiPassengers((prevPassengers) => {
       const updated = [...prevPassengers];
       updated[index][field] = value;
-      // Se for valorCarro, valorVolume ou bilhete (priceId), recalcular:
+  
+      // Recalcula preço se necessário
       if (["valorCarro", "valorVolume", "selectedPriceId"].includes(field)) {
         const valorCarroNum = parseFloat(updated[index].valorCarro) || 0;
         const valorVolumeNum = parseFloat(updated[index].valorVolume) || 0;
         const base = parseFloat(updated[index].precoBase) || 0;
         updated[index].preco = (base + valorCarroNum + valorVolumeNum).toFixed(2);
       }
+  
+      // Atualizar opções de entrada/saída
+      if (field === "entrada") {
+        const saidaOptions = getCidadesDoPaisOposto(value);
+        setMultiPassengerOptions(prev => ({
+          ...prev,
+          [index]: { ...(prev[index] || {}), saidaOptions }
+        }));
+      }
+  
+      if (field === "saida") {
+        const entradaOptions = getCidadesDoPaisOposto(value);
+        setMultiPassengerOptions(prev => ({
+          ...prev,
+          [index]: { ...(prev[index] || {}), entradaOptions }
+        }));
+      }
+  
       return updated;
     });
   };
-
+  
+  const selectedOption = tripOptions.find(
+    (opt) => opt.id === selectedReservation.tripId
+  );
   return (
-    <Box sx={{ p: { xs: 2, md: 4 } }}>
-      <Typography variant="h4" gutterBottom>
-        Criar nova reserva
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
+  <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold" }}>
+    Gestão Reserva
+  </Typography>
+  
+
+  {selectedReservation && (
+    <Box sx={{ mt: 2, p: 1, border: "1px solid #ccc", borderRadius: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+        {selectedReservation?.id ? "Editar Reserva" : "Nova Reserva"}
       </Typography>
+      
+      {editingPassengerIndex !== null && (
+  <Typography variant="subtitle1" color="warning.main">
+    A editar: {selectedReservation.reserva || "(sem código)"}
+  </Typography>
+)}
 
-      {selectedReservation && (
-        <Box sx={{ mt: 4, p: 2, border: "1px solid #ccc", borderRadius: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            {selectedReservation?.id ? "Editar Reserva" : "Nova Reserva"}
-          </Typography>
-
-          {/* FORMULÁRIO PRINCIPAL (numa só linha, com scroll horizontal) */}
-          <Grid
-            container
-            spacing={2}
-            direction="row"
-            wrap="nowrap"
-            sx={{ overflowX: "auto" }}
-          >
-            <Grid item xs="auto">
-            <Autocomplete
-  sx={{ minWidth: 300 }}
+      {/* FORMULÁRIO PRINCIPAL */}
+      <Box sx={{ display: "flex",gap:2, p: 1 }}>
+        <Box sx={{ display: "inline-flex", gap: 2 }}>
+        <Autocomplete
   options={tripOptions}
   getOptionLabel={(option) => option.label}
-  // para permitir que o utilizador escreva livremente e filtre
   filterOptions={(options, state) =>
     options.filter((option) =>
       option.label.toLowerCase().includes(state.inputValue.toLowerCase())
     )
   }
-  // se quiser mostrar o valor atual (caso esteja a editar)
   value={
-    tripOptions.find((opt) => opt.id === selectedReservation.tripId) || null
+    selectedOption ?? {
+      id: selectedReservation.tripId,
+      label: `${selectedReservation.tripId}`,
+    }
   }
   onChange={(event, newValue) => {
     if (newValue) {
-      // Chamamos handleTripSelect com o id da viagem selecionada
       handleTripSelect(newValue.id);
     } else {
-      // Se apagar o campo, ficamos sem viagem selecionada
-      setSelectedReservation((prev) => ({
-        ...prev,
-        tripId: "",
-      }));
+      setSelectedReservation((prev) => ({ ...prev, tripId: "" }));
       setAvailableSeats([]);
     }
+  }}
+  /* ----------- ❶ pinta as linhas do menu ----------- */
+  renderOption={(props, option) => (
+    <Box
+      component="li"
+      {...props}
+      sx={{
+        color:
+          option.paisOrigem === "suica"
+            ? "red"     // origem Suíça → vermelho
+            : option.paisOrigem === "portugal"
+            ? "green"   // origem Portugal → verde
+            : "inherit" // qualquer outro país
+      }}
+    >
+      {option.label}
+    </Box>
+  )}
+  /* ----------- ❷ pinta o valor seleccionado ----------- */
+  sx={{
+    minWidth: 170,
+    "& .MuiAutocomplete-inputRoot": {
+      color:
+        selectedOption?.paisOrigem === "suica"
+          ? "red"
+          : selectedOption?.paisOrigem === "portugal"
+          ? "green"
+          : "inherit",
+    },
+    ...commonFieldProps.sx,  // mantém as tuas regras globais
   }}
   renderInput={(params) => (
     <TextField
       {...params}
-      label="Selecionar Viagem"
+      label="Selecionar Data"
       variant="outlined"
+      size="small"
+      sx={{ ...commonFieldProps.sx }}
+    />
+  )}
+/>
+
+          <Autocomplete
+            options={entradaOptions.map((c) => c.nome)}size="small"
+            value={selectedReservation.entrada || ""}
+            onChange={(e, newValue) =>
+              setSelectedReservation((prev) => {
+                const updated = { ...prev, entrada: newValue };
+                if (newValue && updated.tripId) {
+                  preencherBilheteAutomaticamente(updated.tripId, updated.volta);
+                }
+                return updated;
+              })
+            }
+            renderInput={(params) => (
+              <TextField {...params} label="Entrada"  sx={{ minWidth: 170, ...commonFieldProps.sx }} />
+            )}
+          />
+
+          <Autocomplete
+            options={saidaOptions.map((c) => c.nome)}
+            value={selectedReservation.saida || ""}
+            onChange={(e, newValue) => {
+              setSelectedReservation((prev) => ({
+                ...prev,
+                saida: newValue,
+              }));
+              setEntradaOptions(getCidadesDoPaisOposto(newValue));
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="Saída" sx={{ minWidth: 170, ...commonFieldProps.sx }} />
+            )}
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}
+            size="small"
+          />
+
+
+
+
+
+<Autocomplete
+  options={returnTripOptions}
+  getOptionLabel={(o) => o.label}
+  value={
+    returnTripOptions.find(o => o.label === selectedReservation.volta) || null
+  }
+  onChange={(e, newVal) => {
+    if (!newVal) {
+      // campo limpo manualmente
+      setSelectedReservation(prev => ({ ...prev, volta: "", tripReturnId: "" }));
+      return;
+    }
+  
+    if (newVal.id === "Aberto") {
+      // ==== opção aberta ====
+      setSelectedReservation(prev => ({
+        ...prev,
+        volta: "Aberto",
+        tripReturnId: "",
+      }));
+    } else {
+      // ==== data normal ====
+      setSelectedReservation(prev => ({
+        ...prev,
+        volta: newVal.label,
+        tripReturnId: newVal.id,
+      }));
+    }
+  
+    // recalcula bilhete se necessário
+    if (selectedReservation.tripId) {
+      preencherBilheteAutomaticamente(
+        selectedReservation.tripId,
+        newVal?.label || "",
+        isChild
+      );
+    }
+  }}
+  
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Data Volta"
+      size="small"
+      sx={{ minWidth: 170, ...commonFieldProps.sx }}
     />
   )}
 />
 
 
-            </Grid>
 
-            <Grid item xs="auto">
-              <TextField
-                label="Nome"
-                value={selectedReservation.nomePassageiro || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    nomePassageiro: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
 
-            <Grid item xs="auto">
-              <TextField
-                label="Apelido"
-                value={selectedReservation.apelidoPassageiro || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    apelidoPassageiro: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
 
-            <Grid item xs="auto">
-              <TextField
-                label="Telefone"
-                value={selectedReservation.telefone || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    telefone: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <TextField
-                label="Email"
-                value={selectedReservation.email || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    email: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <TextField
-                label="Data Volta (dd/mm/aaaa)"
-                value={selectedReservation.volta || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    volta: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <TextField
-                label="Carro"
-                value={selectedReservation.carro || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    carro: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <Autocomplete
-                options={cities.map((c) => c.nome)}
-                value={selectedReservation.entrada || ""}
-                onChange={(e, newValue) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    entrada: newValue,
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField {...params} label="Entrada" fullWidth />
-                )}
-                sx={{ minWidth: 200 }}
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <Autocomplete
-                options={cities.map((c) => c.nome)}
-                value={selectedReservation.saida || ""}
-                onChange={(e, newValue) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    saida: newValue,
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField {...params} label="Saída" fullWidth />
-                )}
-                sx={{ minWidth: 200 }}
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-            <FormControl fullWidth sx={{ minWidth: 150 }}>
+<FormControl fullWidth sx={{ ...commonFieldProps.sx }}>
   <InputLabel>Bilhete</InputLabel>
   <Select
-    // Em vez de value={selectedPriceId}, use:
+    key={`${selectedReservation.tripId}-${selectedReservation.moeda}`}
     value={selectedReservation.bilhete || ""}
     label="Bilhete"
     onChange={(e) => {
+      setIsManualPriceSelection(true); // ← marca como seleção manual
       const priceId = e.target.value;
-      // Atualizamos o campo bilhete dentro do selectedReservation
       const price = prices.find((p) => p.id === priceId) || {};
       const base = parseFloat(price.valor || 0);
-
+    
       setSelectedReservation((prev) => ({
         ...prev,
-        bilhete: priceId,       // <--- Guardar o bilhete aqui
-        preco: base.toFixed(2), // recalcula o preco base
-        moeda: getMoedaByCountryId(price.countryId)
-            // ou set com getMoedaByCountryId, se quiser
+        bilhete: priceId,
+        preco: base.toFixed(2),
+        moeda: getMoedaByCountryId(price.countryId),
       }));
       setPrecoBase(base);
     }}
+    
+    size="small"
+    {...commonFieldProps}
   >
-    {getPricesForTrip(selectedReservation.tripId).map((price) => (
-  <MenuItem key={price.id} value={price.id}>
-    {/* chama a função para descobrir a moeda */}
-    {price.valor} {getMoedaByCountryId(price.countryId)} - {price.descricao}
-  </MenuItem>
-))}
-
+         {getPricesForTrip(selectedReservation.tripId)
+      .map(p => ({
+        ...p,
+        descNorm: p.descricao
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+      }))
+      .filter(p =>
+        isChild               //  ← usa o estado correcto
+          ? p.descNorm.includes("crianca")
+          : p.descNorm.includes("adulto")
+      )
+      .sort((a, b) => getBilheteOrder(a.descricao) - getBilheteOrder(b.descricao))
+      .map((price) => (
+        <MenuItem key={price.id} value={price.id}>
+          {price.valor} {getMoedaByCountryId(price.countryId)} - {price.descricao}
+        </MenuItem>
+      ))}
   </Select>
 </FormControl>
 
+<FormControlLabel
+  control={
+    <Checkbox
+      checked={isChild}
+      onChange={(e) => {
+        const childChecked = e.target.checked;
+        setIsChild(childChecked);
 
-            </Grid>
+        setSelectedReservation((prev) => {
+          const updated = { ...prev };
 
-            <Grid item xs="auto">
-              <TextField
-                label="Valor Carro"
-                value={selectedReservation.valorCarro || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    valorCarro: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
+          if (updated.tripId && updated.entrada && updated.saida) {
+            preencherBilheteAutomaticamente(
+              updated.tripId,
+              updated.volta,
+              childChecked
+            );
+          }
 
-            <Grid item xs="auto">
-              <TextField
-                label="Valor Volume"
-                value={selectedReservation.valorVolume || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    valorVolume: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
-
-            <Grid item xs="auto">
-              <TextField
-                label="OBS."
-                value={selectedReservation.obs || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    obs: e.target.value,
-                  })
-                }
-                multiline
-                fullWidth
-                sx={{ minWidth: 300 }}
-              />
-            </Grid>
-          </Grid>
-
-          {/* PASSAGEIROS ADICIONAIS (cada um no seu bloco, também numa só linha) */}
-          {multiPassengers.map((passageiro, index) => (
-            <Box
-              key={index}
-              sx={{
-                mt: 2,
-                border: "1px solid #ccc",
-                borderRadius: 2,
-                p: 2,
-                bgcolor: "#f9f9f9",
-              }}
-            >
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Passageiro Adicional {index + 1} ({passageiro.reserva})
-              </Typography>
-
-              <Grid
-                container
-                spacing={2}
-                direction="row"
-                wrap="nowrap"
-                sx={{ overflowX: "auto" }}
-              >
-
-
-
-<Grid item xs="auto">
-<Autocomplete
-  sx={{ minWidth: 300 }}
-  options={tripOptions}
-  getOptionLabel={(option) => option.label}
-  // para permitir que o utilizador escreva livremente e filtre
-  filterOptions={(options, state) =>
-    options.filter((option) =>
-      option.label.toLowerCase().includes(state.inputValue.toLowerCase())
-    )
-  }
-  // se quiser mostrar o valor atual (caso esteja a editar)
-  value={
-    tripOptions.find((opt) => opt.id === selectedReservation.tripId) || null
-  }
-  onChange={(event, newValue) => {
-    if (newValue) {
-      // Chamamos handleTripSelect com o id da viagem selecionada
-      handleTripSelect(newValue.id);
-    } else {
-      // Se apagar o campo, ficamos sem viagem selecionada
-      setSelectedReservation((prev) => ({
-        ...prev,
-        tripId: "",
-      }));
-      setAvailableSeats([]);
-    }
-  }}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Selecionar Viagem"
-      variant="outlined"
+          return updated;
+        });
+      }}
+      sx={{ p: 0.5 }}
     />
-  )}
+  }
+  label="Criança"
+  sx={{ ml: 1 }}
 />
 
-</Grid>
+
+          
+        </Box>
+      </Box>
+
+      {/* NOVA BOX PARA TELEFONE, NOME, APELIDO */}
+      <Box sx={{ display: "flex",gap:2, p: 1 }}>
+        <Box sx={{ display: "inline-flex", gap: 2 }}>
+          <TextField
+            label="Telefone"
+            value={selectedReservation.telefone || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, telefone: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }} size="small"
+          />
+
+          <TextField
+            label="Nome"
+            value={selectedReservation.nomePassageiro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, nomePassageiro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Apelido"
+            value={selectedReservation.apelidoPassageiro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, apelidoPassageiro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+        </Box>
+      </Box>
+
+      {/* BOX PARA CARRO E VALOR CARRO */}
+      <Box sx={{ display: "flex",gap:2, p: 1 }}>
+        <Box sx={{ display: "inline-flex", gap: 2 }}>
+          <TextField
+            label="Carro OBS."
+            value={selectedReservation.carro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, carro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Valor Carro"
+            value={selectedReservation.valorCarro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, valorCarro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+        </Box>
+      </Box>
+
+      {/* BOX PARA OBS, VALOR VOLUME E TOTAL BILHETE */}
+      <Box sx={{ display: "flex",gap:2, p: 1, marginBottom: 2 }}>
+        <Box sx={{ display: "inline-flex", gap: 2 }}>
+          <TextField
+            label="OBS."
+            value={selectedReservation.obs || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, obs: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Valor Volume"
+            value={selectedReservation.valorVolume || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, valorVolume: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Total Bilhete"
+            value={selectedReservation.preco || ""}
+            InputProps={{ readOnly: true }}
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+            
+            
+            
+   
+
+            <Button
+  variant="contained"
+  style={{ backgroundColor: "darkred", color: "white" }}
+  onClick={() => {
+    const nextSeat = getNextFreeSeat();
+    if (!nextSeat && editingPassengerIndex === null) {
+      alert("Não há mais lugares disponíveis nesta viagem.");
+      return;
+    }
+
+    const isEditing = editingPassengerIndex !== null;
+
+    const seatToAssign = isEditing
+      ? selectedReservation.lugar
+      : nextSeat;
+
+    if (!seatToAssign) {
+      alert("Não há lugares disponíveis nesta viagem.");
+      return;
+    }
+
+    const novaReserva = {
+      ...selectedReservation,
+      lugar: seatToAssign,
+      reserva: isEditing
+        ? selectedReservation.reserva
+        : gerarProximaSubReserva(),
+      id: isEditing ? selectedReservation.id : undefined,
+      precoBase: precoBase.toString(),
+    };
+
+    if (isEditing) {
+      const actualizados = [...multiPassengers];
+      actualizados[editingPassengerIndex] = novaReserva;
+      setMultiPassengers(actualizados);
+      setEditingPassengerIndex(null);
+    } else {
+      if (
+        novaReserva.reserva &&
+        multiPassengers.some((r) => r.reserva === novaReserva.reserva)
+      ) {
+        alert("Já existe uma reserva com esse código!");
+        return;
+      }
+      setMultiPassengers([...multiPassengers, novaReserva]);
+    }
+  }}
+>
+  {editingPassengerIndex !== null ? "Atualizar Passageiro" : "+ Adicionar Passageiro"}
+</Button>
+<Button
+      variant="outlined"
+      style={{
+        backgroundColor: "white",
+        color: "darkred",
+        borderColor: "darkred",
+      }}
+      onClick={() => {
+        setMultiPassengers([]);
+        setSelectedReservation({
+          nomePassageiro: "",
+          apelidoPassageiro: "",
+          entrada: "",
+          saida: "",
+          telefone: "",
+          email: "",
+          carro: "",
+          obs: "",
+          preco: "",
+          moeda: "",
+          tripId: "",
+          reserva: "",
+          lugar: "",
+          volta: "",
+          valorCarro: "",
+          valorVolume: "",
+          impresso: "",
+          bilhete: "",
+          totalbilhete: "",
+        });
+        setPrecoBase(0);
+      }}
+    >
+      Limpar
+    </Button>
 
 
 
-                
-                <Grid item xs="auto">
-                  
-                  <TextField
-                    label="Nome"
-                    value={passageiro.nomePassageiro || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(
-                        index,
-                        "nomePassageiro",
-                        e.target.value
-                      )
-                    }
-                    fullWidth
-                  />
-                </Grid>
+          
+        </Box>
+      </Box>
 
-                <Grid item xs="auto">
-                  <TextField
-                    label="Apelido"
-                    value={passageiro.apelidoPassageiro || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(
-                        index,
-                        "apelidoPassageiro",
-                        e.target.value
-                      )
-                    }
-                    fullWidth
-                  />
-                </Grid>
+          {/* PASSAGEIROS ADICIONAIS (cada um no seu bloco, também numa só linha) */}
+          {/* Cabeçalho */}
+          {multiPassengers.length > 0 && (
+  <Box sx={{ mt: 3, width: "100%" }}>
+    <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+      Passageiros
+    </Typography>
 
-                <Grid item xs="auto">
-                  <TextField
-                    label="Telefone"
-                    value={passageiro.telefone || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(
-                        index,
-                        "telefone",
-                        e.target.value
-                      )
-                    }
-                    fullWidth
-                  />
-                </Grid>
+    <DataGrid
+      rows={additionalPassengerRows}
+      columns={additionalPassengerColumns}
+      autoHeight
+      hideFooterPagination
+      disableRowSelectionOnClick
+      getRowId={(row) => row._rowId}   // ←‑‑ usa _rowId, deixa o id intacto
 
-                <Grid item xs="auto">
-              <TextField
-                label="Email"
-                value={selectedReservation.email || ""}
-                onChange={(e) =>
-                  setSelectedReservation({
-                    ...selectedReservation,
-                    email: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-            </Grid>
+      density="compact"
+      sx={{
+        backgroundColor: "#fff",
+        borderRadius: 2,
+        '& .MuiDataGrid-columnHeaders': {
+          fontWeight: 'bold',
+          backgroundColor: '#f5f5f5',
+          borderBottom: '1px solid #ccc',
+        },
+        '& .MuiDataGrid-cell': {
+          borderBottom: '1px solid #eee',
+          borderRight: '1px solid #eee',
+        },
+        '& .MuiDataGrid-row': {
+          '&:last-child .MuiDataGrid-cell': {
+            borderBottom: 'none',
+          },
+        },
+        '& .MuiDataGrid-columnSeparator': {
+          display: 'none',
+        },
+      }}
+    />
+  </Box>
+)}
+{multiPassengers.length > 0 && (
+<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
+  <Box>
+    <Button
+      variant="outlined"
+      style={{
+        backgroundColor: "white",
+        color: "darkred",
+        borderColor: "darkred",
+      }}
+      onClick={() => {
+        setMultiPassengers([]);
+        setSelectedReservation({
+          nomePassageiro: "",
+          apelidoPassageiro: "",
+          entrada: "",
+          saida: "",
+          telefone: "",
+          email: "",
+          carro: "",
+          obs: "",
+          preco: "",
+          moeda: "",
+          tripId: "",
+          reserva: "",
+          lugar: "",
+          volta: "",
+          valorCarro: "",
+          valorVolume: "",
+          impresso: "",
+          bilhete: "",
+          totalbilhete: "",
+        });
+        setPrecoBase(0);
+      }}
+    >
+      Nova Reserva
+    </Button>
 
-                <Grid item xs="auto">
-                  <TextField
-                    label="Data Volta (dd/mm/aaaa)"
-                    value={passageiro.volta || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(index, "volta", e.target.value)
-                    }
-                    fullWidth
-                  />
-                </Grid>
+    <Button
+      variant="contained"
+      style={{ backgroundColor: "darkred", color: "white", marginLeft: 8 }}
+      onClick={handleSaveAll}
+    >
+      Guardar
+    </Button>
 
-                <Grid item xs="auto">
-                  <TextField
-                    label="Carro"
-                    value={passageiro.carro || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(index, "carro", e.target.value)
-                    }
-                    fullWidth
-                  />
-                </Grid>
-
-                <Grid item xs="auto">
-                  <Autocomplete
-                    options={cities.map((c) => c.nome)}
-                    value={passageiro.entrada || ""}
-                    onChange={(e, newValue) =>
-                      updateMultiPassengerField(index, "entrada", newValue)
-                    }
-                    renderInput={(params) => (
-                      <TextField {...params} label="Entrada" fullWidth />
-                    )}
-                    sx={{ minWidth: 200 }}
-                  />
-                </Grid>
-
-                <Grid item xs="auto">
-                  <Autocomplete
-                    options={cities.map((c) => c.nome)}
-                    value={passageiro.saida || ""}
-                    onChange={(e, newValue) =>
-                      updateMultiPassengerField(index, "saida", newValue)
-                    }
-                    renderInput={(params) => (
-                      <TextField {...params} label="Saída" fullWidth />
-                    )}
-                    sx={{ minWidth: 200 }}
-                  />
-                </Grid>
-
-                <Grid item xs="auto">
-                <FormControl fullWidth sx={{ minWidth: 150 }}>
-  <InputLabel>Bilhete</InputLabel>
-  <Select
-    // Em vez de value={selectedPriceId}, use o bilhete do passageiro
-    value={passageiro.bilhete || ""}
-    label="Bilhete"
-    onChange={(e) => {
-      const priceId = e.target.value;
-      const price = prices.find((p) => p.id === priceId) || {};
-      const base = parseFloat(price.valor || 0);
-
-      // Atualiza o passageiro com o bilhete selecionado e recalcula preco
-      setMultiPassengers((prev) => {
-        const updated = [...prev];
-        updated[index].bilhete = priceId;
-        updated[index].precoBase = base;
-        // se quiser também armazenar a 'moeda':
-        // updated[index].moeda = "€" ou getMoedaByCountryId( ... ) ...
-        // E recalcular se tiver valorCarro, valorVolume, etc.
-        const valorCarroNum = parseFloat(updated[index].valorCarro) || 0;
-        const valorVolumeNum = parseFloat(updated[index].valorVolume) || 0;
-        updated[index].preco = (base + valorCarroNum + valorVolumeNum).toFixed(2);
-        return updated;
-      });
-    }}
-  >
-    {getPricesForTrip(
-      // Se cada passageiro usar a mesma trip do principal:
-      selectedReservation.tripId
-
-      // Ou, se cada passageiro tiver a sua "passageiro.tripId":
-      // passageiro.tripId || selectedReservation.tripId
-    ).map((price) => (
-      <MenuItem key={price.id} value={price.id}>
-        {price.valor} - {price.descricao}
-      </MenuItem>
-    ))}
-  </Select>
-</FormControl>
+    {selectedReservation.id && (
+      <Button
+      variant="contained"
+      sx={{ backgroundColor: "darkred", color: "white", ml: 1 }}
+      onClick={async () => {
+        if (!multiPassengers.length) {
+          alert("Nada para imprimir.");
+          return;
+        }
+        const tripDate = availableTrips.find(
+          t => t.id === selectedReservation.tripId
+        )?.dataviagem;
+    
+        await handlePrintAllTickets(
+          multiPassengers,
+          tripDate,
+          formatDate,
+          handleRowEdit            // passa o gravador
+        );
+    
+        // Depois de imprimir em lote, refresca a listagem
+        await fetchAllReservations();
+      }}
+    >
+      Imprimir Todos
+    </Button>
+    
+    )}
 
 
-                </Grid>
+<TextField
+    label="Total Reserva"
+    value={totalReserva}
+    InputProps={{ readOnly: true }}
+    size="small"
+    sx={{ width: 120, marginLeft: "570px" }}
+  />
+  </Box>
 
-                <Grid item xs="auto">
-                  <TextField
-                    label="Valor Carro"
-                    value={passageiro.valorCarro || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(
-                        index,
-                        "valorCarro",
-                        e.target.value
-                      )
-                    }
-                    fullWidth
-                  />
-                </Grid>
-
-                <Grid item xs="auto">
-                  <TextField
-                    label="Valor Volume"
-                    value={passageiro.valorVolume || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(
-                        index,
-                        "valorVolume",
-                        e.target.value
-                      )
-                    }
-                    fullWidth
-                  />
-                </Grid>
-
-                <Grid item xs="auto" sx={{ minWidth: 300 }}>
-                  <TextField
-                    label="OBS."
-                    value={passageiro.obs || ""}
-                    onChange={(e) =>
-                      updateMultiPassengerField(index, "obs", e.target.value)
-                    }
-                    fullWidth
-                    multiline
-                  />
-                </Grid>
-
-             
-              </Grid>
-
-              <Box sx={{ mt: 1 }}>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => {
-                    const updated = multiPassengers.filter(
-                      (_, i) => i !== index
-                    );
-                    setMultiPassengers(updated);
-                  }}
-                >
-                  Remover
-                </Button>
-              </Box>
-            </Box>
-          ))}
+ 
+</Box>
+)}
 
           {/* BOTÕES FINAIS (Limpar, Guardar, Adicionar) */}
-          <Box sx={{ mt: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
-            <Button
-              variant="outlined"
-              style={{ backgroundColor: "white", color: "darkred", borderColor: "darkred" }}
-              onClick={() =>
-                setSelectedReservation({
-                  nomePassageiro: "",
-                  apelidoPassageiro: "",
-                  entrada: "",
-                  saida: "",
-                  telefone: "",
-                  carro: "",
-                  obs: "",
-                  preco: "",
-                  moeda: "",
-                  tripId: "",
-                  reserva: "",
-                  lugar: "",
-                  volta: "",
-                  valorCarro: "",
-                  valorVolume: "",
-                  impresso: "",
-                  bilhete: "",
-                })
-              }
-            >
-              Limpar Formulário
-            </Button>
-
-            <Button
-              variant="contained"
-              style={{ backgroundColor: "darkred", color: "white" }}
-              onClick={handleSaveAll}
-            >
-              Guardar Alterações
-            </Button>
-
-            <Button
-              variant="contained"
-              style={{ backgroundColor: "darkred", color: "white" }}
-              onClick={() => {
-                // Adiciona um novo passageiro adicional
-                const nextSub = generateNextSubReserva();
-                const nextSeat =
-                  availableSeats[multiPassengers.length + 1] || "";
-                const novaReserva = {
-                  ...selectedReservation,
-                  reserva: nextSub,
-                  lugar: nextSeat,
-                  id: undefined,
-                  precoBase: precoBase.toString(),
-                };
-                setMultiPassengers([...multiPassengers, novaReserva]);
-              }}
-            >
-              + Adicionar Passageiro
-            </Button>
+          <Box sx={{ mt: 3, display: "flex",gap:2, flexWrap: "wrap", gap: 2 }}>
+            
+          
           </Box>
         </Box>
       )}
 
       {/* Lista de Reservas */}
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom style={{ marginTop: "5rem" }}>
         Lista de Todas as Reservas
       </Typography>
       <TextField
@@ -1229,50 +1804,95 @@ const SearchTripPage = () => {
       />
 
       <Box sx={{ width: "100%", overflowX: "auto" }}>
-        <DataGrid
-          rows={reservations
-            .filter((r) =>
-              `${r.reserva} ${r.nomePassageiro} ${r.apelidoPassageiro} ${r.telefone}`
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())
-            )
-            .map((r, idx) => ({
-              ...r,
-              id: r.id || idx,
-              dataviagem: r?.Trip?.dataviagem
-                ? new Date(r.Trip.dataviagem).toLocaleDateString("pt-PT")
-                : "—",
-            }))}
-          columns={columns}
-          onRowClick={(params) => {
-            
-            
-            const clicked = params.row;
-            if (clicked.impresso === "1") {
-              alert("Esta reserva já foi impressa; não pode ser alterada.");
-              return false;
-            }
-            
-            // Se a reserva for do tipo "0001.1", baseCode é "0001"
-            const baseCode = clicked.reserva.includes(".")
-              ? clicked.reserva.split(".")[0]
-              : clicked.reserva;
-            const main =
-              reservations.find((r) => r.reserva === baseCode) || clicked;
-            const additionals = reservations.filter((r) =>
-              r.reserva.startsWith(`${baseCode}.`)
-            );
-            
-            // Ajusta estados
-            setSelectedReservation(main);
-            setMultiPassengers(additionals);
-          }}
-          autoHeight
-          pageSize={15}
-          loading={loading}
-          rowsPerPageOptions={[15, 30, 50]}
-          sx={{ backgroundColor: "#fff", borderRadius: 2, boxShadow: 2 }}
-        />
+      <DataGrid
+  rows={reservations
+    .filter(r => {
+      // Se houver texto na pesquisa, ignora o filtro pela viagem
+      if (searchTerm.trim() !== "") {
+        return true;
+      }
+      // Se não houver tripId selecionado, não mostra nada
+      if (!selectedReservation.tripId) return false;
+      // Converte para string para evitar discrepâncias de tipo
+      const selectedTrip = String(selectedReservation.tripId);
+      const reservationTrip = String(r.tripId);
+      return reservationTrip === selectedTrip;
+    })
+    .filter(r =>
+      `${r.reserva} ${r.nomePassageiro} ${r.apelidoPassageiro} ${r.telefone}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+    .map((r, idx) => ({
+      ...r,
+      id: r.id || idx,
+      dataviagem: r?.Trip?.dataviagem
+        ? new Date(r.Trip.dataviagem).toLocaleDateString("pt-PT")
+        : "—",
+    }))
+  }
+  columns={columns}
+onRowClick={(params) => {
+  const clicked = params.row;
+  if (clicked.impresso === "1") {
+    alert("Esta reserva já foi impressa; não pode ser alterada.");
+    return;
+  }
+  handleTripSelect(clicked.tripId, true);  // <-- refresca availableSeats
+  // SEM o if (!selectedReservation.reserva)
+  const baseCode = clicked.reserva.includes(".")
+    ? clicked.reserva.split(".")[0]
+    : clicked.reserva;
+
+  const main = reservations.find((r) => r.reserva === baseCode) || clicked;
+  const additionals = reservations.filter((r) =>
+    r.reserva.startsWith(`${baseCode}.`)
+  );
+
+  const passageirosDoBloco = [main, ...additionals].map((r) => ({
+    ...r,
+    id: r.id,
+    precoBase: r.precoBase || parseFloat(r.preco) || 0,
+  }));
+
+  setMultiPassengers(passageirosDoBloco);    
+  setSelectedReservation(main);
+  setSelectedRow(main);
+  setTotalReserva("");
+}}
+
+  
+  
+  
+  autoHeight
+  pageSize={15}
+  loading={loading}
+  rowsPerPageOptions={[15, 30, 50]}
+  density="compact"
+    sx={{
+      backgroundColor: "#fff",
+      borderRadius: 2,
+      '& .MuiDataGrid-columnHeaders': {
+        fontWeight: 'bold',
+        backgroundColor: '#f5f5f5', // opcional: cor de fundo do cabeçalho
+        borderBottom: '1px solid #ccc',
+      },
+      '& .MuiDataGrid-cell': {
+        borderBottom: '1px solid #eee', // linhas horizontais
+        borderRight: '1px solid #eee',  // linhas verticais (parece Excel)
+      },
+      '& .MuiDataGrid-row': {
+        '&:last-child .MuiDataGrid-cell': {
+          borderBottom: 'none', // remove a linha extra no fim
+        },
+      },
+      '& .MuiDataGrid-columnSeparator': {
+        display: 'none', // remove os separadores de coluna padrão
+      },}}
+/>
+
+
+
       </Box>
 
       {/* Modal para escolher lugar na viagem de regresso */}

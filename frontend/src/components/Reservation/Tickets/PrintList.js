@@ -105,20 +105,28 @@ startY += 5;
         const hasMultiplePassengers = group.length > 1;
 
         group.forEach((row, idx) => {
-            const preco = parseFloat(row.preco) || 0;
+
 
             const baseReserva = getBaseReserva(row.reserva);
-const linha = [
-    row.lugar || "----",
-    preco ? `${preco}` : "----",
-    hasMultiplePassengers && idx > 0 ? `*(${baseReserva})` : (row.reserva || "----"),
-    row.entrada || "----",
-    row.saida || "----",
-    row.volta || "----",
-    `${row.apelidoPassageiro || ""}, ${row.nomePassageiro || ""}`,
-    row.telefone || "----",
-    row.carro || "----"
-];
+            const precoBase = parseFloat(row.preco) || 0;
+            const valorCarro = parseFloat(row.valorCarro) || 0;
+            const valorVolume = parseFloat(row.valorVolume) || 0;
+            const precoTotal = precoBase + valorCarro + valorVolume;
+            
+            const linha = [
+                row.lugar || "----",
+                precoTotal ? `${precoTotal} ${row.moeda || ""}` : "----",
+
+                hasMultiplePassengers && idx > 0 ? `*(${baseReserva})` : (row.reserva || "----"),
+                row.entrada || "----",
+                row.saida || "----",
+                row.volta || "----",
+                `${row.apelidoPassageiro || ""}, ${row.nomePassageiro || ""}`,
+                row.telefone || "----",
+                row.carro || "----",
+                row.obs || "----"
+            ];
+            
 
 
             if (hasMultiplePassengers) {
@@ -136,7 +144,7 @@ const linha = [
 
     pdfComPreco.autoTable({
         startY,
-        head: [["Lugar", "Preço", "Reserva", "Entrada", "Saída", "Volta", "Nome", "Telefone", "Carro"]],
+        head: [["Lugar", "Preço", "Reserva", "Entrada", "Saída", "Volta", "Nome", "Telefone", "Carro", "OBS"]],
         body: passengerBody,
         theme: "grid",
         styles: { fontSize: 7, cellPadding: 3 },
