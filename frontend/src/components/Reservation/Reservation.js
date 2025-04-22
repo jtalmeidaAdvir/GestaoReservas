@@ -1339,13 +1339,17 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     
         // Se for em bloco, tipo "0003.1", mostra "*"
         if (/^\d{4}\.\d+$/.test(valor)) {
-          return "*";
+          return `* ${valor.split(".")[0]}`;
         }
     
         // Se for de volta, tipo "0003.v" ou "0034.v", mostra "0003" ou "0034"
         if (/^\d{1,4}\.v$/i.test(valor)) {
           return valor.split(".")[0]; // mostra só a parte antes de ".v"
         }
+        if (/\.v$/i.test(valor)) {
+          return valor.split(".")[0]; // retorna sempre a base
+        }
+        
     
         // Caso normal
         return valor;
