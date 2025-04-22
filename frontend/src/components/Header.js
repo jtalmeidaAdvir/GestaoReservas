@@ -87,14 +87,14 @@ const Header = ({ isAuthenticated }) => {
         <Nav.Link as={Link} to="/prices" className="drawer-link ps-4" onClick={handleCloseDrawer}>
           <FaTicketAlt className="drawer-icon" /> Preços Bilhetes
         </Nav.Link>
-        <Nav.Link as={Link} to="/manual" className="drawer-link ps-4" onClick={handleCloseDrawer}>
-          <FaBook className="drawer-icon" /> Manual Utilização
-        </Nav.Link>
+        
       </Nav>
     </Accordion.Body>
   </Accordion.Item>
 </Accordion>
-
+<Nav.Link as={Link} to="/manual" className="drawer-link ps-4" onClick={handleCloseDrawer}>
+          <FaBook className="drawer-icon" /> Manual Utilização
+        </Nav.Link>
 
 
                         {/*<Nav.Link as={Link} to="/importador" className="drawer-link" onClick={handleCloseDrawer}>
