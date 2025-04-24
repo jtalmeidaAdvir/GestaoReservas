@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { Box, Typography, Grid, Button } from "@mui/material";
+import { Box, Typography, Grid, Button, TextField } from "@mui/material";
+import { SlArrowLeft,SlArrowRight } from "react-icons/sl";
+
+
+
 
 // Função auxiliar para descobrir se a row já está selecionada
 // e em que posição está em selectedReservations
@@ -10,9 +14,12 @@ function findSelectedIndex(selectedReservations, row) {
   );
 }
 
-const DualReservationsTables = ({ tripIds }) => {
+const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
   const [tripDetails, setTripDetails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerms, setSearchTerms] = useState({});
+  const [sourceReservations, setSourceReservations] = useState([]);
+  const [targetReservations, setTargetReservations] = useState([]);
   
 
   // Array de objetos com as linhas selecionadas (ordem de seleção)
@@ -20,6 +27,19 @@ const DualReservationsTables = ({ tripIds }) => {
 
   // Determinar a viagem inativa (a terceira, se existir)
   const inactiveTripId = tripIds && tripIds.length >= 3 ? tripIds[2] : null;
+
+
+  const filterRows = (rows, term) => {
+    if (!term) return rows;
+    const lowered = term.toLowerCase();
+    return rows.filter(row =>
+      ["reserva", "entrada", "nomePassageiro", "apelidoPassageiro", "saida", "obs"].some(field =>
+        (row[field] || "").toString().toLowerCase().includes(lowered)
+      )
+    );
+  };
+  
+
 
   // 1. Buscar detalhes das viagens
   const fetchTripDetails = async () => {
@@ -39,6 +59,11 @@ const DualReservationsTables = ({ tripIds }) => {
       setLoading(false);
     }
   };
+
+
+
+
+  
 
   useEffect(() => {
     fetchTripDetails();
@@ -84,39 +109,39 @@ const DualReservationsTables = ({ tripIds }) => {
 
   // 3. Alternar a seleção de uma linha (desativar para viagem inativa)
   const toggleSelection = (row) => {
-    if (inactiveTripId && row.tripId === inactiveTripId) {
+    // Impedir interação com a viagem inativa
+    if (inactiveTripId && row.tripId === inactiveTripId) return;
+  
+    // Está na fonte?
+    if (sourceReservations.find(r => r.id === row.id && r.tripId === row.tripId)) {
+      setSourceReservations(prev => prev.filter(r => !(r.id === row.id && r.tripId === row.tripId)));
       return;
     }
   
-    const index = findSelectedIndex(selectedReservations, row);
-  
-    // Desselecionar se já estava selecionada
-    if (index !== -1) {
-      setSelectedReservations((prev) => {
-        const newArr = [...prev];
-        newArr.splice(index, 1);
-        return newArr;
-      });
+    // Está no destino?
+    if (targetReservations.find(r => r.id === row.id && r.tripId === row.tripId)) {
+      setTargetReservations(prev => prev.filter(r => !(r.id === row.id && r.tripId === row.tripId)));
       return;
     }
   
-    // Se for a primeira seleção, tem de ser da 1ª viagem
-    if (selectedReservations.length === 0 && row.tripId !== tripIds[0]) {
-  
+    // Se ainda não temos fonte definida
+    if (sourceReservations.length === 0) {
+      setSourceReservations([row]);
       return;
     }
   
-    // Se for a segunda seleção, tem de ser de uma viagem diferente
-    if (selectedReservations.length % 2 === 1) {
-      const lastSelected = selectedReservations[selectedReservations.length - 1];
-      if (lastSelected.tripId === row.tripId) {
-    
-        return;
-      }
-    }
+    const sourceTripId = sourceReservations[0].tripId;
   
-    setSelectedReservations((prev) => [...prev, row]);
+    if (row.tripId === sourceTripId) {
+      setSourceReservations(prev => [...prev, row]);
+    } else {
+      // Diferente da fonte => destino
+      if (targetReservations.length >= sourceReservations.length) return;
+      setTargetReservations(prev => [...prev, row]);
+    }
   };
+  
+  
   
   
 
@@ -133,53 +158,46 @@ const DualReservationsTables = ({ tripIds }) => {
 
   // 5. Transferir reservas (swap/move) em pares de viagens
   const handleTransferReservations = async () => {
-    const groups = groupSelectedReservations();
-    const groupKeys = Object.keys(groups);
-    if (groupKeys.length !== 2) {
-      alert("Selecione reservas de exatamente duas viagens.");
+    if (
+      sourceReservations.length === 0 ||
+      targetReservations.length === 0 ||
+      sourceReservations.length !== targetReservations.length
+    ) {
+      alert("Tem de selecionar o mesmo número de reservas e lugares destino.");
       return;
     }
-    const groupA = groups[groupKeys[0]];
-    const groupB = groups[groupKeys[1]];
-    if (groupA.length !== groupB.length) {
-      alert(
-        "Para realizar a troca, o número de reservas selecionadas em cada viagem deve ser igual."
-      );
-      return;
-    }
+  
     try {
-      for (let i = 0; i < groupA.length; i++) {
-        const resA = groupA[i];
-        const resB = groupB[i];
-        const resAEmpty =
-          typeof resA.id === "string" && resA.id.startsWith("temp-");
-        const resBEmpty =
-          typeof resB.id === "string" && resB.id.startsWith("temp-");
-
-        if (!resAEmpty && !resBEmpty) {
-          // Ambas são reservas reais => swap
+      for (let i = 0; i < sourceReservations.length; i++) {
+        const resA = sourceReservations[i];
+        const resB = targetReservations[i];
+  
+        const isResBEmpty = typeof resB.id === "string" && resB.id.startsWith("temp-");
+  
+        if (!isResBEmpty) {
+          // Swap
           const updatedResA = { ...resA, tripId: resB.tripId, lugar: resB.lugar };
           const updatedResB = { ...resB, tripId: resA.tripId, lugar: resA.lugar };
           await updateReservationInBackend(updatedResA);
           await updateReservationInBackend(updatedResB);
-        } else if (!resAEmpty && resBEmpty) {
-          // Move resA para o lugar vazio de B
+        } else {
+          // Só move
           const updatedResA = { ...resA, tripId: resB.tripId, lugar: resB.lugar };
           await updateReservationInBackend(updatedResA);
-        } else if (resAEmpty && !resBEmpty) {
-          // Move resB para o lugar vazio de A
-          const updatedResB = { ...resB, tripId: resA.tripId, lugar: resA.lugar };
-          await updateReservationInBackend(updatedResB);
         }
       }
       fetchTripDetails();
-      setSelectedReservations([]);
-      alert("Reservas trocadas/movidas com sucesso!");
+      setSourceReservations([]);
+      setTargetReservations([]);
+      alert("Reservas movidas com sucesso!");
+      if (onReservationsUpdated) onReservationsUpdated(); // 🚀 notifica o parent!
+
     } catch (error) {
-      console.error("Erro ao transferir reservas:", error);
-      alert("Ocorreu um erro ao transferir as reservas.");
+      console.error("Erro ao mover reservas:", error);
+      alert("Erro ao mover reservas.");
     }
   };
+  
 
   // 6. Atualizar reserva no backend
   const updateReservationInBackend = async (updatedReservation) => {
@@ -233,27 +251,21 @@ const DualReservationsTables = ({ tripIds }) => {
         }
 
         // Comportamento normal
-        const index = findSelectedIndex(selectedReservations, params.row);
-        const isChecked = index !== -1;
-
+        const isSource = sourceReservations.some(r => r.id === params.row.id && r.tripId === params.row.tripId);
+        const isTarget = targetReservations.some(r => r.id === params.row.id && r.tripId === params.row.tripId);
+        
         let bgColor = "transparent";
         let content = "";
-
-        if (isChecked) {
-          if (index % 2 === 0) {
-            // Índice par => "fonte" (Reserva Selecionada)
-            bgColor = "orange";
-            content = "";
-          } else {
-            // Índice ímpar => "destino" (Reserva Destino)
-            bgColor = "blue";
-            const prevIndex = index - 1;
-            if (prevIndex >= 0) {
-              const prevRow = selectedReservations[prevIndex];
-              content = prevRow ? String(prevRow.lugar) : "";
-            }
-          }
+        
+        if (isSource) {
+          bgColor = "orange";
+        } else if (isTarget) {
+          bgColor = "blue";
+          const index = targetReservations.findIndex(r => r.id === params.row.id && r.tripId === params.row.tripId);
+          const sourceRow = sourceReservations[index];
+          if (sourceRow) content = String(sourceRow.lugar);
         }
+        
 
         return (
           <Box
@@ -271,7 +283,8 @@ const DualReservationsTables = ({ tripIds }) => {
               cursor: "pointer",
               backgroundColor: bgColor,
               border: "1px solid #ccc",
-              color: isChecked ? "white" : "inherit",
+              color: isSource || isTarget ? "white" : "inherit",
+
               fontWeight: "bold",
               fontSize: "0.8rem",
             }}
@@ -348,104 +361,131 @@ const DualReservationsTables = ({ tripIds }) => {
         <Typography variant="body2">Reserva Destino</Typography>
         
       </Box>
-      <Button
-        variant="contained"
-        color="error"
-        disabled={selectedReservations.length === 0}
-        onClick={handleTransferReservations}
-        sx={{ mb: 2 }}
-        style={{ backgroundColor: "darkred", color: "white" }}
-      >
-        Trocar/Mover Reservas Entre Viagens
-      </Button>
+   
 
-      <Grid
-        container
-        spacing={2}
-        wrap="nowrap"
-        sx={{ overflowX: "auto" }}
-      >
-        {tripDetails.map((detail, index) => {
-          const buffer = detail.trip.Bus.imagem?.data;
-          const busImage = buffer
-            ? `data:image/png;base64,${btoa(
-                new Uint8Array(buffer).reduce((acc, byte) => acc + String.fromCharCode(byte), "")
-              )}`
-            : null;
-          
+     <Grid container spacing={2} wrap="nowrap" sx={{ overflowX: "auto" }}>
+  {tripDetails.map((detail, index) => {
+    const tripId = detail.trip?.id;
+    if (!detail || !tripId) {
+      return (
+        <Grid item key={index}>
+          <Typography>Nenhuma informação para esta viagem.</Typography>
+        </Grid>
+      );
+    }
 
-          if (!detail || !detail.trip) {
-            return (
-              <Grid item key={index}>
-                <Typography>Nenhuma informação para esta viagem.</Typography>
-              </Grid>
-            );
-          }
-          const combinedRows = combineReservations(
-            detail.trip,
-            detail.reservations
-          );
+    const buffer = detail.trip.Bus.imagem?.data;
+    const busImage = buffer
+      ? `data:image/png;base64,${btoa(
+          new Uint8Array(buffer).reduce((acc, byte) => acc + String.fromCharCode(byte), "")
+        )}`
+      : null;
 
-          return (
-            <Grid item key={index} sx={{ minWidth: 1100 }}>
-              <Typography variant="h6" gutterBottom>
-                {detail.trip.origem} → {detail.trip.destino} 🚌 {detail.trip.Bus.nome}
-             
-              </Typography>
-          
-              <Box sx={{ display: "flex", gap: 4 }}>
-                {/* DataGrid */}
-                <Box sx={{ flex: 1, height: 900 }}>
-                  <DataGrid
-                    rows={combinedRows}
-                    columns={columns}
-                    pageSize={10}
-                    
-                    pagination
-                    
-                    disableRowSelectionOnClick
-                  />
-                </Box>
-          
-                {/* Imagem do autocarro */}
-                
-                {detail.trip.Bus?.imagem && (
-                  <Box
-                    sx={{
-                      maxWidth: 250,
-                      minWidth: 200,
-                      textAlign: "center",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      justifyContent: "center",
-                      mt: 4,
-                    }}
-                  >
-                    <img
-                      src={`data:image/png;base64,${btoa(
-                        new Uint8Array(detail.trip.Bus.imagem.data).reduce(
-                          (acc, byte) => acc + String.fromCharCode(byte),
-                          ""
-                        )
-                      )}`}
-                      alt="Autocarro"
-                      style={{
-                        width: "100%",
-                        maxHeight: "850px",
-                        objectFit: "contain",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </Box>
-                  
-                )}
+    const combinedRows = combineReservations(detail.trip, detail.reservations);
+    const filteredRows = filterRows(combinedRows, searchTerms[tripId]);
+    const isDefaultTrip = tripId === tripIds[0];
+
+
+    return (
+      <React.Fragment key={tripId}>
+        <Grid item sx={{ minWidth: 1100 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Typography variant="h6" gutterBottom>
+              {detail.trip.origem} → {detail.trip.destino} 🚌 {detail.trip.Bus.nome}
+            </Typography>
+            
+          </Box>
+          <TextField
+              label="Pesquisar reservas"
+              variant="outlined"
+              size="small"
+              value={searchTerms[tripId] || ""}
+              onChange={(e) =>
+                setSearchTerms((prev) => ({
+                  ...prev,
+                  [tripId]: e.target.value,
+                }))
+              }
+              sx={{ minWidth: 915, mb: 2, backgroundColor: "white" }}
+            />
+          <Box sx={{ display: "flex", gap: 4 }}>
+            <Box
+              sx={{
+                flex: 1,
+                height: 900,
+                border: isDefaultTrip ? "2px solid green" : "none",
+                borderRadius: "8px",
+              }}
+            >
+              <DataGrid
+                rows={filteredRows}
+                columns={columns}
+                pageSize={10}
+                pagination
+                disableRowSelectionOnClick
+              />
+            </Box>
+
+            {busImage && (
+              <Box
+                sx={{
+                  maxWidth: 250,
+                  minWidth: 200,
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "center",
+                  mt: 4,
+                }}
+              >
+                <img
+                  src={busImage}
+                  alt="Autocarro"
+                  style={{
+                    width: "100%",
+                    maxHeight: "850px",
+                    objectFit: "contain",
+                    borderRadius: "8px",
+                  }}
+                />
               </Box>
-              
-            </Grid>
-          );
+            )}
+          </Box>
+        </Grid>
+
+        {/* BOTÃO ENTRE AS DUAS VIAGENS SELECIONADAS */}
+
+        {index === 0 && (
+  <Grid
+    item
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 300,
+    }}
+  >
+    <Button
+      variant="contained"
+      color="error"
+      onClick={handleTransferReservations}
+      style={{
+        backgroundColor: "darkred",
+        color: "white",
+        padding: "10px 20px",
+      }}
+    >
+      <SlArrowLeft /><SlArrowRight />
+    </Button>
+  </Grid>
+)}
+
           
-        })}
-      </Grid>
+      </React.Fragment>
+    );
+  })}
+</Grid>
+
       
       
     </Box>

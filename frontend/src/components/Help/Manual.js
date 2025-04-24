@@ -91,8 +91,6 @@ const ManualPage = () => {
             )}
 
 
-
-
             {activeSection === "Criar Viagens" && (
               <>
                 <p>Acede à secção <strong>"Criar Viagens"</strong> no menu lateral para criar viagens com uma ou mais datas.</p>
@@ -182,7 +180,6 @@ const ManualPage = () => {
             )}
 
 
-
               {activeSection === "Editar ou Remover Viagens" && (
                 <>
                   <p>Na <strong>Aba de Viagens</strong>, localiza a viagem que desejas modificar ou eliminar.</p>
@@ -190,9 +187,6 @@ const ManualPage = () => {
                   <p>Para remover, certifica-te de que não há reservas ativas antes de proceder à eliminação.</p>
                 </>
               )}
-
-
-
 
 
               {activeSection === "Criar País/Cidade" && (
@@ -204,80 +198,80 @@ const ManualPage = () => {
               )}
 
 
-{activeSection === "Visão do Autocarro e Gerar Bilhetes e Listas" && (
-  <>
-    <p>A página de <strong>Reservas</strong> permite gerir todos os passageiros associados a uma viagem específica, com funcionalidades avançadas para edição, impressão, movimentação e estatísticas.</p>
+              {activeSection === "Visão do Autocarro e Gerar Bilhetes e Listas" && (
+                <>
+                  <p>A página de <strong>Reservas</strong> permite gerir todos os passageiros associados a uma viagem específica, com funcionalidades avançadas para edição, impressão, movimentação e estatísticas.</p>
 
-    <h6>🧾 Funcionalidades principais:</h6>
-    <ul>
-      <li>Visualização completa de todos os lugares disponíveis no autocarro.</li>
-      <li>Edição rápida de:
-        <ul>
-          <li>👤 Nome e apelido do passageiro</li>
-          <li>📍 Entrada e saída</li>
-          <li>🚗 Carro e volumes</li>
-          <li>💬 Observações</li>
-          <li>📧 Contactos</li>
-        </ul>
-      </li>
-      <li>Atribuição automática de número de reserva e bilhete</li>
-      <li>Geração individual ou em massa de bilhetes PDF</li>
-      <li>Listagem de passageiros com totalizadores de entradas, saídas e preços</li>
-      <li>Resumo de passageiros por cidade</li>
-      <li>Geração e envio de e-mail com os dados da viagem</li>
-    </ul>
+                  <h6>🧾 Funcionalidades principais:</h6>
+                  <ul>
+                    <li>Visualização completa de todos os lugares disponíveis no autocarro.</li>
+                    <li>Edição rápida de:
+                      <ul>
+                        <li>👤 Nome e apelido do passageiro</li>
+                        <li>📍 Entrada e saída</li>
+                        <li>🚗 Carro e volumes</li>
+                        <li>💬 Observações</li>
+                        <li>📧 Contactos</li>
+                      </ul>
+                    </li>
+                    <li>Atribuição automática de número de reserva e bilhete</li>
+                    <li>Geração individual ou em massa de bilhetes PDF</li>
+                    <li>Listagem de passageiros com totalizadores de entradas, saídas e preços</li>
+                    <li>Resumo de passageiros por cidade</li>
+                    <li>Geração e envio de e-mail com os dados da viagem</li>
+                  </ul>
 
-    <h6>🔁 Gestão de movimentos de reservas:</h6>
-    <ul>
-      <li><strong>Mover dentro da mesma viagem:</strong> Seleciona várias reservas e escolhe novos lugares.</li>
-      <li><strong>Trocar passageiros de lugar:</strong> Seleciona duas reservas e troca as posições.</li>
-      <li><strong>Mover para outra viagem:</strong> Seleciona reservas e reatribui-as a outra viagem futura.</li>
-    </ul>
+                  <h6>🔁 Gestão de movimentos de reservas:</h6>
+                  <ul>
+                    <li><strong>Mover dentro da mesma viagem:</strong> Seleciona várias reservas e escolhe novos lugares.</li>
+                    <li><strong>Trocar passageiros de lugar:</strong> Seleciona duas reservas e troca as posições.</li>
+                    <li><strong>Mover para outra viagem:</strong> Seleciona reservas e reatribui-as a outra viagem futura.</li>
+                  </ul>
 
-    <h6>📋 Cópia e colagem de reservas:</h6>
-    <ul>
-      <li>Copiar uma reserva principal e colar em lugares vazios para criar subreservas.</li>
-      <li>Campos como <code>email</code>, <code>telefone</code> e <code>obs</code> são limpos nas subreservas.</li>
-    </ul>
+                  <h6>📋 Cópia e colagem de reservas:</h6>
+                  <ul>
+                    <li>Copiar uma reserva principal e colar em lugares vazios para criar subreservas.</li>
+                    <li>Campos como <code>email</code>, <code>telefone</code> e <code>obs</code> são limpos nas subreservas.</li>
+                  </ul>
 
-    <h6>🛫 Viagens de regresso:</h6>
-    <ul>
-      <li>Ao preencher a data de <strong>volta</strong>, o sistema procura automaticamente viagens no sentido inverso.</li>
-      <li>É apresentado um modal para escolher o lugar da viagem de regresso.</li>
-    </ul>
+                  <h6>🛫 Viagens de regresso:</h6>
+                  <ul>
+                    <li>Ao preencher a data de <strong>volta</strong>, o sistema procura automaticamente viagens no sentido inverso.</li>
+                    <li>É apresentado um modal para escolher o lugar da viagem de regresso.</li>
+                  </ul>
 
-    <h6>🚌 Mudança de autocarro:</h6>
-    <ul>
-      <li>Permite trocar de autocarro mantendo todas as reservas válidas.</li>
-      <li>Valida se há lugares suficientes e reposiciona os passageiros automaticamente.</li>
-    </ul>
+                  <h6>🚌 Mudança de autocarro:</h6>
+                  <ul>
+                    <li>Permite trocar de autocarro mantendo todas as reservas válidas.</li>
+                    <li>Valida se há lugares suficientes e reposiciona os passageiros automaticamente.</li>
+                  </ul>
 
-    <h6>🗑️ Eliminação de reservas:</h6>
-    <ul>
-      <li>Botão para eliminar uma reserva individual.</li>
-      <li>Se existir viagem de regresso, o sistema pergunta se deseja eliminar ambas.</li>
-    </ul>
+                  <h6>🗑️ Eliminação de reservas:</h6>
+                  <ul>
+                    <li>Botão para eliminar uma reserva individual.</li>
+                    <li>Se existir viagem de regresso, o sistema pergunta se deseja eliminar ambas.</li>
+                  </ul>
 
-    <h6>💶 Preços e estatísticas:</h6>
-    <ul>
-      <li>Seleção de preços disponível diretamente na célula “Preço”.</li>
-      <li>Resumo com:
-        <ul>
-          <li>💰 Total por moeda</li>
-          <li>📊 Frequência por preço</li>
-          <li>🚏 Total de entradas e saídas por cidade</li>
-        </ul>
-      </li>
-    </ul>
+                  <h6>💶 Preços e estatísticas:</h6>
+                  <ul>
+                    <li>Seleção de preços disponível diretamente na célula “Preço”.</li>
+                    <li>Resumo com:
+                      <ul>
+                        <li>💰 Total por moeda</li>
+                        <li>📊 Frequência por preço</li>
+                        <li>🚏 Total de entradas e saídas por cidade</li>
+                      </ul>
+                    </li>
+                  </ul>
 
-    <h6>📝 Notas da viagem:</h6>
-    <ul>
-      <li>Campo livre para inserir observações gerais sobre a viagem.</li>
-      <li>Guardado com um clique no botão "Guardar Notas".</li>
-    </ul>
+                  <h6>📝 Notas da viagem:</h6>
+                  <ul>
+                    <li>Campo livre para inserir observações gerais sobre a viagem.</li>
+                    <li>Guardado com um clique no botão "Guardar Notas".</li>
+                  </ul>
 
-  </>
-)}
+                </>
+              )}
 
 
               {activeSection === "Criar Autocarro" && (
@@ -287,9 +281,6 @@ const ManualPage = () => {
                   <p>Podes adicionar uma imagem da árvore do autocarro para facilitar a identificação.</p>
                 </>
               )}
-
-
-
 
 
               {activeSection === "Criação de Listagens" && (
@@ -330,9 +321,6 @@ const ManualPage = () => {
               )}
 
 
-
-
-
               {activeSection === "Mover Passageiros" && (
                 <>
                   <p>Na gestão de reservas, podes transferir passageiros entre diferentes viagens, conforme necessário.</p>
@@ -345,18 +333,12 @@ const ManualPage = () => {
               )}
 
 
-
-
-
-
-
               {activeSection === "Criação da Viagem de Volta" && (
                 <>
                   <p>Se ao efetuar uma reserva for indicada uma data de regresso no formato "DD/MM/AAAA" e existir uma viagem correspondente para o regresso, o sistema irá sugerir automaticamente essa viagem para facilitar a reserva de retorno.</p>
                   <p>Esta funcionalidade permite otimizar a gestão das viagens de ida e volta para os passageiros.</p>
                 </>
               )}
-
 
 
               {activeSection === "Pesquisa de Reservas" && (
@@ -366,7 +348,6 @@ const ManualPage = () => {
                   <p>Esta funcionalidade agiliza a consulta e gestão das reservas ativas.</p>
                 </>
               )}
-
 
 
             </Card.Text>

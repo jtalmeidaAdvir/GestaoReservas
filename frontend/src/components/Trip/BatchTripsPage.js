@@ -15,14 +15,29 @@ const BusSelect = ({ data, busId, onChange }) => {
             ? data.filter((bus) => bus.isActive).sort((a, b) => a.nome.localeCompare(b.nome))
             : [];
           setBuses(activeSortedBuses);
+  
+          // Se quiseres usar o bus "vazio" como default
+          const busVazio = activeSortedBuses.find((bus) => bus.nome.toLowerCase() === "vazio");
+          if (busVazio) {
+            onChange(busVazio.id);
+          }
         })
         .catch((error) => console.error("Erro ao carregar autocarros:", error));
     }
   }, [data]);
+  
+
+
+  useEffect(() => {
+    if (busId && buses.length > 0 && !buses.find((b) => b.id === busId)) {
+      onChange(""); // limpa se o busId atual já não existir na lista
+    }
+  }, [buses, busId, onChange]);
+  
 
   return (
     <Form.Control as="select" value={busId} onChange={(e) => onChange(e.target.value)} required>
-      <option value="">Selecione um autocarro</option>
+      <option value="">Selecione o Autocarro</option>
       {buses.map((bus) => (
         <option key={bus.id} value={bus.id}>
           {bus.nome}
@@ -30,6 +45,7 @@ const BusSelect = ({ data, busId, onChange }) => {
       ))}
     </Form.Control>
   );
+  
 };
 
 // Componente que apresenta as entradas numa tabela, permitindo editar a data de ida e, se activada, a data de volta
@@ -135,10 +151,11 @@ const CriarViagemMultiData = () => {
     const novaEntrada = {
       id: Date.now() + Math.random(),
       data: dataAtual,
-      busId: "",
+      busId: "", // <- isto garante que começa como "vazio"
       returnTrip: false,
       returnTripDate: dataAtual,
     };
+    
     setDatasSelecionadas([...datasSelecionadas, novaEntrada]);
   };
 
@@ -263,35 +280,57 @@ const CriarViagemMultiData = () => {
       <Form.Group className="mb-3">
           <Form.Label>Origem</Form.Label>
           <Form.Control
-            as="select"
-            value={origem}
-            onChange={(e) => setOrigem(e.target.value)}
-            required
-          >
-            <option value="">Selecione a origem</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.nome}>
-                {city.nome}
-              </option>
-            ))}
-          </Form.Control>
+  as="select"
+  value={origem}
+  onChange={(e) => {
+    const novaOrigem = e.target.value;
+    setOrigem(novaOrigem);
+    if (novaOrigem === "Portugal") {
+      setDestino("Suiça");
+    } else if (novaOrigem === "Suiça") {
+      setDestino("Portugal");
+    } else {
+      setDestino("");
+    }
+  }}
+  required
+>
+  <option value="">Selecione a origem</option>
+  {cities.map((city) => (
+    <option key={city.id} value={city.nome}>
+      {city.nome}
+    </option>
+  ))}
+</Form.Control>
+
         </Form.Group>
 
         <Form.Group className="mb-3">
           <Form.Label>Destino</Form.Label>
           <Form.Control
-            as="select"
-            value={destino}
-            onChange={(e) => setDestino(e.target.value)}
-            required
-          >
-            <option value="">Selecione o destino</option>
-            {cities.map((city) => (
-              <option key={city.id} value={city.nome}>
-                {city.nome}
-              </option>
-            ))}
-          </Form.Control>
+  as="select"
+  value={destino}
+  onChange={(e) => {
+    const novoDestino = e.target.value;
+    setDestino(novoDestino);
+    if (novoDestino === "Portugal") {
+      setOrigem("Suiça");
+    } else if (novoDestino === "Suiça") {
+      setOrigem("Portugal");
+    } else {
+      setOrigem("");
+    }
+  }}
+  required
+>
+  <option value="">Selecione o destino</option>
+  {cities.map((city) => (
+    <option key={city.id} value={city.nome}>
+      {city.nome}
+    </option>
+  ))}
+</Form.Control>
+
         </Form.Group>
       {datasSelecionadas.length > 0 && (
         <TabelaDatas

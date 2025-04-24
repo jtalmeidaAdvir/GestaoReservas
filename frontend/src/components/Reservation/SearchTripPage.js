@@ -35,7 +35,9 @@ const SearchTripPage = () => {
   const [isChild, setIsChild] = useState(false); 
   const [loading, setLoading] = useState(true);
   const [editingPassengerIndex, setEditingPassengerIndex] = useState(null);
-
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  
 
 
   // Propriedades comuns para os campos: largura, texto a negrito e espaçamento reduzido
@@ -165,11 +167,6 @@ const handlePrintAndMarkSingle = async (row) => {
       return;
     }
 
-    // 2) Já impresso?
-    if (row.impresso === true || row.impresso === "1") {
-      alert("Este bilhete já foi impresso.");
-      return;
-    }
 
     // 3) Próximo nº de bilhete
     const resp = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
@@ -295,6 +292,31 @@ const handleDeletePassenger = async (row, index) => {
   }
 };
 
+// Sempre que mudar qualquer dado que influencia o bilhete, 
+// repor seleção manual e tentar auto-preencher
+useEffect(() => {
+  // Repor flag de seleção manual
+  setIsManualPriceSelection(false);
+
+  // Só tenta preencher se tivermos tripId e cidades selecionadas
+  if (
+    selectedReservation.tripId &&
+    selectedReservation.entrada &&
+    selectedReservation.saida
+  ) {
+    preencherBilheteAutomaticamente(
+      selectedReservation.tripId,
+      selectedReservation.volta,
+      isChild
+    );
+  }
+}, [
+  selectedReservation.tripId,
+  selectedReservation.entrada,
+  selectedReservation.saida,
+  selectedReservation.volta,
+  isChild
+]);
 
 
 // Converte uma data ISO (yyyy‑mm‑dd…) para dd/mm/aaaa
@@ -444,12 +466,12 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
             <Button
               variant="contained"
               size="small"
-              sx={{ backgroundColor: "darkred", color: "white",mr: 1, minWidth: 30 }}
-              disabled={row.impresso === "1" || row.impresso === true}
+              sx={{ backgroundColor: "darkred", color: "white", mr: 1, minWidth: 30 }}
               onClick={() => handlePrintAndMarkSingle(row)}
             >
               <PrintIcon fontSize="small" />
             </Button>
+
 
             <Button
               variant="outlined"
@@ -1172,7 +1194,9 @@ setSaidaOptions(sorted);
       // ------------------------------------------------------------------------
       // 8) LIMPAR ESTADOS E AVISAR
       // ------------------------------------------------------------------------
-      alert(`Reservas criadas/actualizadas com sucesso! Nº: ${blockCode}`);
+      setSuccessMessage(`Reserva Nº: ${blockCode}`);
+      setSuccessModalOpen(true);
+
       const novoBloco = [savedMain, ...savedAdditionals];
       setMultiPassengers(novoBloco);
       setSelectedReservation(savedMain);
@@ -1259,9 +1283,14 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       </Typography>
       
       {editingPassengerIndex !== null && (
-  <Typography variant="subtitle1" color="warning.main">
-    A editar: {selectedReservation.reserva || "(sem código)"}
-  </Typography>
+  <Typography
+  variant="subtitle1"
+  color="warning.main"
+  sx={{ fontSize: "1.6rem", fontWeight: "bold" }}
+>
+  A editar: {selectedReservation.reserva || "(sem código)"}
+</Typography>
+
 )}
 
       {/* FORMULÁRIO PRINCIPAL */}
@@ -1376,28 +1405,24 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
   }
   onChange={(e, newVal) => {
     if (!newVal) {
-      // campo limpo manualmente
       setSelectedReservation(prev => ({ ...prev, volta: "", tripReturnId: "" }));
       return;
     }
-  
+
     if (newVal.id === "Aberto") {
-      // ==== opção aberta ====
       setSelectedReservation(prev => ({
         ...prev,
         volta: "Aberto",
         tripReturnId: "",
       }));
     } else {
-      // ==== data normal ====
       setSelectedReservation(prev => ({
         ...prev,
         volta: newVal.label,
         tripReturnId: newVal.id,
       }));
     }
-  
-    // recalcula bilhete se necessário
+
     if (selectedReservation.tripId) {
       preencherBilheteAutomaticamente(
         selectedReservation.tripId,
@@ -1406,7 +1431,36 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       );
     }
   }}
-  
+  renderOption={(props, option) => {
+    const ida = availableTrips.find(t => t.id === selectedReservation.tripId);
+    const paisOrigIda = getPaisNormalizado(ida?.origem);
+    const paisDestIda = getPaisNormalizado(ida?.destino);
+
+    const viagemVolta = availableTrips.find(t => t.id === option.id);
+    const paisOrigVolta = getPaisNormalizado(viagemVolta?.origem);
+    const paisDestVolta = getPaisNormalizado(viagemVolta?.destino);
+
+    const isReverse =
+      paisOrigVolta === paisDestIda && paisDestVolta === paisOrigIda;
+
+    return (
+      <Box
+        component="li"
+        {...props}
+        sx={{
+          color: isReverse
+            ? paisOrigVolta === "portugal"
+              ? "green"
+              : paisOrigVolta === "suica"
+              ? "red"
+              : "inherit"
+            : "inherit",
+        }}
+      >
+        {option.label}
+      </Box>
+    );
+  }}
   renderInput={(params) => (
     <TextField
       {...params}
@@ -1415,6 +1469,16 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       sx={{ minWidth: 170, ...commonFieldProps.sx }}
     />
   )}
+  sx={{
+    minWidth: 170,
+    "& .MuiAutocomplete-inputRoot": {
+      color:
+        getPaisNormalizado(cities.find(c => c.nome === selectedReservation.saida)?.Country?.nome) === "suica"
+          ? "red"
+          : "green",
+    },
+    ...commonFieldProps.sx,
+  }}
 />
 
 
@@ -1866,10 +1930,7 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
   columns={columns}
 onRowClick={(params) => {
   const clicked = params.row;
-  if (clicked.impresso === "1") {
-    alert("Esta reserva já foi impressa; não pode ser alterada.");
-    return;
-  }
+
   handleTripSelect(clicked.tripId, true);  // <-- refresca availableSeats
   // SEM o if (!selectedReservation.reserva)
   const baseCode = clicked.reserva.includes(".")
@@ -1937,6 +1998,44 @@ onRowClick={(params) => {
           onConfirm={handleReturnModalConfirm}
         />
       )}
+
+<Modal
+  open={successModalOpen}
+  onClose={() => setSuccessModalOpen(false)}
+  aria-labelledby="modal-sucesso"
+  aria-describedby="modal-mensagem-sucesso"
+>
+  <Box
+    sx={{
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      bgcolor: "white",
+      borderRadius: 2,
+      boxShadow: 24,
+      p: 4,
+      minWidth: 300,
+      maxWidth: 500,
+      textAlign: "center",
+    }}
+  >
+    <Typography id="modal-sucesso" variant="h6" component="h2" sx={{ fontWeight: "bold", mb: 2 }}>
+      {successMessage}
+    </Typography>
+    <Typography id="modal-mensagem-sucesso" sx={{ mb: 3 }}>
+      Reserva criada/atualizada com sucesso
+    </Typography>
+    <Button
+      variant="contained"
+      sx={{ backgroundColor: "darkred", color: "white" }}
+      onClick={() => setSuccessModalOpen(false)}
+    >
+      OK
+    </Button>
+  </Box>
+</Modal>
+
     </Box>
   );
 };

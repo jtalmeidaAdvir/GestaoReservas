@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import logoVPL from "../../../assets/logo.png";
 
-async function handlePrintAllTickets(
+async function handleRePrintAllTickets(
   reservations,
   datatrip,
   formatDate,
@@ -9,17 +9,14 @@ async function handlePrintAllTickets(
   returnPDF = false
 ) {
   try {
-    // 1) Filtrar apenas as reservas que têm 'reserva' e não estão impressas
-    const unprintedReservations = reservations.filter(
-      (row) => row.reserva && !row.impresso
-    );
 
+    const reprintableReservations = reservations.filter(
+        (row) => row.reserva && row.nomePassageiro
+      );
+      
     
 
-    if (unprintedReservations.length === 0) {
-      alert("Não há bilhetes por imprimir.");
-      return;
-    }
+
 
     // 2) Buscar o último número de bilhete ao backend
     const lastTicketResponse = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
@@ -30,23 +27,11 @@ async function handlePrintAllTickets(
     let nextTicketNumber = parseInt(lastTicketData.bilhete, 10) + 1;
 
     // 3) Para cada reserva não-impressa, atribuir bilhete + marcar impresso + atualizar backend
-    for (const row of unprintedReservations) {
-      if (!row.bilhete) {
-        const paddedBilhete = String(nextTicketNumber).padStart(4, "0");
-        row.bilhete = paddedBilhete;
-        nextTicketNumber++;
-      }
-    
-      row.impresso = 1; // marca como impresso independentemente
-      await handleRowEdit(row);
-    }
-    
-    // 4) Gera o PDF só para as reservas que acabaste de marcar e que tenham nome
-    const finalReservationsToPrint = unprintedReservations.filter(
+    const finalReservationsToPrint = reprintableReservations;
 
-      (row) => row.nomePassageiro
     
-    );
+
+
 
     if (finalReservationsToPrint.length === 0) {
       alert("Não há bilhetes válidos por imprimir.");
@@ -301,4 +286,4 @@ async function handlePrintAllTickets(
   }
 }
 
-export default handlePrintAllTickets;
+export default handleRePrintAllTickets;

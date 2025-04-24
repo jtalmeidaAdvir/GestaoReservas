@@ -30,6 +30,7 @@ const TripsByDayAndDirection = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTripIds, setSelectedTripIds] = useState([]);
+  const [seatsInfo, setSeatsInfo] = useState({});
 
 
   const [citiesByCountry, setCitiesByCountry] = useState({
@@ -110,7 +111,35 @@ const handleSearch = async () => {
     
 
     setTrips(filteredTrips);
-    setSelectedTripIds([]);
+
+    const seatsMap = {};
+    for (const trip of filteredTrips) {
+      try {
+        const res = await fetch(`https://backendreservasnunes.advir.pt/trips/${trip.id}/available-seats`);
+        const availableSeats = await res.json();
+        const totalSeats = trip.Bus?.nlugares || 0;
+        const occupiedSeats = totalSeats - availableSeats.length;
+        seatsMap[trip.id] = { occupied: occupiedSeats, total: totalSeats };
+      } catch (error) {
+        console.error(`Erro ao buscar lugares para viagem ${trip.id}:`, error);
+        seatsMap[trip.id] = { occupied: "?", total: "?" };
+      }
+    }
+    setSeatsInfo(seatsMap);
+    
+    // ✅ Mantém as seleções válidas
+    setSelectedTripIds((prevIds) =>
+      filteredTrips.map((t) => t.id).filter((id) => prevIds.includes(id))
+    );
+    
+    
+    // ✅ Esta parte aqui adiciona a seleção automática
+    if (filteredTrips.length > 0 && selectedTripIds.length === 0) {
+      setSelectedTripIds([filteredTrips[0].id]);
+    }
+    
+
+
   } catch (error) {
     console.error("Erro ao buscar viagens:", error);
     alert("Erro ao buscar as viagens.");
@@ -125,12 +154,16 @@ const handleSearch = async () => {
   const toggleSelection = (tripId) => {
     setSelectedTripIds((prev) => {
       if (prev.includes(tripId)) {
+        // Se já está selecionada, desseleciona
         return prev.filter((id) => id !== tripId);
       } else {
+        // Se já houver 2 selecionadas, não permite adicionar mais
+        if (prev.length >= 2) return prev;
         return [...prev, tripId];
       }
     });
   };
+  
 
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -263,7 +296,8 @@ const handleTripCreated = (newTrip) => {
       }}
     >
       <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-        {/*{trip.origem} → {trip.destino}*/} {trip.Bus.nome}
+        {/*{trip.origem} → {trip.destino}*/}   {trip.Bus.nome} ({seatsInfo[trip.id]?.occupied ?? "?"}/{seatsInfo[trip.id]?.total ?? "?"} lugares)
+
       </Typography>
     </Box>
     
@@ -276,7 +310,7 @@ const handleTripCreated = (newTrip) => {
 
       {/* Se houver viagens selecionadas, mostra automaticamente as reservas */}
       {selectedTripIds.length > 0 && (
-        <DualReservationsTables tripIds={selectedTripIds} />
+        <DualReservationsTables tripIds={selectedTripIds}   onReservationsUpdated={handleSearch} />
       )}
       <CreateTripModal
   isOpen={showCreateModal}

@@ -117,7 +117,7 @@ startY += 5;
                 row.lugar || "----",
                 precoTotal ? `${precoTotal} ${row.moeda || ""}` : "----",
 
-                hasMultiplePassengers && idx > 0 ? `*(${baseReserva})` : (row.reserva || "----"),
+                hasMultiplePassengers && idx > 0 ? `*${baseReserva}` : (row.reserva || "----"),
                 row.entrada || "----",
                 row.saida || "----",
                 row.volta || "----",
@@ -242,7 +242,7 @@ startY += 5;
         group.forEach((row, idx) => {
             passengerBodySemPreco.push([
                 row.lugar || "----",
-    idx === 0 ? (row.reserva || "----") : `*(${getBaseReserva(row.reserva)})`,
+    idx === 0 ? (row.reserva || "----") : `*${getBaseReserva(row.reserva)}`,
 
                 row.entrada || "----",
                 row.saida || "----",
