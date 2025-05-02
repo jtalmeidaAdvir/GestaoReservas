@@ -104,7 +104,7 @@ export const handleDeleteReservation = async (numeroReserva, fetchReservations) 
     if (!window.confirm(`Tem certeza que deseja eliminar a reserva Nº ${numeroReserva}?`)) return;
 
     try {
-        const response = await fetch(`http://localhost:3000/reservations/delete/${numeroReserva}`, {
+        const response = await fetch(`http://94.143.231.141:3000/reservations/delete/${numeroReserva}`, {
             method: "DELETE",
         });
 
@@ -124,7 +124,7 @@ export const handleDeleteReservation = async (numeroReserva, fetchReservations) 
 export const handleChangeBus = async (busId, tripId, setModalOpen, fetchReservations) => {
 
     try {
-        const response = await fetch(`http://localhost:3000/trips/${tripId}/bus`, {
+        const response = await fetch(`http://94.143.231.141:3000/trips/${tripId}/bus`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ busId }),
@@ -175,7 +175,7 @@ export const handleMoveReservationsInBatch = async (
 export const handleSaveMotorista = async (tripId, motorista, fetchReservations) => {
     
     try {
-        const response = await fetch(`http://localhost:3000/trips/${tripId}/motorista`, {
+        const response = await fetch(`http://94.143.231.141:3000/trips/${tripId}/motorista`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ motorista }),

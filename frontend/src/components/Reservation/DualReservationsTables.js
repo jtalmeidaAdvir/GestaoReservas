@@ -48,7 +48,7 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
     try {
       const responses = await Promise.all(
         tripIds.map((tripId) =>
-          fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`)
+          fetch(`http://94.143.231.141:3010/trips/trip/${tripId}`)
         )
       );
       const data = await Promise.all(responses.map((res) => res.json()));
@@ -202,7 +202,7 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
   // 6. Atualizar reserva no backend
   const updateReservationInBackend = async (updatedReservation) => {
     const response = await fetch(
-      `https://backendreservasnunes.advir.pt/reservations/${updatedReservation.id}`,
+      `http://94.143.231.141:3010/reservations/${updatedReservation.id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -429,8 +429,8 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
             {busImage && (
               <Box
                 sx={{
-                  maxWidth: 250,
-                  minWidth: 200,
+                  maxWidth: 350,
+                  minWidth: 300,
                   textAlign: "center",
                   display: "flex",
                   alignItems: "flex-start",
@@ -443,7 +443,7 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
                   alt="Autocarro"
                   style={{
                     width: "100%",
-                    maxHeight: "850px",
+                    maxHeight: "950px",
                     objectFit: "contain",
                     borderRadius: "8px",
                   }}

@@ -8,7 +8,7 @@ const BusSelect = ({ data, busId, onChange }) => {
 
   useEffect(() => {
     if (data) {
-      fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${data}`)
+      fetch(`http://94.143.231.141:3010/buses/available?date=${data}`)
         .then((response) => response.json())
         .then((data) => {
           const activeSortedBuses = Array.isArray(data)
@@ -129,7 +129,7 @@ const CriarViagemMultiData = () => {
   const [cities, setCities] = useState([]);
 
   useEffect(() => {
-    fetch("https://backendreservasnunes.advir.pt/cities")
+    fetch("http://94.143.231.141:3010/cities")
       .then((response) => response.json())
       .then((data) => {
         const sortedCities = Array.isArray(data)
@@ -229,7 +229,7 @@ const CriarViagemMultiData = () => {
     try {
       const responses = await Promise.all(
         trips.map(async (trip) => {
-          const response = await fetch("https://backendreservasnunes.advir.pt/trips/create", {
+          const response = await fetch("http://94.143.231.141:3010/trips/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(trip),
@@ -241,7 +241,7 @@ const CriarViagemMultiData = () => {
         })
       );
       //console.log("Viagens criadas com sucesso:", responses);
-      alert("Viagens criadas com sucesso!");
+      
 
       // Limpa os campos e a tabela após a criação
       setDatasSelecionadas([]);
@@ -259,24 +259,10 @@ const CriarViagemMultiData = () => {
   return (
     <Container className="mt-4">
       <h2>Criar Viagens</h2>
-      <Form.Group className="mb-3">
-        <Form.Label>Selecionar Data</Form.Label>
-        <Form.Control
-          type="date"
-          value={dataAtual}
-          onChange={(e) => setDataAtual(e.target.value)}
-        />
-      </Form.Group>
+      
       <Form onSubmit={handleSubmit}>
         
-      <Button
-        variant="primary"
-        onClick={adicionarData}
-        style={{ backgroundColor: "darkred", borderColor: "darkred" }}
-        className="mb-3"
-      >
-        Adicionar Data
-      </Button>
+      
       <Form.Group className="mb-3">
           <Form.Label>Origem</Form.Label>
           <Form.Control
@@ -331,6 +317,29 @@ const CriarViagemMultiData = () => {
   ))}
 </Form.Control>
 
+
+
+<Form.Group className="mb-3" style={{ paddingTop: "30px" }}>
+        <Form.Label>Selecionar Data</Form.Label>
+        <Form.Control
+          type="date"
+          value={dataAtual}
+          onChange={(e) => setDataAtual(e.target.value)}
+        />
+      </Form.Group>
+<Button
+        variant="primary"
+        onClick={adicionarData}
+        style={{ backgroundColor: "darkred", borderColor: "darkred" }}
+        className="mb-3"
+      >
+        Adicionar Data
+      </Button>
+
+
+
+
+
         </Form.Group>
       {datasSelecionadas.length > 0 && (
         <TabelaDatas
@@ -379,7 +388,7 @@ const CriarViagemMultiData = () => {
           type="submit"
           style={{ backgroundColor: "darkred", borderColor: "darkred" }}
         >
-          Criar Viagens para os Dias Seleccionados
+          Gravar
         </Button>
       </Form>
     </Container>

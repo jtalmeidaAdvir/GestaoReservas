@@ -1,26 +1,78 @@
 import jsPDF from "jspdf";
 import logoVPL from "../../../assets/logo.png"; // Caminho para o logo dentro do projeto
 
-const handlePrintTicket = (row, datatrip, formatDate, returnPDF = false) => {
+const handlePrintTicket = (row, datatrip, formatDate, returnPDF = false, dataVoltaManual = null) => {
   if (!row || !row.nomePassageiro) {
     alert("Informações da reserva inválidas.");
     return;
   }
 
-  const pdf = new jsPDF("l", "mm", "a4");
+  const parseVoltaDate = (input) => {
+    if (!input || input.toLowerCase() === "aberto") return null;
+  
+    // Verifica se está no formato yyyy-mm-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      return new Date(input);
+    }
+  
+    // Verifica se está no formato dd/mm/yyyy
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(input)) {
+      const [dd, mm, yyyy] = input.split("/");
+      return new Date(`${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`);
+    }
+  
+    // Se o formato for inválido, retorna null
+    return null;
+  };
+  
+  
 
+  const formatDatePorExtenso = (dateInput) => {
+    if (!dateInput) return "----";
+  
+    const meses = [
+      "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
+  
+    const date = new Date(dateInput);
+    const dia = date.getUTCDate(); // usar UTC para evitar timezone issues
+    const mes = meses[date.getUTCMonth()];
+    const ano = date.getUTCFullYear();
+  
+    return `${dia} ${mes} de ${ano}`;
+  };
+
+  
+
+  const pdf = new jsPDF("l", "mm", "a4");
+  const isAlreadyFormatted = (value) => typeof value === "string" && /[a-z]+ de \d{4}/i.test(value);
+  const dataIdaTexto = datatrip
+  ? (isAlreadyFormatted(datatrip) ? datatrip : formatDatePorExtenso(datatrip))
+  : "----";
+
+  const voltaDateParsed = parseVoltaDate(row.volta);
+  const dataVoltaTexto = voltaDateParsed
+    ? formatDatePorExtenso(voltaDateParsed)
+    : "----";
+  
 
   const reservaLimpa = row.reserva
   ? row.reserva.replace(/\..*$/, "")  // remove tudo desde o primeiro ponto
   : "----";
 
 
+
+  
+
+
+  
   
   // Dimensões do bilhete (14.7cm x 7cm convertidos para mm)
   const ticketWidth = 147;
   const ticketHeight = 70;
   const leftMarginCol1 = 25; 
-  const leftMarginCol2 = 30; 
+  const leftMarginCol2 = 25; 
   const columns = 2;
   const rows = 3;
   const maxTicketsPerPage = columns * rows;
@@ -175,11 +227,12 @@ const handlePrintTicket = (row, datatrip, formatDate, returnPDF = false) => {
   pdf.setTextColor(100, 100, 100);
 
   pdf.text("NOME", contentAreaX + 2, yOffset + 30);
-  pdf.text("DATA", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 30);
-  pdf.text("IDA", contentAreaX + 2, yOffset + 40);
-  pdf.text("VOLTA", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 40);
-  pdf.text("LUGAR", contentAreaX + 2, yOffset + 50);
-  pdf.text("PREÇO", contentAreaX + usableWidth / 2 + fieldMargin + 2, yOffset + 50);
+  pdf.text("PREÇO", contentAreaX + usableWidth / 2 + fieldMargin + 44, yOffset + 30);
+  pdf.text("ENT", contentAreaX + 2, yOffset + 40);
+  pdf.text("IDA", contentAreaX + usableWidth / 2 + fieldMargin + 48, yOffset + 40);
+  
+  pdf.text("SAI", contentAreaX + 2, yOffset + 50);
+  pdf.text("VOLTA", contentAreaX + usableWidth / 2 + fieldMargin + 44, yOffset + 50);
 
   // Valores dos campos
   pdf.setFont("helvetica", "normal");
@@ -188,18 +241,14 @@ const handlePrintTicket = (row, datatrip, formatDate, returnPDF = false) => {
 
   const nameText = `${row.nomePassageiro} ${row.apelidoPassageiro || ""}`;
   pdf.text(nameText, contentAreaX + 15, yOffset + 30);
-  pdf.text(
-    datatrip ? formatDate(datatrip) : "----",
-    contentAreaX + usableWidth / 2 + fieldMargin + 15,
-    yOffset + 30
-  );
-  pdf.text(`${row.saida || "----"}`, contentAreaX + 15, yOffset + 40);
-  pdf.text(
-    `${row.volta || "----"}`,
-    contentAreaX + usableWidth / 2 + fieldMargin + 15,
-    yOffset + 40
-  );
-  pdf.text(`${row.lugar || "----"}`, contentAreaX + 15, yOffset + 50);
+  pdf.text(dataIdaTexto, contentAreaX + usableWidth / 2 + fieldMargin + 5, yOffset + 40);
+
+  
+  pdf.text(`${row.entrada || "----"}`, contentAreaX + 15, yOffset + 40);
+  pdf.text(dataVoltaTexto, contentAreaX + usableWidth / 2 + fieldMargin + 5, yOffset + 50);
+
+  
+  pdf.text(`${row.saida || "----"}`, contentAreaX + 15, yOffset + 50);
 
   // --------------------------
   // Cálculo do Preço Final
@@ -212,13 +261,14 @@ const handlePrintTicket = (row, datatrip, formatDate, returnPDF = false) => {
   if (finalPrice > 0) {
     pdf.text(
       `${finalPrice.toFixed(2)}${row.moeda || "€"}`,
-      contentAreaX + usableWidth / 2 + fieldMargin + 15,
-      yOffset + 50
+      contentAreaX + usableWidth / 2 + fieldMargin + 5,
+      yOffset + 30
+      
     );
   } else {
     pdf.text(
       "----",
-      contentAreaX + usableWidth / 2 + fieldMargin + 15,
+      contentAreaX + usableWidth / 2 + fieldMargin + 5,
       yOffset + 50
     );
   }

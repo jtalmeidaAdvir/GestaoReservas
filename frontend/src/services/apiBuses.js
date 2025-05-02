@@ -1,6 +1,6 @@
 import axios from "axios";
-//http://localhost:3010/
-const API_URL = "https://backendreservasnunes.advir.pt/buses"; // Endpoint da API
+//http://94.143.231.141:3010/
+const API_URL = "http://94.143.231.141:3010/buses"; // Endpoint da API
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");

@@ -11,7 +11,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm 
     useEffect(() => {
         if (open && tripId) {
             // Busca os lugares disponíveis para a viagem de regresso
-            fetch(`https://backendreservasnunes.advir.pt/trips/${tripId}/available-seats`)
+            fetch(`http://94.143.231.141:3010/trips/${tripId}/available-seats`)
                 .then(res => res.json())
                 .then(data => {
                     const formattedSeats = Array.isArray(data) ? data : [];
@@ -26,7 +26,7 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm 
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
 
             // Busca detalhes da viagem de regresso (exceto a data, que vamos obter da reserva principal)
-            fetch(`https://backendreservasnunes.advir.pt/trips/trip/${tripId}`)
+            fetch(`http://94.143.231.141:3010/trips/trip/${tripId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.trip) {

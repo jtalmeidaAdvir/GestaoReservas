@@ -4,7 +4,7 @@ import moment from "moment";
 
 Modal.setAppElement("#root");
 
-const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
+const CreateTripModal = ({ isOpen, onClose, date, onTripCreated, originCountry, destinationCountry }) => {
     const [origem, setOrigem] = useState("");
     const [destino, setDestino] = useState("");
     const [motorista, setMotorista] = useState("");
@@ -16,52 +16,99 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
 
     const [filteredDestinations, setFilteredDestinations] = useState([]);
 
+    const [originFiltered, setOriginFiltered] = useState([]);
+
+    const normalize = (s) =>
+        (s || "")
+          .toString()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/ç/g, "c")
+          .replace(/ü/g, "u")
+          .trim();
+      
 
     useEffect(() => {
         if (isOpen && date) {
-            const formattedDate = moment(date).format("YYYY-MM-DD");
-    
-            // Buscar autocarros disponíveis
-            fetch(`https://backendreservasnunes.advir.pt/buses/available?date=${formattedDate}`)
-                .then(response => response.json())
-                .then(data => {
-                    let allBuses = Array.isArray(data) ? data : [];
-    
-                    // Permitir sempre o autocarro com nome vazio
-                    fetch("https://backendreservasnunes.advir.pt/buses") // buscar todos os autocarros
-                        .then(resp => resp.json())
-                        .then(allBusData => {
-                            const emptyBus = allBusData.find(bus => bus.nome === "vazio");
-    
-                            // Filtrar ativos e ordenar
-                            let activeSortedBuses = allBuses
-                                .filter(bus => bus.isActive)
-                                .sort((a, b) => a.nome.localeCompare(b.nome));
-    
-                            // Se o autocarro com nome vazio existir, adicioná-lo (caso ainda não esteja incluído)
-                            if (emptyBus && !activeSortedBuses.some(bus => bus.id === emptyBus.id)) {
-                                activeSortedBuses = [emptyBus, ...activeSortedBuses];
-                            }
-    
-                            setBuses(activeSortedBuses);
-                        });
+          // Buscar autocarros disponíveis
+          fetch(`http://94.143.231.141:3010/buses/available?date=${moment(date).format("YYYY-MM-DD")}`)
+            .then(res => res.json())
+            .then(data => {
+              let activeBuses = Array.isArray(data) ? data.filter(b => b.isActive) : [];
+      
+              // Incluir o autocarro "vazio" se não estiver presente
+              fetch("http://94.143.231.141:3010/buses")
+                .then(resp => resp.json())
+                .then(allBuses => {
+                  const emptyBus = allBuses.find(b => b.nome === "vazio");
+                  if (emptyBus && !activeBuses.some(b => b.id === emptyBus.id)) {
+                    activeBuses = [emptyBus, ...activeBuses];
+                  }
+                  setBuses(activeBuses);
                 });
-    
-            // Buscar cidades
-            fetch(`https://backendreservasnunes.advir.pt/cities`)
-                .then(response => response.json())
-                .then(data => {
-                    const sortedCities = Array.isArray(data)
-                        ? data.sort((a, b) => a.nome.localeCompare(b.nome))
-                        : [];
-                    setCities(sortedCities);
-                })
-                .catch(error => {
-                    console.error("Erro ao carregar cidades:", error);
-                    setCities([]);
-                });
+            });
+      
+          // Buscar cidades
+          fetch("http://94.143.231.141:3010/cities")
+            .then(res => res.json())
+            .then(data => {
+              const sorted = Array.isArray(data)
+                ? data.sort((a, b) => a.nome.localeCompare(b.nome))
+                : [];
+              setCities(sorted);
+
+
+              setCities(sorted);
+
+// 👉 Se países não foram definidos, mostra todas as cidades
+if (!originCountry || !destinationCountry) {
+  setOriginFiltered(sorted);
+  setFilteredDestinations(sorted);
+  setOrigem("");
+  setDestino("");
+  return;
+}
+
+// Filtrar cidades por país
+const originCities = sorted.filter(c =>
+  normalize(c.Country?.nome) === normalize(originCountry)
+);
+const destinationCities = sorted.filter(c =>
+  normalize(c.Country?.nome) === normalize(destinationCountry)
+);
+
+// Guardar filtros
+setOriginFiltered(originCities);
+setFilteredDestinations(destinationCities);
+
+// Preencher origem/destino automaticamente
+const pdl = sorted.find(c => normalize(c.nome) === "p.de.lanhoso");
+const zurich = sorted.find(c => normalize(c.nome) === "zurich");
+
+if (normalize(originCountry) === "portugal") {
+  setOrigem(pdl?.nome || originCities[0]?.nome || "");
+  setDestino(zurich?.nome || destinationCities[0]?.nome || "");
+} else if (normalize(originCountry) === "suica" || normalize(originCountry) === "suiça") {
+  setOrigem(zurich?.nome || originCities[0]?.nome || "");
+  setDestino(pdl?.nome || destinationCities[0]?.nome || "");
+}
+
+              
+      
+              // Define as opções de destino com base no país de destino
+              const filtered = sorted.filter(c =>
+                normalize(c.Country?.nome) === normalize(destinationCountry)
+              );
+              setFilteredDestinations(filtered);
+            })
+            .catch(error => {
+              console.error("Erro ao carregar cidades:", error);
+              setCities([]);
+            });
         }
-    }, [isOpen, date]);
+      }, [isOpen, date, originCountry, destinationCountry]);
+      
     
 
 
@@ -100,7 +147,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
         };
     
         try {
-            const response = await fetch("https://backendreservasnunes.advir.pt/trips/create", {
+            const response = await fetch("http://94.143.231.141:3010/trips/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newTrip),
@@ -111,7 +158,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated }) => {
             const createdTrip = await response.json();
 
 // Ir buscar a viagem completa com dados do autocarro
-const res = await fetch(`https://backendreservasnunes.advir.pt/trips/${createdTrip.id}`);
+const res = await fetch(`http://94.143.231.141:3010/trips/${createdTrip.id}`);
 const fullTrip = await res.json();
 
 onTripCreated(fullTrip);
@@ -165,7 +212,8 @@ onTripCreated(fullTrip);
 >
 
                     <option value="">Selecione a origem</option>
-                    {cities.map(city => (
+                    {originFiltered.map(city => (
+
                         <option key={city.id} value={city.nome}>
                             {city.nome}
                         </option>

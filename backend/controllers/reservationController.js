@@ -16,7 +16,8 @@ exports.getLastReservation = async (req, res) => {
             order: [["reserva", "DESC"]], 
         });
 
-        const lastReservaNumber = lastReservation ? parseInt(lastReservation.reserva, 10) : 0;
+        const lastReservaNumber = lastReservation ? parseInt(lastReservation.reserva, 10) : 99;
+
         res.json({ reserva: String(lastReservaNumber).padStart(4, "0") });
     } catch (error) {
         console.error("🔥 Erro ao buscar última reserva:", error);

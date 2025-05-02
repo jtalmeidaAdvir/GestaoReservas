@@ -41,7 +41,7 @@ const TripsByDayAndDirection = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const res = await fetch("https://backendreservasnunes.advir.pt/cities");
+        const res = await fetch("http://94.143.231.141:3010/cities");
         const data = await res.json();
         const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
         const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -75,7 +75,7 @@ const handleSearch = async () => {
 
   setLoading(true);
   try {
-    const res = await fetch(`https://backendreservasnunes.advir.pt/trips/by-date?date=${selectedDate}`);
+    const res = await fetch(`http://94.143.231.141:3010/trips/by-date?date=${selectedDate}`);
     if (!res.ok) throw new Error("Erro ao buscar viagens.");
 
     const tripsData = await res.json();
@@ -115,7 +115,7 @@ const handleSearch = async () => {
     const seatsMap = {};
     for (const trip of filteredTrips) {
       try {
-        const res = await fetch(`https://backendreservasnunes.advir.pt/trips/${trip.id}/available-seats`);
+        const res = await fetch(`http://94.143.231.141:3010/trips/${trip.id}/available-seats`);
         const availableSeats = await res.json();
         const totalSeats = trip.Bus?.nlugares || 0;
         const occupiedSeats = totalSeats - availableSeats.length;
@@ -181,6 +181,40 @@ const handleTripCreated = (newTrip) => {
 
 };
 
+const handleDateChange = async (e) => {
+  const newDate = e.target.value;
+  setSelectedDate(newDate);
+
+  try {
+    const res = await fetch(`http://94.143.231.141:3010/trips/by-date?date=${newDate}`);
+    const tripsData = await res.json();
+
+    for (const trip of tripsData) {
+      const origemPT = citiesByCountry["Portugal"].some(
+        city => normalizeString(city) === normalizeString(trip.origem)
+      );
+      const destinoPT = citiesByCountry["Portugal"].some(
+        city => normalizeString(city) === normalizeString(trip.destino)
+      );
+
+      if (origemPT && !destinoPT) {
+        setSelectedOrigin("Portugal");
+        setSelectedDestination("Suiça");
+        return;
+      } else if (!origemPT && destinoPT) {
+        setSelectedOrigin("Suiça");
+        setSelectedDestination("Portugal");
+        return;
+      }
+    }
+
+    // Se não encontrou nenhuma viagem relevante
+    setSelectedOrigin("");
+    setSelectedDestination("");
+  } catch (err) {
+    console.error("Erro ao verificar viagens:", err);
+  }
+};
 
   return (
     <Box sx={{ padding: "20px" }}>
@@ -189,14 +223,15 @@ const handleTripCreated = (newTrip) => {
       </Typography>
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={12} sm={4}>
-          <TextField
-            label="Data da Viagem"
-            type="date"
-            fullWidth
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
+        <TextField
+          label="Data da Viagem"
+          type="date"
+          fullWidth
+          value={selectedDate}
+          onChange={handleDateChange}
+          InputLabelProps={{ shrink: true }}
+        />
+
         </Grid>
         <Grid item xs={12} sm={4}>
   <Select
@@ -317,7 +352,10 @@ const handleTripCreated = (newTrip) => {
   onClose={() => setShowCreateModal(false)}
   date={selectedDate}
   onTripCreated={handleTripCreated}
+  originCountry={selectedOrigin}
+  destinationCountry={selectedDestination}
 />
+
 
     </Box>
     

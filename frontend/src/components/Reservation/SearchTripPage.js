@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
+  Collapse,
   Stack,
   Typography,
   TextField,
@@ -15,6 +16,7 @@ import {
   Modal,
   Grid,
 } from "@mui/material";
+
 import DeleteIcon from '@mui/icons-material/Delete';
 import CancelIcon from '@mui/icons-material/Cancel';
 import SaveIcon from '@mui/icons-material/Save';
@@ -29,6 +31,11 @@ import handlePrintTicket from "../Reservation/Tickets/PrintTicket";
 import handlePrintAllTickets from "../Reservation/Tickets/PrintAllTickets";
 
 
+import handleRePrintTicket from "../Reservation/Tickets/RePrintTicket";
+import handleRePrintAllTickets from "../Reservation/Tickets/RePrintAllTickets";
+
+
+
 const SearchTripPage = () => {
   // Estados principais da reserva
   const [reservations, setReservations] = useState([]);
@@ -37,7 +44,8 @@ const SearchTripPage = () => {
   const [editingPassengerIndex, setEditingPassengerIndex] = useState(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  
+  const [mostrarDetalhes, setMostrarDetalhes] = useState(false);
+
 
 
   // Propriedades comuns para os campos: largura, texto a negrito e espaçamento reduzido
@@ -113,6 +121,7 @@ const SearchTripPage = () => {
   const [subPassengers, setSubPassengers] = useState([]);
 
   const [isManualPriceSelection, setIsManualPriceSelection] = useState(false);
+  const [dateInputValue, setDateInputValue] = useState("");
 
 
   useEffect(() => {
@@ -148,6 +157,21 @@ const SearchTripPage = () => {
   };
 
 
+
+
+  const handleSinglePrint = async (row) => {
+    const tripDate = availableTrips.find(t => t.id === row.tripId)?.dataviagem;
+    if (row.impresso === 1 || row.impresso === "1") {
+      // Reimpressão
+      await handleRePrintTicket(row, tripDate, formatDate);
+    } else {
+      // Impressão pela primeira vez
+      await handlePrintAndMarkSingle(row);
+    }
+  };
+
+
+
   // -------------------------------------------------------------
 // Imprime 1 bilhete, gerando nº de bilhete e marcando impresso
 // -------------------------------------------------------------
@@ -169,7 +193,7 @@ const handlePrintAndMarkSingle = async (row) => {
 
 
     // 3) Próximo nº de bilhete
-    const resp = await fetch("https://backendreservasnunes.advir.pt/reservations/lastTicket");
+    const resp = await fetch("http://94.143.231.141:3010/reservations/lastTicket");
     if (!resp.ok) throw new Error("Falha a obter último nº de bilhete");
     const last = await resp.json();
     row.bilhete = String(parseInt(last.bilhete, 10) + 1).padStart(4, "0");
@@ -191,9 +215,16 @@ const handlePrintAndMarkSingle = async (row) => {
 
   
 
+const tripOptions = availableTrips
+  .filter((trip) => trip.Bus?.nome?.toLowerCase() === "vazio")  // <-- novo filtro
+  .map((trip) => {
 
-  const tripOptions = availableTrips.map((trip) => {
-    const dateStr = new Date(trip.dataviagem).toLocaleDateString("pt-PT");
+    const dateStr = new Date(trip.dataviagem).toLocaleDateString("pt-PT", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+    
   
     // descobrir a cidade de origem dentro do array cities
     const origemCity = cities.find(
@@ -241,17 +272,41 @@ const handlePrintAndMarkSingle = async (row) => {
     const paisDestIda = getPaisNormalizado(ida.destino);
   
     const viagensInversas = availableTrips
-      .filter(t => {
-        const paisOrigT = getPaisNormalizado(t.origem);
-        const paisDestT = getPaisNormalizado(t.destino);
-        return paisOrigT === paisDestIda && paisDestT === paisOrigIda;
-      })
+  .filter(t => {
+    const paisOrigT = getPaisNormalizado(t.origem);
+    const paisDestT = getPaisNormalizado(t.destino);
+    const isAutocarroVazio = t.Bus?.nome?.toLowerCase() === "vazio";
+
+    const idaDate = new Date(ida.dataviagem);
+    const voltaDate = new Date(t.dataviagem);
+    idaDate.setHours(0, 0, 0, 0);
+    voltaDate.setHours(0, 0, 0, 0);
+
+    return (
+      paisOrigT === paisDestIda &&
+      paisDestT === paisOrigIda &&
+      isAutocarroVazio &&
+      voltaDate > idaDate
+    );
+  })
+
+
       .sort((a, b) => new Date(a.dataviagem) - new Date(b.dataviagem))
-      .map(t => ({
-        id:    t.id,
-        label: new Date(t.dataviagem).toLocaleDateString("pt-PT"),
-        data:  t.dataviagem,
-      }));
+      .map(t => {
+        const dataFormatada = new Date(t.dataviagem).toLocaleDateString("pt-PT");
+        const labelFormatada = new Date(t.dataviagem).toLocaleDateString("pt-PT", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
+      
+        return {
+          id: t.id,
+          label: labelFormatada, // mostra como "2 maio 2025"
+          data: dataFormatada     // guarda como "02/05/2025"
+        };
+      });
+      
   
     /* devolve "Aberto" + viagens ordenadas */
     return [{ id: "Aberto", label: "Aberto" }, ...viagensInversas];
@@ -270,7 +325,7 @@ const handleDeletePassenger = async (row, index) => {
   try {
     // 👉 ajusta a rota se o teu ficheiro de routes usar outro path
     const resp = await fetch(
-      `https://backendreservasnunes.advir.pt/reservations/delete/${row.reserva}`,
+      `http://94.143.231.141:3010/reservations/delete/${row.reserva}`,
       { method: "DELETE" }
     );
 
@@ -396,6 +451,15 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
   
   const additionalPassengerColumns = [
     {
+      field: "tripId",
+      headerName: "Viagem",
+      width: 200,
+      renderCell: (params) => {
+        const trip = tripOptions.find((opt) => opt.id === params.value);
+        return trip ? trip.label : params.value;
+      },
+    },
+    {
       field: "reserva",
       headerName: "Reserva",
       width: 100,
@@ -407,15 +471,7 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
     
 
     
-    {
-      field: "tripId",
-      headerName: "Viagem",
-      width: 200,
-      renderCell: (params) => {
-        const trip = tripOptions.find((opt) => opt.id === params.value);
-        return trip ? trip.label : params.value;
-      },
-    },
+   
     { field: "nomePassageiro", headerName: "Nome", width: 150 },
     { field: "apelidoPassageiro", headerName: "Apelido", width: 150 },
     { field: "entrada", headerName: "Entrada", width: 130 },
@@ -467,10 +523,11 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
               variant="contained"
               size="small"
               sx={{ backgroundColor: "darkred", color: "white", mr: 1, minWidth: 30 }}
-              onClick={() => handlePrintAndMarkSingle(row)}
+              onClick={() => handleSinglePrint(row)}
             >
               <PrintIcon fontSize="small" />
             </Button>
+
 
 
             <Button
@@ -571,27 +628,22 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
 
 
   const getPricesForTrip = (tripId) => {
-    console.log(">> getPricesForTrip tripId:", tripId);
     const foundTrip = availableTrips.find((t) => t.id === tripId);
     if (!foundTrip) {
-      console.log("   Nenhuma trip encontrada com ID:", tripId);
       return [];
     }
   
-    console.log("   foundTrip:", foundTrip);
     const originCity = cities.find(
       (c) => c.nome.toLowerCase() === foundTrip.origem?.toLowerCase()
     );
     if (!originCity) {
-      console.log("   Nenhuma city encontrada com nome:", foundTrip.origem);
       return [];
     }
   
-    console.log("   originCity:", originCity);
   
     // Ajustar se for "countryId" em minúsculas
     const filtered = prices.filter((p) => p.countryId === originCity.countryId);
-    console.log("   filtered prices:", filtered);
+
   
     return filtered;
   };
@@ -652,14 +704,15 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
   // Processa criação de viagens de volta em fila
   useEffect(() => {
     const processNext = async () => {
-      if (!modalReturnOpen && returnQueue.length > 0) {
+      if (returnQueue.length > 0) {
         const next = returnQueue[0];
-        await openReturnModal(next.reserva, next); // abre o modal para o primeiro da fila
-        setReturnQueue((prev) => prev.slice(1)); // remove o primeiro da fila
+        await openReturnModal(next.reserva, next);
+        setReturnQueue((prev) => prev.slice(1));
       }
     };
     processNext();
-  }, [returnQueue, modalReturnOpen]);
+  }, [returnQueue]);
+  
 
   // Buscar IDs de país e moeda
   const getCountryIdFromSelectedTrip = () => {
@@ -688,32 +741,41 @@ const preencherBilheteAutomaticamente = (tripId, voltaValue, childFlag = isChild
   
 
 // Abre modal para criar reserva de volta
-const openReturnModal = async (
-  reservaBase,
-  reservaData = selectedReservation
-) => {
+// AUTOMATIZA A RESERVA DE REGRESSO (sem modal)
+const openReturnModal = async (reservaBase, reservaData = selectedReservation) => {
   if (!reservaData.volta || reservaData.volta.toLowerCase() === "aberto") {
-    // Não procura viagem de regresso se for "Aberto"
     return;
   }
 
   const tripIdReturn = await getReturnTripId(reservaData);
-  const tripData = availableTrips.find(
-    (trip) => trip.id === reservaData.tripId
-  );
+  if (!tripIdReturn) {
+    console.error("Nenhuma viagem de regresso encontrada.");
+    return;
+  }
 
-  if (tripIdReturn && tripData) {
-    setReturnReservationData({
-      ...reservaData,
-      reserva: reservaBase,
-      tripReturnId: tripIdReturn,
-      mainTripDate: tripData.dataviagem,
-    });
-    setModalReturnOpen(true);
-  } else {
-    alert("Nenhuma viagem de regresso encontrada.");
+  try {
+    const res = await fetch(`http://94.143.231.141:3010/trips/${tripIdReturn}/available-seats`);
+    const data = await res.json();
+    const availableSeats = Array.isArray(data) ? data : [];
+
+    if (availableSeats.length === 0) {
+      console.error("Sem lugares disponíveis para a viagem de regresso.");
+      return;
+    }
+
+    const selectedSeat = availableSeats[0].numero || availableSeats[0];
+
+    const tripData = availableTrips.find((trip) => trip.id === reservaData.tripId);
+    const mainTripDate = tripData?.dataviagem || null;
+
+    await handleCreateReturnTrip(selectedSeat, mainTripDate, reservaData);
+
+
+  } catch (error) {
+    console.error("Erro ao criar automaticamente reserva de regresso:", error);
   }
 };
+
 
 
   // Obter o tripId da viagem de regresso
@@ -728,7 +790,7 @@ const openReturnModal = async (
       const origem = reservation.saida; // na volta, origem é a "saida" da ida
       const destino = reservation.entrada; // na volta, destino é a "entrada" da ida
 
-      const url = `https://backendreservasnunes.advir.pt/trips/return?origem=${encodeURIComponent(
+      const url = `http://94.143.231.141:3010/trips/return?origem=${encodeURIComponent(
         origem
       )}&destino=${encodeURIComponent(destino)}&dataviagem=${dbFormatDate}`;
       console.log("URL de busca da viagem de regresso:", url);
@@ -749,7 +811,7 @@ const openReturnModal = async (
   const fetchAvailableReturnSeats = async (tripIdReturn) => {
     try {
       const res = await fetch(
-        `https://backendreservasnunes.advir.pt/trips/${tripIdReturn}/available-seats`
+        `http://94.143.231.141:3010/trips/${tripIdReturn}/available-seats`
       );
       const data = await res.json();
       const formattedSeats = Array.isArray(data) ? data : [];
@@ -769,46 +831,63 @@ const openReturnModal = async (
     }
   };
 
-  // Criar reserva de regresso
-  const handleCreateReturnTrip = async (selectedSeat, tripDate) => {
-    if (!returnReservationData) return;
 
-    const formattedReserva = `${returnReservationData.reserva}.v`;
-
-    const updatedReservationData = {
-      ...returnReservationData,
-      entrada: returnReservationData.saida,
-      saida: returnReservationData.entrada,
-      lugar: selectedSeat,
-      reserva: formattedReserva,
-      preco: "",
-      moeda: "",
-      tripId: returnReservationData.tripReturnId,
-      volta: tripDate,
-    };
-
-    try {
-      const res = await fetch(`https://backendreservasnunes.advir.pt/reservations/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...updatedReservationData,
-          
-          createdBy: localStorage.getItem("email") || "admin",
-        }),
-      });
-
-      if (!res.ok) {
-        console.error("Erro ao criar reserva de regresso:", await res.text());
-        return;
-      }
-
-      alert("Reserva de regresso criada com sucesso!");
-      fetchAllReservations();
-    } catch (error) {
-      console.error("Erro ao criar reserva de regresso:", error);
+  const checkAndCreateReturnTripIfNeeded = async (oldReservation, newReservation) => {
+    if (!oldReservation || !newReservation) return;
+  
+    const oldVolta = (oldReservation.volta || "").trim();
+    const newVolta = (newReservation.volta || "").trim();
+  
+    if (oldVolta !== newVolta && newVolta && newVolta.toLowerCase() !== "aberto") {
+      console.log("Data de volta alterada. A criar nova viagem de regresso...");
+      
+      // Se já tens o tripReturnId calculado:
+      await openReturnModal(newReservation.reserva, newReservation);
     }
   };
+  
+
+
+ // Criar reserva de regresso
+const handleCreateReturnTrip = async (selectedSeat, tripDate, basePassenger) => {
+  if (!basePassenger) return;
+
+  const formattedReserva = `${basePassenger.reserva}.v`;
+
+  const updatedReservationData = {
+    ...basePassenger,
+    entrada: basePassenger.saida,
+    saida: basePassenger.entrada,
+    lugar: selectedSeat,
+    reserva: formattedReserva,
+    preco: "",
+    moeda: "",
+    tripId: basePassenger.tripReturnId,
+    volta: tripDate,
+  };
+
+  try {
+    const res = await fetch(`http://94.143.231.141:3010/reservations/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...updatedReservationData,
+        createdBy: localStorage.getItem("email") || "admin",
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("Erro ao criar reserva de regresso:", await res.text());
+      return;
+    }
+
+    console.log("Reserva de regresso criada para:", formattedReserva);
+    fetchAllReservations();
+  } catch (error) {
+    console.error("Erro ao criar reserva de regresso:", error);
+  }
+};
+
 
   const handleReturnModalConfirm = async (selectedSeat, tripDate) => {
     await handleCreateReturnTrip(selectedSeat, tripDate);
@@ -861,7 +940,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
   /* 5.  buscar lugares livres como já fazias */
   try {
     const res = await fetch(
-      `https://backendreservasnunes.advir.pt/reservations/trip/${selectedTripId}`
+      `http://94.143.231.141:3010/reservations/trip/${selectedTripId}`
     );
     const data  = await res.json();
     const seats = Array.isArray(data.freeSeats)
@@ -890,7 +969,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
 
   // Carrega dados iniciais: cidades, viagens, reservas, países
   useEffect(() => {
-    fetch("https://backendreservasnunes.advir.pt/cities")
+    fetch("http://94.143.231.141:3010/cities")
       .then((res) => res.json())
       .then((data) => {
         const sorted = Array.isArray(data)
@@ -908,7 +987,7 @@ setSaidaOptions(sorted);
 
     fetchAllReservations();
 
-    fetch("https://backendreservasnunes.advir.pt/countries")
+    fetch("http://94.143.231.141:3010/countries")
       .then((res) => res.json())
       .then((data) => setCountries(data))
       .catch((err) => {
@@ -916,7 +995,7 @@ setSaidaOptions(sorted);
         setCountries([]);
       });
 
-      fetch("https://backendreservasnunes.advir.pt/trips")
+      fetch("http://94.143.231.141:3010/trips")
       .then((res) => res.json())
       .then((data) => {
         const hoje = new Date();
@@ -938,7 +1017,7 @@ setSaidaOptions(sorted);
 
   const fetchAllReservations = async () => {
     try {
-      const res = await fetch("https://backendreservasnunes.advir.pt/reservations/all");
+      const res = await fetch("http://94.143.231.141:3010/reservations/all");
       const data = await res.json();
       // Garante que cada reserva tem a propriedade tripId
       const reservationsWithTripId = data.map(r => ({
@@ -1020,7 +1099,7 @@ setSaidaOptions(sorted);
     // Gerar código de reserva caso seja nova e não tenha ponto (p. ex. "0001")
     if (!reservationData.id && (!reservaCode || reservaCode.indexOf(".") === -1)) {
       try {
-        const lastRes = await fetch("https://backendreservasnunes.advir.pt/reservations/last");
+        const lastRes = await fetch("http://94.143.231.141:3010/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         reservaCode = String(lastNumber + 1).padStart(4, "0");
@@ -1033,8 +1112,8 @@ setSaidaOptions(sorted);
 
     const method = reservationData.id ? "PUT" : "POST";
     const url = reservationData.id
-      ? `https://backendreservasnunes.advir.pt/reservations/${reservationData.id}`
-      : "https://backendreservasnunes.advir.pt/reservations/create";
+      ? `http://94.143.231.141:3010/reservations/${reservationData.id}`
+      : "http://94.143.231.141:3010/reservations/create";
 
     const response = await fetch(url, {
       method,
@@ -1086,6 +1165,11 @@ setSaidaOptions(sorted);
   const soActualizacoes = multiPassengers.every(p => p.id);
   if (soActualizacoes) {
     for (const p of multiPassengers) {
+      const old = reservations.find(r => r.id === p.id);
+      if (old) {
+        await checkAndCreateReturnTripIfNeeded(old, p);
+      }
+  
       const ok = await saveReservation(p);   // PUT
       if (!ok) {
         alert("Falhou a actualização de uma das reservas.");
@@ -1094,8 +1178,9 @@ setSaidaOptions(sorted);
     }
     alert("Reservas actualizadas com sucesso!");
     fetchAllReservations();
-        return;
+    return;
   }
+  
   
     try {
       // ------------------------------------------------------------------------
@@ -1128,7 +1213,7 @@ setSaidaOptions(sorted);
   
       // Se a reserva for nova (sem ID) e sem blockCode, geramos agora
       if (!mainReservationObj.id && !blockCode) {
-        const lastRes = await fetch("https://backendreservasnunes.advir.pt/reservations/last");
+        const lastRes = await fetch("http://94.143.231.141:3010/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         blockCode = String(lastNumber + 1).padStart(4, "0");
@@ -1169,6 +1254,8 @@ setSaidaOptions(sorted);
         };
       });
   
+      
+
       // ------------------------------------------------------------------------
       // 6) GRAVAR A RESERVA PRINCIPAL
       // ------------------------------------------------------------------------
@@ -1205,10 +1292,6 @@ setSaidaOptions(sorted);
       setPrecoBase(parseFloat(mainReservation.precoBase) || 0);
       setEditingPassengerIndex(0);  // ← assume que a principal é a 0 no novo array
       setSelectedRow(mainReservation);
-      console.log("mainReservation:", mainReservation);
-console.log("multiPassengers:", [mainReservation, ...additionalReservations]);
-console.log("Index 0 no multiPassengers:", multiPassengers[0]);
-
 
       
 
@@ -1229,6 +1312,17 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
     }
   };
   
+  const uniqueTripOptions = useMemo(() => {
+    const map = new Map();
+    tripOptions.forEach(opt => {
+      // chave composta: data (label) + origem + destino
+      const key = `${opt.label}-${opt.origem}-${opt.destino}`;
+      if (!map.has(key)) {
+        map.set(key, opt);
+      }
+    });
+    return Array.from(map.values());
+  }, [tripOptions]);
   
 
   // Função utilitária para atualizar um passageiro adicional no array multiPassengers
@@ -1297,27 +1391,32 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       <Box sx={{ display: "flex",gap:2, p: 1 }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
       <Autocomplete
-  options={tripOptions}
-  getOptionLabel={(option) => option.label}
-  filterOptions={(options, state) =>
-    options.filter((option) =>
-      option.label.toLowerCase().includes(state.inputValue.toLowerCase())
-    )
-  }
-  value={
-    selectedOption ?? {
-      id: selectedReservation.tripId,
-      label: `${selectedReservation.tripId}`,
-    }
-  }
-  onChange={(event, newValue) => {
-    if (newValue) {
-      handleTripSelect(newValue.id);
+  options={uniqueTripOptions}
+  getOptionLabel={opt => opt.label}
+  inputValue={dateInputValue}
+  onInputChange={(_, v) => setDateInputValue(v)}
+  value={selectedOption}
+  onChange={(_, newVal) => {
+    if (newVal) {
+      handleTripSelect(newVal.id);
+      setDateInputValue(newVal.label);
     } else {
-      setSelectedReservation((prev) => ({ ...prev, tripId: "" }));
-      setAvailableSeats([]);
+      setSelectedReservation(r => ({ ...r, tripId: "" }));
+      setDateInputValue("");
     }
   }}
+  filterOptions={(options, { inputValue }) => {
+    const normalize = s => s.normalize("NFD")
+                             .replace(/[\u0300-\u036f]/g, "")
+                             .toLowerCase().trim();
+    const words = normalize(inputValue).split(/\s+/).filter(Boolean);
+    return options.filter(o =>
+      words.every(w => normalize(o.label).includes(w))
+    );
+  }}
+  
+  
+
   /* ----------- ❶ pinta as linhas do menu ----------- */
   renderOption={(props, option) => (
     <Box
@@ -1359,39 +1458,63 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
   )}
 />
 
-          <Autocomplete
-            options={entradaOptions.map((c) => c.nome)}size="small"
-            value={selectedReservation.entrada || ""}
-            onChange={(e, newValue) =>
-              setSelectedReservation((prev) => {
-                const updated = { ...prev, entrada: newValue };
-                if (newValue && updated.tripId) {
-                  preencherBilheteAutomaticamente(updated.tripId, updated.volta);
-                }
-                return updated;
-              })
-            }
-            renderInput={(params) => (
-              <TextField {...params} label="Entrada"  sx={{ minWidth: 170, ...commonFieldProps.sx }} />
-            )}
-          />
+<Autocomplete
+  options={entradaOptions
+    .filter((c) =>
+      !["portugal", "suica"].includes(
+        c.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      )
+    )
+    .map((c) => c.nome)}
+  value={selectedReservation.entrada || ""}
+  onChange={(e, newValue) =>
+    setSelectedReservation((prev) => {
+      const updated = { ...prev, entrada: newValue };
+      if (newValue && updated.tripId) {
+        preencherBilheteAutomaticamente(updated.tripId, updated.volta);
+      }
+      return updated;
+    })
+  }
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Entrada"
+      sx={{ minWidth: 170, ...commonFieldProps.sx }}
+    />
+  )}
+  size="small"
+/>
 
-          <Autocomplete
-            options={saidaOptions.map((c) => c.nome)}
-            value={selectedReservation.saida || ""}
-            onChange={(e, newValue) => {
-              setSelectedReservation((prev) => ({
-                ...prev,
-                saida: newValue,
-              }));
-              setEntradaOptions(getCidadesDoPaisOposto(newValue));
-            }}
-            renderInput={(params) => (
-              <TextField {...params} label="Saída" sx={{ minWidth: 170, ...commonFieldProps.sx }} />
-            )}
-            sx={{ minWidth: 170, ...commonFieldProps.sx }}
-            size="small"
-          />
+
+
+<Autocomplete
+  options={saidaOptions
+    .filter((c) =>
+      !["portugal", "suica"].includes(
+        c.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      )
+    )
+    .map((c) => c.nome)}
+  value={selectedReservation.saida || ""}
+  onChange={(e, newValue) => {
+    setSelectedReservation((prev) => ({
+      ...prev,
+      saida: newValue,
+    }));
+    setEntradaOptions(getCidadesDoPaisOposto(newValue));
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Saída"
+      sx={{ minWidth: 170, ...commonFieldProps.sx }}
+    />
+  )}
+  size="small"
+/>
+
+
 
 
 
@@ -1401,8 +1524,11 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
   options={returnTripOptions}
   getOptionLabel={(o) => o.label}
   value={
-    returnTripOptions.find(o => o.label === selectedReservation.volta) || null
+    returnTripOptions.find(
+      o => o.id === selectedReservation.volta || o.data === selectedReservation.volta
+    ) || null
   }
+  
   onChange={(e, newVal) => {
     if (!newVal) {
       setSelectedReservation(prev => ({ ...prev, volta: "", tripReturnId: "" }));
@@ -1418,10 +1544,11 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
     } else {
       setSelectedReservation(prev => ({
         ...prev,
-        volta: newVal.label,
+        volta: newVal.data,      // <--- aqui usas data e não label
         tripReturnId: newVal.id,
       }));
     }
+    
 
     if (selectedReservation.tripId) {
       preencherBilheteAutomaticamente(
@@ -1485,7 +1612,109 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
 
 
 
-<FormControl fullWidth sx={{ ...commonFieldProps.sx }}>
+
+
+
+
+
+          
+        </Stack>
+      </Box>
+
+      {/* NOVA BOX PARA TELEFONE, NOME, APELIDO */}
+      <Box sx={{ display: "flex",gap:2, p: 1 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+
+      <TextField
+            label="Nome"
+            value={selectedReservation.nomePassageiro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, nomePassageiro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Apelido"
+            value={selectedReservation.apelidoPassageiro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, apelidoPassageiro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+          <TextField
+            label="Telefone"
+            value={selectedReservation.telefone || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, telefone: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }} size="small"
+          />
+<FormControlLabel
+  control={
+    <Checkbox
+      checked={isChild}
+      onChange={(e) => {
+        const childChecked = e.target.checked;
+        setIsChild(childChecked);
+
+        setSelectedReservation((prev) => {
+          const updated = { ...prev };
+
+          if (updated.tripId && updated.entrada && updated.saida) {
+            preencherBilheteAutomaticamente(
+              updated.tripId,
+              updated.volta,
+              childChecked
+            );
+          }
+
+          return updated;
+        });
+      }}
+      sx={{ p: 0.5 }}
+    />
+  }
+  label="Criança"
+  sx={{ ml: 1 }}
+/>
+         
+        </Stack>
+      </Box>
+
+      {/* BOX PARA CARRO E VALOR CARRO */}<Button
+  variant="text"
+  onClick={() => setMostrarDetalhes(!mostrarDetalhes)}
+  sx={{ color: "darkred", textTransform: "none", fontWeight: "bold" }}
+>
+  {mostrarDetalhes ? "Ocultar -" : "Mostrar Mais +"}
+</Button>
+<Collapse in={mostrarDetalhes} timeout="auto" unmountOnExit>
+
+      <Box sx={{ display: "flex",gap:2, p: 1 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+  
+          <TextField
+            label="Carro OBS."
+            value={selectedReservation.carro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, carro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+          <TextField
+            label="Valor Carro"
+            value={selectedReservation.valorCarro || ""}
+            onChange={(e) =>
+              setSelectedReservation({ ...selectedReservation, valorCarro: e.target.value })
+            }
+            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
+          />
+
+
+        </Stack>
+        <FormControl fullWidth sx={{ ...commonFieldProps.sx }}>
   <InputLabel>Bilhete</InputLabel>
   <Select
     key={`${selectedReservation.tripId}-${selectedReservation.moeda}`}
@@ -1530,97 +1759,8 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       ))}
   </Select>
 </FormControl>
-
-<FormControlLabel
-  control={
-    <Checkbox
-      checked={isChild}
-      onChange={(e) => {
-        const childChecked = e.target.checked;
-        setIsChild(childChecked);
-
-        setSelectedReservation((prev) => {
-          const updated = { ...prev };
-
-          if (updated.tripId && updated.entrada && updated.saida) {
-            preencherBilheteAutomaticamente(
-              updated.tripId,
-              updated.volta,
-              childChecked
-            );
-          }
-
-          return updated;
-        });
-      }}
-      sx={{ p: 0.5 }}
-    />
-  }
-  label="Criança"
-  sx={{ ml: 1 }}
-/>
-
-
-          
-        </Stack>
       </Box>
 
-      {/* NOVA BOX PARA TELEFONE, NOME, APELIDO */}
-      <Box sx={{ display: "flex",gap:2, p: 1 }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-
-
-          <TextField
-            label="Telefone"
-            value={selectedReservation.telefone || ""}
-            onChange={(e) =>
-              setSelectedReservation({ ...selectedReservation, telefone: e.target.value })
-            }
-            sx={{ minWidth: 170, ...commonFieldProps.sx }} size="small"
-          />
-
-          <TextField
-            label="Nome"
-            value={selectedReservation.nomePassageiro || ""}
-            onChange={(e) =>
-              setSelectedReservation({ ...selectedReservation, nomePassageiro: e.target.value })
-            }
-            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
-          />
-
-          <TextField
-            label="Apelido"
-            value={selectedReservation.apelidoPassageiro || ""}
-            onChange={(e) =>
-              setSelectedReservation({ ...selectedReservation, apelidoPassageiro: e.target.value })
-            }
-            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
-          />
-        </Stack>
-      </Box>
-
-      {/* BOX PARA CARRO E VALOR CARRO */}
-      <Box sx={{ display: "flex",gap:2, p: 1 }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-          <TextField
-            label="Carro OBS."
-            value={selectedReservation.carro || ""}
-            onChange={(e) =>
-              setSelectedReservation({ ...selectedReservation, carro: e.target.value })
-            }
-            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
-          />
-
-          <TextField
-            label="Valor Carro"
-            value={selectedReservation.valorCarro || ""}
-            onChange={(e) =>
-              setSelectedReservation({ ...selectedReservation, valorCarro: e.target.value })
-            }
-            sx={{ minWidth: 170, ...commonFieldProps.sx }}size="small"
-          />
-        </Stack>
-      </Box>
 
       {/* BOX PARA OBS, VALOR VOLUME E TOTAL BILHETE */}
       <Box sx={{ display: "flex",gap:2, p: 1, marginBottom: 2 }}>
@@ -1651,8 +1791,10 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
           />
             
             
-            
-   
+       </Stack>     
+   </Box>
+   </Collapse>
+            <Box sx={{ display: "flex",gap:2, p: 1, marginBottom: 2 }}>
 
             <Button
   variant="contained"
@@ -1677,6 +1819,8 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
 
     const novaReserva = {
       ...selectedReservation,
+      nomePassageiro: (selectedReservation.nomePassageiro || "").toUpperCase(),
+      apelidoPassageiro: (selectedReservation.apelidoPassageiro || "").toUpperCase(),
       lugar: seatToAssign,
       reserva: isEditing
         ? selectedReservation.reserva
@@ -1684,12 +1828,14 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
       id: isEditing ? selectedReservation.id : undefined,
       precoBase: precoBase.toString(),
     };
+    
 
     if (isEditing) {
       const actualizados = [...multiPassengers];
       actualizados[editingPassengerIndex] = novaReserva;
       setMultiPassengers(actualizados);
       setEditingPassengerIndex(null);
+      
     } else {
       if (
         novaReserva.reserva &&
@@ -1699,6 +1845,10 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
         return;
       }
       setMultiPassengers([...multiPassengers, novaReserva]);
+      setSelectedReservation(prev => ({
+        ...prev,
+        nomePassageiro: "",  // limpa só o campo Nome
+      }));
     }
   }}
 >
@@ -1735,6 +1885,7 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
           totalbilhete: "",
         });
         setPrecoBase(0);
+        setEditingPassengerIndex(null);
       }}
     >
       Limpar
@@ -1743,7 +1894,6 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
 
 
           
-        </Stack>
       </Box>
 
           {/* PASSAGEIROS ADICIONAIS (cada um no seu bloco, também numa só linha) */}
@@ -1821,6 +1971,7 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
           totalbilhete: "",
         });
         setPrecoBase(0);
+        setEditingPassengerIndex(null);
       }}
     >
       Nova Reserva
@@ -1835,31 +1986,50 @@ console.log("Index 0 no multiPassengers:", multiPassengers[0]);
     </Button>
 
     {selectedReservation.id && (
-      <Button
-      variant="contained"
-      sx={{ backgroundColor: "darkred", color: "white", ml: 1 }}
-      onClick={async () => {
-        if (!multiPassengers.length) {
-          alert("Nada para imprimir.");
-          return;
-        }
-        const tripDate = availableTrips.find(
-          t => t.id === selectedReservation.tripId
-        )?.dataviagem;
-    
+    <Button
+    variant="contained"
+    sx={{ backgroundColor: "darkred", color: "white", ml: 1 }}
+    onClick={async () => {
+      if (!multiPassengers.length) {
+        alert("Nada para imprimir.");
+        return;
+      }
+      const tripDate = availableTrips.find(
+        (t) => t.id === selectedReservation.tripId
+      )?.dataviagem;
+  
+      // 1) Filtra quais ainda não foram impressos
+      const iniciais = multiPassengers.filter(p => p.impresso !== 1 && p.impresso !== "1");
+      // 2) Filtra os que já têm impresso = 1
+      const reimprimir = multiPassengers.filter(p => p.impresso === 1 || p.impresso === "1");
+  
+      // 3) Impressão inicial (vai incrementar e marcar impresso)
+      if (iniciais.length) {
         await handlePrintAllTickets(
-          multiPassengers,
+          iniciais,
           tripDate,
           formatDate,
-          handleRowEdit            // passa o gravador
+          handleRowEdit
         );
-    
-        // Depois de imprimir em lote, refresca a listagem
-        await fetchAllReservations();
-      }}
-    >
-      Imprimir Todos
-    </Button>
+      }
+  
+      // 4) Reimpressão (mantém o nº de bilhete)
+      if (reimprimir.length) {
+        await handleRePrintAllTickets(
+          reimprimir,
+          tripDate,
+          formatDate,
+          handleRowEdit
+        );
+      }
+  
+      // 5) Refresh da lista
+      await fetchAllReservations();
+    }}
+  >
+    Imprimir Todos
+  </Button>
+  
     
     )}
 
