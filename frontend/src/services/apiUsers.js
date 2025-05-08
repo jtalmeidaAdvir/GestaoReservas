@@ -1,6 +1,6 @@
 import axios from "axios";
 //http://94.143.231.141:3010/
-const API_URL = "http://94.143.231.141:3010/users"; // Endereço do backend
+const API_URL = "https://nunes.entriga.pt/users"; // Endereço do backend
 
 const api = axios.create({
     baseURL: API_URL,
