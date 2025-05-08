@@ -1,5 +1,6 @@
 const express = require("express");
 const tripController = require("../controllers/tripController");
+const verifyToken = require("../middlewares/verifyToken");
 
 
 const router = express.Router();
@@ -7,32 +8,32 @@ const router = express.Router();
 console.log("🔍 tripController:", tripController);
 
 // Rotas específicas (estáticas) devem vir primeiro:
-router.put("/:tripId/motorista", tripController.updateTripMotorista); 
-router.put("/:tripId/notas", tripController.updateTripNotas);
-router.put("/:tripId/origemdestino", tripController.updateTripOrigemDestino); 
-router.put("/:id/disable", tripController.disableTrip); 
-router.put("/:id/reactivate", tripController.reactivateTrip); 
+router.put("/:tripId/motorista", verifyToken,tripController.updateTripMotorista); 
+router.put("/:tripId/notas",  verifyToken,tripController.updateTripNotas);
+router.put("/:tripId/origemdestino",  verifyToken,tripController.updateTripOrigemDestino); 
+router.put("/:id/disable",  verifyToken,tripController.disableTrip); 
+router.put("/:id/reactivate",  verifyToken,tripController.reactivateTrip); 
 
-router.post("/create", tripController.createTrip); 
+router.post("/create",  verifyToken,tripController.createTrip); 
 
-router.get("/dates", tripController.getTripsDates); 
-router.get("/by-date", tripController.getTripsByDate);  // Coloca aqui
-router.get("/date", tripController.getTripsByDate);       // Se quiseres manter esta rota também
-router.get("/summary", tripController.getTripsSummary); 
+router.get("/dates",  verifyToken,tripController.getTripsDates); 
+router.get("/by-date",  verifyToken,tripController.getTripsByDate);  // Coloca aqui
+router.get("/date",  verifyToken,tripController.getTripsByDate);       // Se quiseres manter esta rota também
+router.get("/summary",  verifyToken,tripController.getTripsSummary); 
 
 
 
-router.get("/trip/:tripId", tripController.getTripWithBus); 
-router.get("/return", tripController.findOrCreateReturnTrip); 
-router.get("/:tripId/available-seats", tripController.getAvailableSeats);
-router.get("/", tripController.getAllTrips); 
-router.get("/summary-by-month", tripController.getTripsSummaryByMonth);
+router.get("/trip/:tripId",  verifyToken,tripController.getTripWithBus); 
+router.get("/return",  verifyToken,tripController.findOrCreateReturnTrip); 
+router.get("/:tripId/available-seats",  verifyToken,tripController.getAvailableSeats);
+router.get("/",  verifyToken,tripController.getAllTrips); 
+router.get("/summary-by-month",  verifyToken,tripController.getTripsSummaryByMonth);
 
 
 // Rotas dinâmicas devem vir por último:
-router.get("/:id", tripController.getTripById); 
-router.put("/:id", tripController.updateTrip); 
-router.delete("/:id", tripController.deleteTripPermanently); 
+router.get("/:id",  verifyToken,tripController.getTripById); 
+router.put("/:id",  verifyToken,tripController.updateTrip); 
+router.delete("/:id",  verifyToken,tripController.deleteTripPermanently); 
 
 
 

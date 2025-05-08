@@ -2,11 +2,12 @@
 const express = require("express");
 const router = express.Router();
 const priceController = require("../controllers/priceController");
+const verifyToken = require("../middlewares/verifyToken");
 
-router.post("/", priceController.createPrice);
-router.get("/", priceController.getAllPrices);
-router.get("/:id", priceController.getPriceById);
-router.put("/:id", priceController.updatePrice);
-router.delete("/:id", priceController.deletePrice);
+router.post("/", verifyToken,priceController.createPrice);
+router.get("/", verifyToken,priceController.getAllPrices);
+router.get("/:id", verifyToken,priceController.getPriceById);
+router.put("/:id", verifyToken,priceController.updatePrice);
+router.delete("/:id", verifyToken,priceController.deletePrice);
 
 module.exports = router;

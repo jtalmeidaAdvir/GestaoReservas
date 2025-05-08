@@ -41,6 +41,9 @@ const cityRoutes = require("./routes/cityRoutes");
 const emailRoutes = require("./routes/email");
 const blackListRoutes = require("./routes/blackListRoutes");
 
+
+
+
 const { initializeDatabase } = require("./config/database");
 
 // Configuração das rotas

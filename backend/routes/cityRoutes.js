@@ -1,13 +1,14 @@
 const express = require("express");
 const cityController = require("../controllers/cityController");
+const verifyToken = require("../middlewares/verifyToken");
 
 const router = express.Router();
 
-router.post("/", cityController.createCity);
-router.get("/", cityController.getAllCities);
-router.put("/:id", cityController.updateCity);
-router.delete("/:id", cityController.deleteCity);
-router.get("/:id", cityController.getCityById);
+router.post("/", verifyToken, cityController.createCity);
+router.get("/", verifyToken,cityController.getAllCities);
+router.put("/:id", verifyToken,cityController.updateCity);
+router.delete("/:id", verifyToken,cityController.deleteCity);
+router.get("/:id", verifyToken,cityController.getCityById);
 
 
 module.exports = router;
