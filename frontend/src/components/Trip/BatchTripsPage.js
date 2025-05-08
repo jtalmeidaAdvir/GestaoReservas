@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Form, Button, Table, Container } from "react-bootstrap";
 import moment from "moment";
+const getToken = () => localStorage.getItem("token");
 
 // Componente que apresenta o selector de autocarro para uma data (viagem de ida)
 const BusSelect = ({ data, busId, onChange }) => {
@@ -8,7 +9,13 @@ const BusSelect = ({ data, busId, onChange }) => {
 
   useEffect(() => {
     if (data) {
-      fetch(`https://nunes.entigra.pt/backend/buses/available?date=${data}`)
+      fetch(`https://nunes.entigra.pt/backend/buses/available?date=${data}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        }
+        
+      })
         .then((response) => response.json())
         .then((data) => {
           const activeSortedBuses = Array.isArray(data)
@@ -129,7 +136,13 @@ const CriarViagemMultiData = () => {
   const [cities, setCities] = useState([]);
 
   useEffect(() => {
-    fetch("https://nunes.entigra.pt/backend/cities")
+    fetch("https://nunes.entigra.pt/backend/cities", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      }
+      
+    })
       .then((response) => response.json())
       .then((data) => {
         const sortedCities = Array.isArray(data)
@@ -231,7 +244,11 @@ const CriarViagemMultiData = () => {
         trips.map(async (trip) => {
           const response = await fetch("https://nunes.entigra.pt/backend/trips/create", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            },
+            
             body: JSON.stringify(trip),
           });
           if (!response.ok) {

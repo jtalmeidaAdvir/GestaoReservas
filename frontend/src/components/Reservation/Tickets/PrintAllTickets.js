@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import logoVPL from "../../../assets/logo.png";
-
+const getToken = () => localStorage.getItem("token");
 const parseVoltaDate = (input) => {
   if (!input || input.toLowerCase() === "aberto") return null;
 
@@ -50,7 +50,13 @@ async function handlePrintAllTickets(
       return;
     }
 
-    const lastTicketResponse = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket");
+    const lastTicketResponse = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      }
+      
+    })
     if (!lastTicketResponse.ok) throw new Error("Erro ao obter último nº de bilhete.");
     const lastTicketData = await lastTicketResponse.json();
     let nextTicketNumber = parseInt(lastTicketData.bilhete, 10) + 1;

@@ -1,7 +1,11 @@
 import axios from "axios";
-//http://94.143.231.141:3010/
-const API_URL = "https://nunes.entigra.pt/backend/users"; // Endereço do backend
 
+const API_URL = "https://nunes.entigra.pt/backend/users";
+
+// Obter token do localStorage
+const getToken = () => localStorage.getItem("token");
+
+// Instância base sem autenticação (para login/register)
 const api = axios.create({
     baseURL: API_URL,
     headers: {
@@ -9,43 +13,42 @@ const api = axios.create({
     },
 });
 
+// ➕ Instância com token (para chamadas protegidas)
+const apiAuth = () =>
+    axios.create({
+        baseURL: API_URL,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+        },
+    });
+
+// ================== Métodos ==================
+
+// 🔓 Registar e login (sem token)
 export const registerUser = async (userData) => {
-    try {
-        const response = await api.post("/register", userData);
-        return response.data;
-    } catch (error) {
-        console.error("Erro ao registar utilizador:", error);
-        throw error;
-    }
+    const response = await api.post("/register", userData);
+    return response.data;
 };
 
 export const loginUser = async (credentials) => {
-    try {
-        const response = await api.post("/login", credentials);
-        return response.data;
-    } catch (error) {
-        console.error("Erro ao fazer login:", error);
-        throw error;
-    }
+    const response = await api.post("/login", credentials);
+    return response.data;
 };
 
+// 🔐 Métodos com autenticação
 export const deleteUser = async (id) => {
-    await axios.delete(`${API_URL}/${id}`);
+    const response = await apiAuth().delete(`/${id}`);
+    return response.data;
 };
-
 
 export const fetchUsers = async () => {
-    try {
-        const response = await api.get("");
-        return response.data;
-    } catch (error) {
-        console.error("Erro ao buscar utilizadores:", error);
-        throw error;
-    }
+    const response = await apiAuth().get("/");
+    return response.data;
 };
 
 export const updateUser = async (id, userData) => {
-    const response = await axios.put(`${API_URL}/${id}`, userData);
+    const response = await apiAuth().put(`/${id}`, userData);
     return response.data;
 };
 

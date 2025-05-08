@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Box, Typography, Grid, Button, TextField } from "@mui/material";
 import { SlArrowLeft,SlArrowRight } from "react-icons/sl";
+const getToken = () => localStorage.getItem("token");
 
 
 
@@ -48,7 +49,12 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
     try {
       const responses = await Promise.all(
         tripIds.map((tripId) =>
-          fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`)
+          fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            }
+          })
         )
       );
       const data = await Promise.all(responses.map((res) => res.json()));
@@ -205,7 +211,12 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
       `https://nunes.entigra.pt/backend/reservations/${updatedReservation.id}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+       
         body: JSON.stringify(updatedReservation),
       }
     );

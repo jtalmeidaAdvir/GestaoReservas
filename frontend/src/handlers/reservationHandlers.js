@@ -1,4 +1,9 @@
 
+const getToken = () => localStorage.getItem("token");
+const authHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getToken()}`
+  };
 
 export const handleMoveReservation = async (newSeat, reservationToMove, reservations, setReservations, handleRowEdit) => {
     setReservations((prevReservations) => {
@@ -104,8 +109,13 @@ export const handleDeleteReservation = async (numeroReserva, fetchReservations) 
     if (!window.confirm(`Tem certeza que deseja eliminar a reserva Nº ${numeroReserva}?`)) return;
 
     try {
-        const response = await fetch(`http://94.143.231.141:3000/reservations/delete/${numeroReserva}`, {
+        const response = await fetch(`https://nunes.entigra.pt/backend/reservations/delete/${numeroReserva}`, {
             method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`
+              }
+              
         });
 
         if (response.ok) {
@@ -126,8 +136,13 @@ export const handleChangeBus = async (busId, tripId, setModalOpen, fetchReservat
     try {
         const response = await fetch(`http://94.143.231.141:3000/trips/${tripId}/bus`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`
+              },
+              
             body: JSON.stringify({ busId }),
+            
         });
 
         if (response.ok) {
@@ -177,7 +192,10 @@ export const handleSaveMotorista = async (tripId, motorista, fetchReservations) 
     try {
         const response = await fetch(`http://94.143.231.141:3000/trips/${tripId}/motorista`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Authorization": `Bearer ${getToken()}`
+            },
+            "Content-Type": "application/json",
             body: JSON.stringify({ motorista }),
         });
 

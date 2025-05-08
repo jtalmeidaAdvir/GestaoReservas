@@ -5,10 +5,17 @@ const MoveReservationsBatchModal = ({ open, onClose, trips, onMove, selectedRese
     const [selectedTrip, setSelectedTrip] = useState("");
     const [availableSeats, setAvailableSeats] = useState([]);
     const [reservationsWithSeats, setReservationsWithSeats] = useState([]);
+    const getToken = () => localStorage.getItem("token");
 
     useEffect(() => {
         if (selectedTrip) {
-            fetch(`https://nunes.entigra.pt/backend/reservations/trip/${selectedTrip}`)
+            fetch(`https://nunes.entigra.pt/backend/reservations/trip/${selectedTrip}`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then(response => response.json())
                 .then(data => {
                     if (data && Array.isArray(data.freeSeats)) {

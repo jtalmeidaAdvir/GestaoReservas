@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import moment from "moment";
+const getToken = () => localStorage.getItem("token");
 
 Modal.setAppElement("#root");
 
@@ -32,13 +33,25 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated, originCountry, 
     useEffect(() => {
         if (isOpen && date) {
           // Buscar autocarros disponíveis
-          fetch(`https://nunes.entigra.pt/backend/buses/available?date=${moment(date).format("YYYY-MM-DD")}`)
+          fetch(`https://nunes.entigra.pt/backend/buses/available?date=${moment(date).format("YYYY-MM-DD")}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            }
+            
+          })
             .then(res => res.json())
             .then(data => {
               let activeBuses = Array.isArray(data) ? data.filter(b => b.isActive) : [];
       
               // Incluir o autocarro "vazio" se não estiver presente
-              fetch("https://nunes.entigra.pt/backend/buses")
+              fetch("https://nunes.entigra.pt/backend/buses", {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then(resp => resp.json())
                 .then(allBuses => {
                   const emptyBus = allBuses.find(b => b.nome === "vazio");
@@ -50,7 +63,13 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated, originCountry, 
             });
       
           // Buscar cidades
-          fetch("https://nunes.entigra.pt/backend/cities")
+          fetch("https://nunes.entigra.pt/backend/cities", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            }
+            
+          })
             .then(res => res.json())
             .then(data => {
               const sorted = Array.isArray(data)
@@ -149,7 +168,13 @@ if (normalize(originCountry) === "portugal") {
         try {
             const response = await fetch("https://nunes.entigra.pt/backend/trips/create", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                 
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getToken()}`
+                    },
+                    
+                  
                 body: JSON.stringify(newTrip),
             });
     
@@ -158,7 +183,13 @@ if (normalize(originCountry) === "portugal") {
             const createdTrip = await response.json();
 
 // Ir buscar a viagem completa com dados do autocarro
-const res = await fetch(`https://nunes.entigra.pt/backend/trips/${createdTrip.id}`);
+const res = await fetch(`https://nunes.entigra.pt/backend/trips/${createdTrip.id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`
+    }
+    
+  })
 const fullTrip = await res.json();
 
 onTripCreated(fullTrip);

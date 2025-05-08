@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import moment from "moment";
 import CreateTripModal from "./CreateTripModal";
 import Reservation from "../Reservation/Reservation";
+const getToken = () => localStorage.getItem("token");
 
 const TripsList = () => {
     const navigate = useNavigate();
@@ -20,7 +21,13 @@ const TripsList = () => {
     useEffect(() => {
         const fetchCities = async () => {
             try {
-                const res = await fetch("https://nunes.entigra.pt/backend/cities");
+                const res = await fetch("https://nunes.entigra.pt/backend/cities", {
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getToken()}`
+                    }
+                    
+                  })
                 const data = await res.json();
                 const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
                 const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -52,7 +59,13 @@ const TripsList = () => {
         ////console.log(`🔍 Buscando viagens para a data: ${selectedDate}`);
         const fetchTrips = async () => {
             try {
-                const response = await fetch(`https://nunes.entigra.pt/backend/trips/date?date=${selectedDate}`);
+                const response = await fetch(`https://nunes.entigra.pt/backend/trips/date?date=${selectedDate}`, {
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getToken()}`
+                    }
+                    
+                  })
                 const data = await response.json();
                 setTrips(data);
             } catch (error) {

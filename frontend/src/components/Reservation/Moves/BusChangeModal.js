@@ -5,13 +5,20 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     const [busId, setBusId] = useState(null);
     const [availableBuses, setAvailableBuses] = useState([]);
     const [activeReservations, setActiveReservations] = useState(0); // Número de reservas ativas
+    const getToken = () => localStorage.getItem("token");
 
     // Buscar autocarros disponíveis ao abrir o modal
     useEffect(() => {
         if (open) {
             //console.log("🔄 Buscando autocarros disponíveis...");
     
-            fetch(`https://nunes.entigra.pt/backend/buses/available?date=${dataviagem}`)
+            fetch(`https://nunes.entigra.pt/backend/buses/available?date=${dataviagem}`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then((response) => response.json())
                 .then((buses) => {
                     //console.log("✅ Autocarros disponíveis recebidos:", buses);
@@ -21,7 +28,13 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     
             //console.log(`🔄 Buscando informações do autocarro atual da viagem ${tripId}...`);
     
-            fetch(`https://nunes.entigra.pt/backend/trips/${tripId}`)
+            fetch(`https://nunes.entigra.pt/backend/trips/${tripId}`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then((response) => response.json())
                 .then((tripData) => {
                     //console.log("🔍 Dados recebidos da API:", tripData);
@@ -33,7 +46,13 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
                     const busAtual = tripData.Bus;
                     //console.log("🚌 Autocarro atual:", busAtual);
     
-                    fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/available-seats`)
+                    fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/available-seats`, {
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${getToken()}`
+                        }
+                        
+                      })
                         .then((response) => response.json())
                         .then((availableSeats) => {
                             if (Array.isArray(availableSeats)) {
@@ -65,7 +84,13 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     
         try {
             // Buscar quantos lugares já estão ocupados no novo autocarro
-            const responseSeats = await fetch(`https://nunes.entigra.pt/backend/trips/${busId}/available-seats`);
+            const responseSeats = await fetch(`https://nunes.entigra.pt/backend/trips/${busId}/available-seats`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              });
             const dataSeats = await responseSeats.json();
             let reservasNoNovoAutocarro = Array.isArray(dataSeats) ? dataSeats.length : 0;
     
@@ -93,7 +118,13 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
             // Atualizar a viagem para o novo autocarro
             const response = await fetch(`https://nunes.entigra.pt/backend/buses/${tripId}/bus`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+               
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getToken()}`
+                    },
+                    
+                 
                 body: JSON.stringify({ busId }),
             });
     

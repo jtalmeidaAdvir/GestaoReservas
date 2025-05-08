@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Box, Typography, Button, MenuItem, Select } from "@mui/material";
+const getToken = () => localStorage.getItem("token");
 
 const MoveReservationTripModal = ({ open, onClose, trips, onMove }) => {
     const [selectedTrip, setSelectedTrip] = useState("");
@@ -9,7 +10,13 @@ const MoveReservationTripModal = ({ open, onClose, trips, onMove }) => {
     // Quando a viagem muda, buscar os lugares disponíveis
     useEffect(() => {
         if (selectedTrip) {
-            fetch(`http://192.168.1.25:3000/reservations/trip/${selectedTrip}`)
+            fetch(`http://192.168.1.25:3000/reservations/trip/${selectedTrip}`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`Erro HTTP: ${response.status}`);

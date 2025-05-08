@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Box, Button, Typography, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
+const getToken = () => localStorage.getItem("token");
 
 const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm }) => {
     const [availableSeats, setAvailableSeats] = useState([]);
@@ -11,7 +12,13 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm 
     useEffect(() => {
         if (open && tripId) {
             // Busca os lugares disponíveis para a viagem de regresso
-            fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/available-seats`)
+            fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/available-seats`,{
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then(res => res.json())
                 .then(data => {
                     const formattedSeats = Array.isArray(data) ? data : [];
@@ -26,7 +33,13 @@ const SelectReturnSeatModal = ({ open, onClose, tripId, mainTripDate, onConfirm 
                 .catch(error => console.error("Erro ao buscar lugares disponíveis:", error));
 
             // Busca detalhes da viagem de regresso (exceto a data, que vamos obter da reserva principal)
-            fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`)
+            fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`,{
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                }
+                
+              })
                 .then(res => res.json())
                 .then(data => {
                     if (data.trip) {

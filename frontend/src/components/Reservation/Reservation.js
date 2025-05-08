@@ -36,6 +36,7 @@ import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import DeleteIcon from '@mui/icons-material/Delete';
 
 import InputMask from "react-input-mask";
+const getToken = () => localStorage.getItem("token");
 
 
 const socket = io("https://nunes.entigra.pt/backend", {
@@ -169,7 +170,13 @@ const Reservation = ({ tripId }) => {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const response = await fetch("https://nunes.entigra.pt/backend/prices");
+        const response = await fetch("https://nunes.entigra.pt/backend/prices",{
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          }
+          
+        });
         if (response.ok) {
           const data = await response.json();
           setPrices(data); // aqui guardamos o array de objetos
@@ -189,7 +196,13 @@ const Reservation = ({ tripId }) => {
 
   // Buscar a lista de cidades
   useEffect(() => {
-    fetch("https://nunes.entigra.pt/backend/cities")
+    fetch("https://nunes.entigra.pt/backend/cities",{
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      }
+      
+    })
       .then(response => response.json())
       .then(data => {
         console.log("📥 Resposta da API (cidades disponíveis):", data);
@@ -239,7 +252,13 @@ const Reservation = ({ tripId }) => {
 
     useEffect(() => {
       if (open) {
-        fetch(`https://nunes.entigra.pt/backend/reservations/trip/${tripId}`)
+        fetch(`https://nunes.entigra.pt/backend/reservations/trip/${tripId}`,{
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          }
+          
+        })
           .then(response => response.json())
           .then(data => {
             if (data && Array.isArray(data.freeSeats)) {
@@ -453,7 +472,13 @@ const handleDeleteReservation = async (numeroReserva) => {
   // Tentar obter a reserva de regresso diretamente do backend
   let reservaVolta = null;
   try {
-    const voltaResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${voltaReservaNumber}`);
+    const voltaResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${voltaReservaNumber}`,{
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      }
+      
+    });
     if (voltaResponse.ok) {
       reservaVolta = await voltaResponse.json();
     }
@@ -474,6 +499,13 @@ const handleDeleteReservation = async (numeroReserva) => {
   try {
     // Eliminar a reserva principal
     const response = await fetch(`https://nunes.entigra.pt/backend/reservations/delete/${numeroReserva}`, {
+     
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        
+    
       method: "DELETE",
     });
 
@@ -486,6 +518,13 @@ const handleDeleteReservation = async (numeroReserva) => {
     // Se existir uma reserva de regresso, eliminá-la também
     if (reservaVolta) {
       const voltaDeleteResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/delete/${voltaReservaNumber}`, {
+
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          
+      
         method: "DELETE",
       });
       if (!voltaDeleteResponse.ok) {
@@ -507,7 +546,13 @@ const handleGenerateTicket = async (row) => {
 
     // Se a reserva ainda não tiver bilhete, buscar do backend
     if (!newBilheteNumber) {
-      const lastTicketResponse = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket");
+      const lastTicketResponse = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket",{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        }
+        
+      });
       if (!lastTicketResponse.ok) {
         throw new Error("Erro ao obter último nº de bilhete");
       }
@@ -553,7 +598,13 @@ const handleGenerateTicket = async (row) => {
   // Alterar autocarro e reatribuir reservas
   const handleChangeBus = async (busId) => {
     try {
-      const busInfoResponse = await fetch(`https://nunes.entigra.pt/backend/buses/${busId}`);
+      const busInfoResponse = await fetch(`https://nunes.entigra.pt/backend/buses/${busId}`,{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        }
+        
+      });
       const busInfo = await busInfoResponse.json();
 
       if (!busInfo || !busInfo.nlugares) {
@@ -615,7 +666,13 @@ const handleGenerateTicket = async (row) => {
 
       const updateBusResponse = await fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/bus`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          
+      
         body: JSON.stringify({ busId }),
       });
       if (!updateBusResponse.ok) {
@@ -767,7 +824,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
       }
 
       if (!updatedRow.reserva) {
-        let lastReservationResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/last`);
+        let lastReservationResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/last`,{
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          }
+          
+        });
         let lastReservation = await lastReservationResponse.json();
         let newReservaNumber = lastReservation?.reserva ? parseInt(lastReservation.reserva) + 1 : 1;
         updatedRow.reserva = String(newReservaNumber).padStart(4, "0");
@@ -776,19 +839,37 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
       const userEmail = localStorage.getItem("email") || "desconhecido";
 
-      let checkResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${updatedRow.reserva}`);
+      let checkResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${updatedRow.reserva}`,{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        }
+        
+      });
       if (checkResponse.ok) {
         const existingReservation = await checkResponse.json();
         let response = await fetch(`https://nunes.entigra.pt/backend/reservations/${existingReservation.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            },
+            
+          
           body: JSON.stringify({ ...updatedRow, updatedBy: userEmail }),
         });
         if (!response.ok) throw new Error("Erro ao atualizar reserva");
       } else {
         let response = await fetch(`https://nunes.entigra.pt/backend/reservations/create`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            },
+            
+        
           body: JSON.stringify({ ...updatedRow, tripId, createdBy: userEmail }),
         });
         if (!response.ok)
@@ -811,7 +892,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
         const tripRegressoResponse = await fetch(
           `https://nunes.entigra.pt/backend/trips/return?origem=${destinoDeIda}&destino=${origemDeIda}&dataviagem=${dbFormatDate}`
-        );
+          ,{
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`
+            }
+            
+          });
 
         if (tripRegressoResponse.ok) {
           const tripRegressoData = await tripRegressoResponse.json();
@@ -849,7 +936,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
         const baseReserva = parts.join(".");
         const returnReservaId = `${baseReserva}.v`;
 
-        let returnResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${returnReservaId}`);
+        let returnResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/by-reserva/${returnReservaId}`,{
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          }
+          
+        });
         if (returnResponse.ok) {
           const existingReturn = await returnResponse.json();
           const updatedReturnRow = {
@@ -864,8 +957,14 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
           let updateReturnResponse = await fetch(`https://nunes.entigra.pt/backend/reservations/${existingReturn.id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...updatedReturnRow, updatedBy: userEmail }),
+            
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`
+              },
+              
+                       
+              body: JSON.stringify({ ...updatedReturnRow, updatedBy: userEmail }),
           });
           const retornoData = await updateReturnResponse.json();
           if (updateReturnResponse.ok) {
@@ -945,7 +1044,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     try {
       const response = await fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/motorista`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          
+        
         body: JSON.stringify({ motorista }),
       });
 
@@ -970,7 +1075,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     try {
       const response = await fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/origemdestino`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          
+       
         body: JSON.stringify({ origem, destino }),
       });
   
@@ -992,7 +1103,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     try {
       const response = await fetch(`https://nunes.entigra.pt/backend/trips/${tripId}/notas`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          },
+          
+        
         body: JSON.stringify({ notas: tripNotas }),
       });
   
@@ -1021,7 +1138,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
     }
 
     try {
-      const response = await fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`);
+      const response = await fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`,{
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        }
+        
+      });
       const data = await response.json();
       console.log("📩 Dados da viagem recebidos:", data);
 
@@ -1047,7 +1170,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
 
 
 
-        const citiesResponse = await fetch(`https://nunes.entigra.pt/backend/cities`);
+        const citiesResponse = await fetch(`https://nunes.entigra.pt/backend/cities`,{
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`
+          }
+          
+        });
         const citiesData = await citiesResponse.json();
         console.log("📩 Lista de cidades recebida:", citiesData);
 
@@ -1925,7 +2054,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
                 }}
                 disabled={selectedReservations.length === 0}
                 onClick={async () => {
-                  const response = await fetch(`https://nunes.entigra.pt/backend/trips`);
+                  const response = await fetch(`https://nunes.entigra.pt/backend/trips`,{
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getToken()}`
+                    }
+                    
+                  });
                   const trips = await response.json();
                   setAvailableTrips(trips.filter(trip => trip.id !== tripId));
                   setModalMoveBatchOpen(true);
@@ -2244,7 +2379,13 @@ if (!updatedRow.preco || updatedRow.preco === "0.00") {
             console.log("🛑 Reserva de regresso antes de enviar:", updatedReservationData);
             let resCreateReturn = await fetch(`https://nunes.entigra.pt/backend/reservations/create`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${getToken()}`
+                },
+                
+              
               body: JSON.stringify({
                 ...updatedReservationData,
                 createdBy: localStorage.getItem("email") || "desconhecido"
