@@ -324,6 +324,10 @@ const tripOptions = availableTrips
   
   // Elimina a reserva na BD (move‑a para ListaNegra) e actualiza a UI
 const handleDeletePassenger = async (row, index) => {
+  if (!row.id) {
+        setMultiPassengers(prev => prev.filter((_, i) => i !== index));
+        return;
+      }
   const ok = window.confirm(
     `Tens a certeza que queres eliminar a reserva ${row.reserva}?`
   );
