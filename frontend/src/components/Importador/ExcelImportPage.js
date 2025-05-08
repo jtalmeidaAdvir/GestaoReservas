@@ -22,7 +22,7 @@ const ExcelImportPage = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const response = await fetch(`http://94.143.231.141:3010/trips`);
+        const response = await fetch(`https://nunes.entriga.pt/backend/trips`);
         const data = await response.json();
         const sortedTrips = data.sort(
           (a, b) => new Date(a.dataviagem) - new Date(b.dataviagem)
@@ -160,7 +160,7 @@ const ExcelImportPage = () => {
 
       // Incrementa o número da reserva:
       try {
-        const lastReservationResponse = await fetch(`http://94.143.231.141:3010/reservations/last`);
+        const lastReservationResponse = await fetch(`https://nunes.entriga.pt/backend/reservations/last`);
         const lastReservation = await lastReservationResponse.json();
         const newReservaNumber = lastReservation?.reserva ? parseInt(lastReservation.reserva) + 1 : 1;
         updatedRow.reserva = String(newReservaNumber).padStart(4, "0");
@@ -171,10 +171,10 @@ const ExcelImportPage = () => {
 
       // Verifica se já existe uma reserva com esse número e atualiza ou cria conforme necessário
       try {
-        const checkResponse = await fetch(`http://94.143.231.141:3010/reservations/by-reserva/${updatedRow.reserva}`);
+        const checkResponse = await fetch(`https://nunes.entriga.pt/backend/reservations/by-reserva/${updatedRow.reserva}`);
         if (checkResponse.ok) {
           const existingReservation = await checkResponse.json();
-          const response = await fetch(`http://94.143.231.141:3010/reservations/${existingReservation.id}`, {
+          const response = await fetch(`https://nunes.entriga.pt/backend/reservations/${existingReservation.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...updatedRow, updatedBy: userEmail }),
@@ -183,7 +183,7 @@ const ExcelImportPage = () => {
             console.error("Erro ao atualizar reserva:", await response.text());
           }
         } else {
-          const response = await fetch(`http://94.143.231.141:3010/reservations/create`, {
+          const response = await fetch(`https://nunes.entriga.pt/backend/reservations/create`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...updatedRow, createdBy: userEmail }),

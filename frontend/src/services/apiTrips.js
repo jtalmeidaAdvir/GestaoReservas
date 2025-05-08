@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://94.143.231.141:3010/trips"; // Ajusta conforme necessário
+const API_URL = "https://nunes.entriga.pt/backend/trips"; // Ajusta conforme necessário
 
 export const fetchTrips = async () => {
     try {

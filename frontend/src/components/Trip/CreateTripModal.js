@@ -32,13 +32,13 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated, originCountry, 
     useEffect(() => {
         if (isOpen && date) {
           // Buscar autocarros disponíveis
-          fetch(`http://94.143.231.141:3010/buses/available?date=${moment(date).format("YYYY-MM-DD")}`)
+          fetch(`https://nunes.entriga.pt/backend/buses/available?date=${moment(date).format("YYYY-MM-DD")}`)
             .then(res => res.json())
             .then(data => {
               let activeBuses = Array.isArray(data) ? data.filter(b => b.isActive) : [];
       
               // Incluir o autocarro "vazio" se não estiver presente
-              fetch("http://94.143.231.141:3010/buses")
+              fetch("https://nunes.entriga.pt/backend/buses")
                 .then(resp => resp.json())
                 .then(allBuses => {
                   const emptyBus = allBuses.find(b => b.nome === "vazio");
@@ -50,7 +50,7 @@ const CreateTripModal = ({ isOpen, onClose, date, onTripCreated, originCountry, 
             });
       
           // Buscar cidades
-          fetch("http://94.143.231.141:3010/cities")
+          fetch("https://nunes.entriga.pt/backend/cities")
             .then(res => res.json())
             .then(data => {
               const sorted = Array.isArray(data)
@@ -147,7 +147,7 @@ if (normalize(originCountry) === "portugal") {
         };
     
         try {
-            const response = await fetch("http://94.143.231.141:3010/trips/create", {
+            const response = await fetch("https://nunes.entriga.pt/backend/trips/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newTrip),
@@ -158,7 +158,7 @@ if (normalize(originCountry) === "portugal") {
             const createdTrip = await response.json();
 
 // Ir buscar a viagem completa com dados do autocarro
-const res = await fetch(`http://94.143.231.141:3010/trips/${createdTrip.id}`);
+const res = await fetch(`https://nunes.entriga.pt/backend/trips/${createdTrip.id}`);
 const fullTrip = await res.json();
 
 onTripCreated(fullTrip);

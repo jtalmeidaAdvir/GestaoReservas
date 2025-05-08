@@ -20,7 +20,7 @@ const TripsList = () => {
     useEffect(() => {
         const fetchCities = async () => {
             try {
-                const res = await fetch("http://94.143.231.141:3010/cities");
+                const res = await fetch("https://nunes.entriga.pt/backend/cities");
                 const data = await res.json();
                 const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
                 const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -52,7 +52,7 @@ const TripsList = () => {
         ////console.log(`🔍 Buscando viagens para a data: ${selectedDate}`);
         const fetchTrips = async () => {
             try {
-                const response = await fetch(`http://94.143.231.141:3010/trips/date?date=${selectedDate}`);
+                const response = await fetch(`https://nunes.entriga.pt/backend/trips/date?date=${selectedDate}`);
                 const data = await response.json();
                 setTrips(data);
             } catch (error) {

@@ -11,7 +11,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
         if (open) {
             //console.log("🔄 Buscando autocarros disponíveis...");
     
-            fetch(`http://94.143.231.141:3010/buses/available?date=${dataviagem}`)
+            fetch(`https://nunes.entriga.pt/backend/buses/available?date=${dataviagem}`)
                 .then((response) => response.json())
                 .then((buses) => {
                     //console.log("✅ Autocarros disponíveis recebidos:", buses);
@@ -21,7 +21,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     
             //console.log(`🔄 Buscando informações do autocarro atual da viagem ${tripId}...`);
     
-            fetch(`http://94.143.231.141:3010/trips/${tripId}`)
+            fetch(`https://nunes.entriga.pt/backend/trips/${tripId}`)
                 .then((response) => response.json())
                 .then((tripData) => {
                     //console.log("🔍 Dados recebidos da API:", tripData);
@@ -33,7 +33,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
                     const busAtual = tripData.Bus;
                     //console.log("🚌 Autocarro atual:", busAtual);
     
-                    fetch(`http://94.143.231.141:3010/trips/${tripId}/available-seats`)
+                    fetch(`https://nunes.entriga.pt/backend/trips/${tripId}/available-seats`)
                         .then((response) => response.json())
                         .then((availableSeats) => {
                             if (Array.isArray(availableSeats)) {
@@ -65,7 +65,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
     
         try {
             // Buscar quantos lugares já estão ocupados no novo autocarro
-            const responseSeats = await fetch(`http://94.143.231.141:3010/trips/${busId}/available-seats`);
+            const responseSeats = await fetch(`https://nunes.entriga.pt/backend/trips/${busId}/available-seats`);
             const dataSeats = await responseSeats.json();
             let reservasNoNovoAutocarro = Array.isArray(dataSeats) ? dataSeats.length : 0;
     
@@ -91,7 +91,7 @@ const BusChangeModal = ({ open, onClose, onChangeBus, tripId, dataviagem }) => {
             }
     
             // Atualizar a viagem para o novo autocarro
-            const response = await fetch(`http://94.143.231.141:3010/buses/${tripId}/bus`, {
+            const response = await fetch(`https://nunes.entriga.pt/backend/buses/${tripId}/bus`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ busId }),
