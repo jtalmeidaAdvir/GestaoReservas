@@ -1,6 +1,6 @@
 import axios from "axios";
 //http://94.143.231.141:3010/
-const API_URL = "https://nunes.entriga.pt/backend/buses"; // Endpoint da API
+const API_URL = "https://nunes.entigra.pt/backend/buses"; // Endpoint da API
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");

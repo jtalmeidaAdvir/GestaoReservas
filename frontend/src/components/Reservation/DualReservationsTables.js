@@ -48,7 +48,7 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
     try {
       const responses = await Promise.all(
         tripIds.map((tripId) =>
-          fetch(`https://nunes.entriga.pt/backend/trips/trip/${tripId}`)
+          fetch(`https://nunes.entigra.pt/backend/trips/trip/${tripId}`)
         )
       );
       const data = await Promise.all(responses.map((res) => res.json()));
@@ -202,7 +202,7 @@ const DualReservationsTables = ({ tripIds, onReservationsUpdated }) => {
   // 6. Atualizar reserva no backend
   const updateReservationInBackend = async (updatedReservation) => {
     const response = await fetch(
-      `https://nunes.entriga.pt/backend/reservations/${updatedReservation.id}`,
+      `https://nunes.entigra.pt/backend/reservations/${updatedReservation.id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

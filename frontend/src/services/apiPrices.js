@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://nunes.entriga.pt/backend/prices"; // Endpoint da API de preços
+const API_URL = "https://nunes.entigra.pt/backend/prices"; // Endpoint da API de preços
 
 // Obter token do localStorage
 const getToken = () => localStorage.getItem("token");

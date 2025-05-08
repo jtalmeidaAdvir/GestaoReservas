@@ -50,7 +50,7 @@ async function handlePrintAllTickets(
       return;
     }
 
-    const lastTicketResponse = await fetch("https://nunes.entriga.pt/backend/reservations/lastTicket");
+    const lastTicketResponse = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket");
     if (!lastTicketResponse.ok) throw new Error("Erro ao obter último nº de bilhete.");
     const lastTicketData = await lastTicketResponse.json();
     let nextTicketNumber = parseInt(lastTicketData.bilhete, 10) + 1;

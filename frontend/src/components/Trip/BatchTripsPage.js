@@ -8,7 +8,7 @@ const BusSelect = ({ data, busId, onChange }) => {
 
   useEffect(() => {
     if (data) {
-      fetch(`https://nunes.entriga.pt/backend/buses/available?date=${data}`)
+      fetch(`https://nunes.entigra.pt/backend/buses/available?date=${data}`)
         .then((response) => response.json())
         .then((data) => {
           const activeSortedBuses = Array.isArray(data)
@@ -129,7 +129,7 @@ const CriarViagemMultiData = () => {
   const [cities, setCities] = useState([]);
 
   useEffect(() => {
-    fetch("https://nunes.entriga.pt/backend/cities")
+    fetch("https://nunes.entigra.pt/backend/cities")
       .then((response) => response.json())
       .then((data) => {
         const sortedCities = Array.isArray(data)
@@ -229,7 +229,7 @@ const CriarViagemMultiData = () => {
     try {
       const responses = await Promise.all(
         trips.map(async (trip) => {
-          const response = await fetch("https://nunes.entriga.pt/backend/trips/create", {
+          const response = await fetch("https://nunes.entigra.pt/backend/trips/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(trip),

@@ -8,7 +8,7 @@ const MoveReservationsBatchModal = ({ open, onClose, trips, onMove, selectedRese
 
     useEffect(() => {
         if (selectedTrip) {
-            fetch(`https://nunes.entriga.pt/backend/reservations/trip/${selectedTrip}`)
+            fetch(`https://nunes.entigra.pt/backend/reservations/trip/${selectedTrip}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && Array.isArray(data.freeSeats)) {

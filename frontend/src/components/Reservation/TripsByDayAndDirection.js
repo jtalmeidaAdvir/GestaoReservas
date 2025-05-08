@@ -41,7 +41,7 @@ const TripsByDayAndDirection = () => {
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        const res = await fetch("https://nunes.entriga.pt/backend/cities");
+        const res = await fetch("https://nunes.entigra.pt/backend/cities");
         const data = await res.json();
         const portugal = data.filter(c => c.isActive && c.Country?.nome === "Portugal").map(c => c.nome);
         const suica = data.filter(c => c.isActive && c.Country?.nome === "Suiça").map(c => c.nome);
@@ -75,7 +75,7 @@ const handleSearch = async () => {
 
   setLoading(true);
   try {
-    const res = await fetch(`https://nunes.entriga.pt/backend/trips/by-date?date=${selectedDate}`);
+    const res = await fetch(`https://nunes.entigra.pt/backend/trips/by-date?date=${selectedDate}`);
     if (!res.ok) throw new Error("Erro ao buscar viagens.");
 
     const tripsData = await res.json();
@@ -115,7 +115,7 @@ const handleSearch = async () => {
     const seatsMap = {};
     for (const trip of filteredTrips) {
       try {
-        const res = await fetch(`https://nunes.entriga.pt/backend/trips/${trip.id}/available-seats`);
+        const res = await fetch(`https://nunes.entigra.pt/backend/trips/${trip.id}/available-seats`);
         const availableSeats = await res.json();
         const totalSeats = trip.Bus?.nlugares || 0;
         const occupiedSeats = totalSeats - availableSeats.length;
@@ -186,7 +186,7 @@ const handleDateChange = async (e) => {
   setSelectedDate(newDate);
 
   try {
-    const res = await fetch(`https://nunes.entriga.pt/backend/trips/by-date?date=${newDate}`);
+    const res = await fetch(`https://nunes.entigra.pt/backend/trips/by-date?date=${newDate}`);
     const tripsData = await res.json();
 
     for (const trip of tripsData) {

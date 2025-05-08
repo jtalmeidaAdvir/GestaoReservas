@@ -193,7 +193,7 @@ const handlePrintAndMarkSingle = async (row) => {
 
 
     // 3) Próximo nº de bilhete
-    const resp = await fetch("https://nunes.entriga.pt/backend/reservations/lastTicket");
+    const resp = await fetch("https://nunes.entigra.pt/backend/reservations/lastTicket");
     if (!resp.ok) throw new Error("Falha a obter último nº de bilhete");
     const last = await resp.json();
     row.bilhete = String(parseInt(last.bilhete, 10) + 1).padStart(4, "0");
@@ -325,7 +325,7 @@ const handleDeletePassenger = async (row, index) => {
   try {
     // 👉 ajusta a rota se o teu ficheiro de routes usar outro path
     const resp = await fetch(
-      `https://nunes.entriga.pt/backend/reservations/delete/${row.reserva}`,
+      `https://nunes.entigra.pt/backend/reservations/delete/${row.reserva}`,
       { method: "DELETE" }
     );
 
@@ -754,7 +754,7 @@ const openReturnModal = async (reservaBase, reservaData = selectedReservation) =
   }
 
   try {
-    const res = await fetch(`https://nunes.entriga.pt/backend/trips/${tripIdReturn}/available-seats`);
+    const res = await fetch(`https://nunes.entigra.pt/backend/trips/${tripIdReturn}/available-seats`);
     const data = await res.json();
     const availableSeats = Array.isArray(data) ? data : [];
 
@@ -790,7 +790,7 @@ const openReturnModal = async (reservaBase, reservaData = selectedReservation) =
       const origem = reservation.saida; // na volta, origem é a "saida" da ida
       const destino = reservation.entrada; // na volta, destino é a "entrada" da ida
 
-      const url = `https://nunes.entriga.pt/backend/trips/return?origem=${encodeURIComponent(
+      const url = `https://nunes.entigra.pt/backend/trips/return?origem=${encodeURIComponent(
         origem
       )}&destino=${encodeURIComponent(destino)}&dataviagem=${dbFormatDate}`;
       console.log("URL de busca da viagem de regresso:", url);
@@ -811,7 +811,7 @@ const openReturnModal = async (reservaBase, reservaData = selectedReservation) =
   const fetchAvailableReturnSeats = async (tripIdReturn) => {
     try {
       const res = await fetch(
-        `https://nunes.entriga.pt/backend/trips/${tripIdReturn}/available-seats`
+        `https://nunes.entigra.pt/backend/trips/${tripIdReturn}/available-seats`
       );
       const data = await res.json();
       const formattedSeats = Array.isArray(data) ? data : [];
@@ -867,7 +867,7 @@ const handleCreateReturnTrip = async (selectedSeat, tripDate, basePassenger) => 
   };
 
   try {
-    const res = await fetch(`https://nunes.entriga.pt/backend/reservations/create`, {
+    const res = await fetch(`https://nunes.entigra.pt/backend/reservations/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -940,7 +940,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
   /* 5.  buscar lugares livres como já fazias */
   try {
     const res = await fetch(
-      `https://nunes.entriga.pt/backend/reservations/trip/${selectedTripId}`
+      `https://nunes.entigra.pt/backend/reservations/trip/${selectedTripId}`
     );
     const data  = await res.json();
     const seats = Array.isArray(data.freeSeats)
@@ -969,7 +969,7 @@ const handleTripSelect = async (selectedTripId, keepSeat = false) => {
 
   // Carrega dados iniciais: cidades, viagens, reservas, países
   useEffect(() => {
-    fetch("https://nunes.entriga.pt/backend/cities")
+    fetch("https://nunes.entigra.pt/backend/cities")
       .then((res) => res.json())
       .then((data) => {
         const sorted = Array.isArray(data)
@@ -987,7 +987,7 @@ setSaidaOptions(sorted);
 
     fetchAllReservations();
 
-    fetch("https://nunes.entriga.pt/backend/countries")
+    fetch("https://nunes.entigra.pt/backend/countries")
       .then((res) => res.json())
       .then((data) => setCountries(data))
       .catch((err) => {
@@ -995,7 +995,7 @@ setSaidaOptions(sorted);
         setCountries([]);
       });
 
-      fetch("https://nunes.entriga.pt/backend/trips")
+      fetch("https://nunes.entigra.pt/backend/trips")
       .then((res) => res.json())
       .then((data) => {
         const hoje = new Date();
@@ -1017,7 +1017,7 @@ setSaidaOptions(sorted);
 
   const fetchAllReservations = async () => {
     try {
-      const res = await fetch("https://nunes.entriga.pt/backend/reservations/all");
+      const res = await fetch("https://nunes.entigra.pt/backend/reservations/all");
       const data = await res.json();
       // Garante que cada reserva tem a propriedade tripId
       const reservationsWithTripId = data.map(r => ({
@@ -1099,7 +1099,7 @@ setSaidaOptions(sorted);
     // Gerar código de reserva caso seja nova e não tenha ponto (p. ex. "0001")
     if (!reservationData.id && (!reservaCode || reservaCode.indexOf(".") === -1)) {
       try {
-        const lastRes = await fetch("https://nunes.entriga.pt/backend/reservations/last");
+        const lastRes = await fetch("https://nunes.entigra.pt/backend/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         reservaCode = String(lastNumber + 1).padStart(4, "0");
@@ -1112,8 +1112,8 @@ setSaidaOptions(sorted);
 
     const method = reservationData.id ? "PUT" : "POST";
     const url = reservationData.id
-      ? `https://nunes.entriga.pt/backend/reservations/${reservationData.id}`
-      : "https://nunes.entriga.pt/backend/reservations/create";
+      ? `https://nunes.entigra.pt/backend/reservations/${reservationData.id}`
+      : "https://nunes.entigra.pt/backend/reservations/create";
 
     const response = await fetch(url, {
       method,
@@ -1213,7 +1213,7 @@ setSaidaOptions(sorted);
   
       // Se a reserva for nova (sem ID) e sem blockCode, geramos agora
       if (!mainReservationObj.id && !blockCode) {
-        const lastRes = await fetch("https://nunes.entriga.pt/backend/reservations/last");
+        const lastRes = await fetch("https://nunes.entigra.pt/backend/reservations/last");
         const lastData = await lastRes.json();
         const lastNumber = lastData?.reserva ? parseInt(lastData.reserva) : 0;
         blockCode = String(lastNumber + 1).padStart(4, "0");
