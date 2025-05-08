@@ -38,7 +38,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import InputMask from "react-input-mask";
 
 
-const socket = io("https://backendreservasnunes.advir.pt", {
+const socket = io("https://nunes.entriga.pt/backend", {
   transports: ["websocket"],
   path: "/socket.io/",
   reconnectionAttempts: 5,
