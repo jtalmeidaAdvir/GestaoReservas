@@ -125,7 +125,7 @@ async function handlePrintAllTickets(
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
-      pdf.text("VPL - Viagens Póvoa de Lanhoso", contentAreaX, yOffset + 8);
+      pdf.text("VPL - Viagens Póvoa de Lanhoso Lda", contentAreaX, yOffset + 8);
       pdf.addImage(logoVPL, "PNG", xOffset + ticketWidth - logoWidth - 5, yOffset + 2, logoWidth, logoHeight);
 
       pdf.setFillColor(245, 245, 245);
@@ -268,10 +268,16 @@ pdf.text(dataVoltaTexto, contentAreaX + usableWidth / 2 + fieldMargin + 5, yOffs
       pdf.setFontSize(6);
       pdf.setTextColor(80, 80, 80);
       const footerText =
-        "Linhas Regulares e Internacionais Póvoa de Lanhoso - Zurique. Licença Comunitária nº 200260 - NIF 506163016";
-      const textWidth = pdf.getTextWidth(footerText);
-      const centerX = xOffset + ticketWidth / 1.8 - textWidth / 2;
-      pdf.text(footerText, centerX, yOffset + ticketHeight - 6);
+      "Linhas Regulares e Internacionais Póvoa de Lanhoso - Zurique. Licença Comunitária nº 200260 - NIF 506163016";
+    const phoneText = "Tel: 00444981010 Tlm: 0792545839 Tel: 253730030 Tlm: 919404080";
+    
+    const textWidth = pdf.getTextWidth(footerText);
+    const phoneTextWidth = pdf.getTextWidth(phoneText);
+    
+    const centerX = xOffset + ticketWidth / 1.8;
+    
+    pdf.text(footerText, centerX - textWidth / 2, yOffset + ticketHeight - 6);
+    pdf.text(phoneText, centerX - phoneTextWidth / 2, yOffset + ticketHeight - 2); // 4 unidades abaixo
 
       if (textoExtra) {
         pdf.setFont("helvetica", "bold");
