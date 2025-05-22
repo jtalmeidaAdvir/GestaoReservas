@@ -9,7 +9,7 @@ const BusSelect = ({ data, busId, onChange }) => {
 
   useEffect(() => {
     if (data) {
-      fetch(`https://nunes.entigra.pt/backend/buses/available?date=${data}`, {
+      fetch(`https://nunes.entigra.pt/backend/buses/`, { // available?date=${data}
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`
